@@ -24,7 +24,7 @@ typedef struct  {
 
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, float dt);
 
-#define GRAV_DEFAULT 700.0f
+#define GRAV_DEFAULT 800.0f
 void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, float gravity, float dt);
 short CheckGround(comp_Transform *comp_transform, MapSection *sect);
 short CheckCeiling(comp_Transform *comp_transform, MapSection *sect);

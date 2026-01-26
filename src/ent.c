@@ -57,20 +57,20 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 	}
 
 	Vector3 extent = BoxExtent(comp_transform->bounds);
-	float radius = (extent.x + extent.z) * 0.25f;
+	float radius = extent.x * 3.75f;
 
 	float new_travel_dist = partial_dist - radius; 	
 	new_travel_dist = fmaxf(new_travel_dist, 0.0f);
 
-	comp_transform->position = Vector3Add(comp_transform->position, Vector3Scale(direction, new_travel_dist));
+	destination = Vector3Add(comp_transform->position, Vector3Scale(direction, new_travel_dist));
 }
 
 void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, float gravity, float dt) {
+	
 	comp_transform->on_ground = CheckGround(comp_transform, sect);
 
 	if(comp_transform->on_ground) {
 		comp_transform->velocity.y = 0;
-		//return;
 	}
 
 	comp_transform->velocity.y -= gravity * dt;
@@ -93,8 +93,10 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect) {
 	BvhTracePoint(ray, sect, 0, &ground_dist, &ground_point, false);
 
 	if(ground_point.y > feet_y && ground_dist <= half_height) {
-		float delta = ground_point.y - feet_y;
-		comp_transform->position.y += delta;
+		if(comp_transform->velocity.y < 0) {
+			float delta = ground_point.y - feet_y;
+			comp_transform->position.y += delta;
+		}
 
 		return 1;
 	}
@@ -115,8 +117,10 @@ short CheckCeiling(comp_Transform *comp_transform, MapSection *sect) {
 	if(ceiling_dist < head_y && ceiling_dist <= half_height) {
 		float delta = head_y - celing_point.y;
 		
-		comp_transform->position.y -= delta;
-		comp_transform->velocity.y *= -0.95f; 
+		if(comp_transform->velocity.y > 0) {
+			comp_transform->position.y -= delta;
+			comp_transform->velocity.y *= -0.5f; 
+		}
 		
 		return 1;
 	}

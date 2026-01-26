@@ -6,7 +6,8 @@
 #include "geo.h"
 
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
-#define PLAYER_SPEED 100.0f
+#define PLAYER_SPEED 30.0f
+#define PLAYER_MAX_VEL 2.5f
 
 Camera3D *ptr_cam;
 InputHandler *ptr_input;
@@ -35,7 +36,24 @@ void PlayerUpdate(Entity *player, float dt) {
 
 	PlayerInput(player, ptr_input, dt);
 
+	player->comp_transform.velocity.x = Lerp(player->comp_transform.velocity.x, 0, 16.85f * dt);
+	if(fabsf(player->comp_transform.velocity.x) <= EPSILON) player->comp_transform.velocity.x = 0;
+
+	player->comp_transform.velocity.z = Lerp(player->comp_transform.velocity.z, 0, 16.85f * dt);
+	if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
+
+	player->comp_transform.velocity.x = Clamp(player->comp_transform.velocity.x, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
+	player->comp_transform.velocity.z = Clamp(player->comp_transform.velocity.z, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
+
+	Vector3 horizontal_velocity = (Vector3) { player->comp_transform.velocity.x, 0, player->comp_transform.velocity.z };
+	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);	
+
+	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, dt);
 	ApplyGravity(&player->comp_transform, ptr_sect, GRAV_DEFAULT, dt);
+
+	ptr_cam->position = player->comp_transform.position;
+	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
+
 }
 
 void PlayerDraw(Entity *player) {
@@ -80,14 +98,25 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	movement = Vector3Normalize(movement);
 	movement = Vector3Scale(movement, PLAYER_SPEED * dt);
 
-	Vector3 wish_point = Vector3Add(player->comp_transform.position, movement);	
-	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, dt);
+	player->comp_transform.velocity = Vector3Add(player->comp_transform.velocity, movement);
 
-	ptr_cam->position = player->comp_transform.position;
-	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
+	/*
+	if(movement.x == 0) {
+		//player->comp_transform.velocity.x += -player->comp_transform.velocity.x * 50.0f * dt;
+		player->comp_transform.velocity.x *= 0.9999f * dt;
+		if(fabsf(player->comp_transform.velocity.x) <= EPSILON) player->comp_transform.velocity.x = 0;
+	}
+
+	if(movement.z == 0) {
+		//player->comp_transform.velocity.z += -player->comp_transform.velocity.z * 50.0f * dt;
+		player->comp_transform.velocity.z *= 0.9999f * dt;
+		if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
+	}
+	*/
+
 
 	if(input->actions[ACTION_JUMP].state == INPUT_ACTION_PRESSED) {
-		if(CheckGround(&player->comp_transform, ptr_sect)) {
+		if(CheckGround(&player->comp_transform, ptr_sect) && !CheckCeiling(&player->comp_transform, ptr_sect)) {
 			player->comp_transform.position.y++;	
 			player->comp_transform.on_ground = false;
 			player->comp_transform.velocity.y = 200;

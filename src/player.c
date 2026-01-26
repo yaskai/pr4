@@ -37,10 +37,12 @@ void PlayerUpdate(Entity *player, float dt) {
 
 	PlayerInput(player, ptr_input, dt);
 
-	player->comp_transform.velocity.x = Lerp(player->comp_transform.velocity.x, 0, 16.85f * dt);
+	///player->comp_transform.velocity.x = Lerp(player->comp_transform.velocity.x, 0, 16.85f * dt);
+	player->comp_transform.velocity.x += -player->comp_transform.velocity.x * 6.0f * dt;
 	if(fabsf(player->comp_transform.velocity.x) <= EPSILON) player->comp_transform.velocity.x = 0;
 
-	player->comp_transform.velocity.z = Lerp(player->comp_transform.velocity.z, 0, 16.85f * dt);
+	///player->comp_transform.velocity.z = Lerp(player->comp_transform.velocity.z, 0, 16.85f * dt);
+	player->comp_transform.velocity.z += -player->comp_transform.velocity.z * 6.0f * dt;
 	if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
 
 	player->comp_transform.velocity.x = Clamp(player->comp_transform.velocity.x, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
@@ -101,6 +103,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 
 	player->comp_transform.velocity = Vector3Add(player->comp_transform.velocity, movement);
 
+	/*
 	if(movement.x == 0) {
 		//player->comp_transform.velocity.x += -player->comp_transform.velocity.x * 50.0f * dt;
 		player->comp_transform.velocity.x *= 0.9999f * dt;
@@ -112,7 +115,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 		player->comp_transform.velocity.z *= 0.9999f * dt;
 		if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
 	}
-
+	*/
 
 	if(input->actions[ACTION_JUMP].state == INPUT_ACTION_PRESSED) {
 		if(CheckGround(&player->comp_transform, ptr_sect) && !CheckCeiling(&player->comp_transform, ptr_sect)) {

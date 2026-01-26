@@ -25,20 +25,19 @@ UpdateFunc update_fn[4] = {
 	NULL
 };
 
+typedef void(*DrawFunc)(Entity *ent);
+DrawFunc draw_fn[4] = {
+	&PlayerDraw,
+	NULL,
+	NULL,
+	NULL
+};
+
 void EntHandlerInit(EntityHandler *handler) {
 	handler->count = 0;
 	handler->capacity = 128;
 	handler->ents = calloc(handler->capacity, sizeof(Entity));
 
-	Entity player = (Entity) {
-		.comp_transform = (comp_Transform) {0},
-		.comp_health = (comp_Health) {0},
-		.comp_weapon = (comp_Weapon) {0},
-		.behavior_id = 0,
-		.flags = (ENT_ACTIVE)
-	};
-
-	handler->ents[handler->count++] = player;
 }
 
 void EntHandlerClose(EntityHandler *handler) {
@@ -55,5 +54,12 @@ void UpdateEntities(EntityHandler *handler, float dt) {
 }
 
 void RenderEntities(EntityHandler *handler) {
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];
+
+		if(draw_fn[ent->behavior_id])	
+			draw_fn[ent->behavior_id](ent);
+	}
+
 }
 

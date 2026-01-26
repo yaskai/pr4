@@ -334,6 +334,7 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 		.child_lft = 0, 
 		.child_rgt = 0
 	};
+	node->child_lft = child_lft;
 
 	bvh->nodes[child_rgt] = (BvhNode) {
 		.first_tri = i,
@@ -341,6 +342,7 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 		.child_lft = 0,
 		.child_rgt = 0
 	};
+	node->child_rgt = child_rgt;
 
 	// Remove tris from parent node
 	node->tri_count = 0;
@@ -361,7 +363,6 @@ void MapSectionInit(MapSection *sect, Model model) {
 	sect->tris = ModelToTris(model, &sect->tri_count, &sect->tri_ids);
 
 	BvhConstruct(sect);
-
 	sect->flags = (MAP_SECT_LOADED);
 }
 
@@ -375,5 +376,32 @@ void MapSectionClose(MapSection *sect) {
 
 	BvhClose(&sect->bvh);	
 	UnloadModel(sect->model);	
+}
+
+// Trace a point through world space
+void BvhTracePoint(Ray ray, MapSection *sect, u16 node_id, float smallest_dist, Vector3 *point) {
+	BvhNode *node = &sect->bvh.nodes[node_id];
+
+	RayCollision coll = GetRayCollisionBox(ray, node->bounds);	
+	if(!coll.hit) return;
+
+	for(u16 i = 0; i < node->tri_count; i++) {
+		u16 tri_id = sect->tri_ids[node->first_tri + i];
+		Tri *tri = &sect->tris[tri_id];
+
+		coll = GetRayCollisionTriangle(ray, tri->vertices[0], tri->vertices[1], tri->vertices[2]);
+		if(!coll.hit) continue;
+
+		if(coll.distance < smallest_dist) {
+			smallest_dist = coll.distance;
+			*point = coll.point;
+		}
+	}
+
+	bool leaf = (node->tri_count > 0);
+	if(leaf) return;
+
+	BvhTracePoint(ray, sect, node->child_lft, smallest_dist, point);
+	BvhTracePoint(ray, sect, node->child_rgt, smallest_dist, point);
 }
 

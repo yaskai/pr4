@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "../include/num_redefs.h"
 #include "input_handler.h"
+#include "geo.h"
 
 #ifndef ENT_H_
 #define ENT_H_
@@ -84,8 +85,10 @@ void EntHandlerClose(EntityHandler *handler);
 void UpdateEntities(EntityHandler *handler, float dt);
 void RenderEntities(EntityHandler *handler);
 
-void PlayerInit(Camera3D *camera, InputHandler *input);
+void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section);
+
 void PlayerUpdate(Entity *player, float dt);
+void PlayerDraw(Entity *player);
 
 void PlayerDamage(Entity *player, short amount);
 void PlayerDie(Entity *player);

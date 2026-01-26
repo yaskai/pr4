@@ -117,4 +117,7 @@ void MapSectionInit(MapSection *sect, Model model);
 // Unload map section data
 void MapSectionClose(MapSection *sect);
 
+// Trace a point through world space
+void BvhTracePoint(Ray ray, MapSection *sect, u16 node_id, float smallest_dist, Vector3 *point);
+
 #endif

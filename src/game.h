@@ -17,10 +17,12 @@ typedef struct {
 
 	RenderTexture2D render_target3D;
 	RenderTexture2D render_target2D;
+	RenderTexture2D render_target_debug;
 
 	InputHandler input_handler;
 
 	Camera3D camera;
+	Camera3D camera_debug;
 
 	Config *conf;
 

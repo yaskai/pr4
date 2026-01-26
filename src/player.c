@@ -6,8 +6,8 @@
 #include "geo.h"
 
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
-#define PLAYER_SPEED 30.0f
-#define PLAYER_MAX_VEL 1.85f
+#define PLAYER_SPEED 900.0f
+#define PLAYER_MAX_VEL 300.85f
 #define PLAYER_MAX_ACCEL 2.0f;
 
 Camera3D *ptr_cam;
@@ -37,11 +37,9 @@ void PlayerUpdate(Entity *player, float dt) {
 
 	PlayerInput(player, ptr_input, dt);
 
-	///player->comp_transform.velocity.x = Lerp(player->comp_transform.velocity.x, 0, 16.85f * dt);
 	player->comp_transform.velocity.x += -player->comp_transform.velocity.x * 6.0f * dt;
 	if(fabsf(player->comp_transform.velocity.x) <= EPSILON) player->comp_transform.velocity.x = 0;
 
-	///player->comp_transform.velocity.z = Lerp(player->comp_transform.velocity.z, 0, 16.85f * dt);
 	player->comp_transform.velocity.z += -player->comp_transform.velocity.z * 6.0f * dt;
 	if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
 
@@ -101,21 +99,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	movement = Vector3Normalize(movement);
 	movement = Vector3Scale(movement, PLAYER_SPEED * dt);
 
-	player->comp_transform.velocity = Vector3Add(player->comp_transform.velocity, movement);
-
-	/*
-	if(movement.x == 0) {
-		//player->comp_transform.velocity.x += -player->comp_transform.velocity.x * 50.0f * dt;
-		player->comp_transform.velocity.x *= 0.9999f * dt;
-		if(fabsf(player->comp_transform.velocity.x) <= EPSILON) player->comp_transform.velocity.x = 0;
-	}
-
-	if(movement.z == 0) {
-		//player->comp_transform.velocity.z += -player->comp_transform.velocity.z * 50.0f * dt;
-		player->comp_transform.velocity.z *= 0.9999f * dt;
-		if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
-	}
-	*/
+	player->comp_transform.velocity = Vector3Add(player->comp_transform.velocity, Vector3Scale(movement, dt));
 
 	if(input->actions[ACTION_JUMP].state == INPUT_ACTION_PRESSED) {
 		if(CheckGround(&player->comp_transform, ptr_sect) && !CheckCeiling(&player->comp_transform, ptr_sect)) {
@@ -141,7 +125,7 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	player_debug_data.view_length = FLT_MAX;
 	BvhTracePoint(view_ray, ptr_sect, 0, &player_debug_data.view_length, &player_debug_data.view_dest, false);	
 
-	DrawLine3D(player->comp_transform.position, player_debug_data.view_dest, GREEN);
-	DrawSphere(player_debug_data.view_dest, 4, GREEN);
+	//DrawLine3D(player->comp_transform.position, player_debug_data.view_dest, GREEN);
+	//DrawSphere(player_debug_data.view_dest, 4, GREEN);
 }
 

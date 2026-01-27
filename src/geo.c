@@ -118,12 +118,9 @@ Tri *MeshToTris(Mesh mesh, u16 *tri_count) {
 	u16 count = mesh.triangleCount;
 	*tri_count = count;
 	
-	// Create array
+	// Create and populate array
 	Tri *tris = calloc(count, sizeof(Tri));
-
-	// Populate array
 	for(u16 i = 0; i < count; i++) {
-		// Create empty tri
 		Tri tri = (Tri) {0};
 
 		// Get mesh indices

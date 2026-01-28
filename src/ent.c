@@ -39,28 +39,38 @@ DrawFunc draw_fn[4] = {
 };
 
 #define MAX_CLIPS 3
+#define SLIDE_STEPS 4
 
-void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, float dt) {
-	BoundingBox box = comp_transform->bounds;
-	Vector3 box_center = BoxCenter(box);
+void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
+	Vector3 start = comp_transform->position;
 
-	// Get direction and distance of full movement
-	Vector3 move_dir = Vector3Subtract(wish_point, comp_transform->position);
+	Vector3 move_dir = Vector3Subtract(wish_point, start);
 	float move_len = Vector3Length(move_dir);
 	move_dir = Vector3Normalize(move_dir);
 
-	if(move_len <= EPSILON)
-		return;
-
-	// Sweep box
-	Ray ray = { .position = box_center, .direction = move_dir };
 	BvhTraceData tr = TraceDataEmpty();
-	BoundingBox sweep_box = BoxTranslate(box, wish_point);
-	BvhBoxSweep(ray, sect, 0, &sweep_box, &tr);
+	Ray ray = (Ray) { .position = start, .direction = move_dir };
+	BvhTracePointEx(ray, sect, bvh, 0, false, &tr);
+
+	if(!tr.hit || tr.distance > move_len) {
+		comp_transform->position = wish_point;
+		return;
+	}
+
+	Vector3 pos = start;
+	float allowed = Vector3Distance(start, tr.point);
+	Vector3 travel = Vector3Scale(move_dir, allowed);
+
+	for(short i = 0; i < SLIDE_STEPS; i++) {
+			
+		if(Vector3Length(travel) <= EPSILON)
+			break;
+
+	}
 }
 
-void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, float gravity, float dt) {
-	comp_transform->on_ground = CheckGround(comp_transform, sect);
+void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt) {
+	comp_transform->on_ground = CheckGround(comp_transform, sect, bvh);
 
 	if(comp_transform->on_ground) {
 		comp_transform->velocity.y = 0;
@@ -70,9 +80,9 @@ void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, float gravit
 	comp_transform->position.y += comp_transform->velocity.y * dt;
 }
 
-short CheckGround(comp_Transform *comp_transform, MapSection *sect) {
+short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh) {
 	if(comp_transform->velocity.y > 0) {
-		CheckCeiling(comp_transform, sect);
+		CheckCeiling(comp_transform, sect, bvh);
 		return 0;
 	}
 
@@ -83,7 +93,7 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect) {
 
 	Vector3 ground_point = ray.position;
 	float ground_dist = FLT_MAX;
-	BvhTracePoint(ray, sect, 0, &ground_dist, &ground_point, false);
+	BvhTracePoint(ray, sect, bvh, 0, &ground_dist, &ground_point, false);
 
 	if(ground_point.y > feet_y && ground_dist <= half_height) {
 		if(comp_transform->velocity.y < 0) {
@@ -97,7 +107,7 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect) {
 	return 0;
 }
 
-short CheckCeiling(comp_Transform *comp_transform, MapSection *sect) {
+short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh) {
 	float half_height = BoxExtent(comp_transform->bounds).y * 0.5f;
 	float head_y = BoxCenter(comp_transform->bounds).y + half_height;
 
@@ -105,7 +115,7 @@ short CheckCeiling(comp_Transform *comp_transform, MapSection *sect) {
 
 	Vector3 celing_point = ray.position;
 	float ceiling_dist = FLT_MAX;
-	BvhTracePoint(ray, sect, 0, &ceiling_dist, &celing_point, false);
+	BvhTracePoint(ray, sect, bvh, 0, &ceiling_dist, &celing_point, false);
 
 	if(ceiling_dist < head_y && ceiling_dist <= half_height) {
 		float delta = head_y - celing_point.y;

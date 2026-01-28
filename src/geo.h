@@ -114,8 +114,14 @@ typedef struct {
 	// Node array
 	BvhNode *nodes;
 
+	u16 *tri_ids;
+
+	Vector3 fit_volume;
+
 	u16 count;
 	u16 capacity;
+
+	short use_fit_volume;	
 
 } BvhTree;
 
@@ -123,7 +129,7 @@ typedef struct {
 #define MAP_SECT_QUEUED	0x02
 
 typedef struct {
-	BvhTree bvh;
+	BvhTree bvh[3];
 
 	Model model;
 
@@ -141,14 +147,16 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
+#define VOLUME_MEDIUM (Vector3) { 10, 20, 10 }
+
 // Start BVH tree construction
-void BvhConstruct(MapSection *sect);
+void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume);
 
 // Unload BVH tree
 void BvhClose(BvhTree *bvh);
 
 // Compute optimal axis and position for node subdivision  
-float FindBestSplit(MapSection *sect, BvhNode *node, short *axis, float *split_pos);
+float FindBestSplit(MapSection *sect, BvhTree *Bvh, BvhNode *node, short *axis, float *split_pos);
 
 // Recursively split BVH nodes 
 void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id);
@@ -179,12 +187,12 @@ typedef struct {
 
 BvhTraceData TraceDataEmpty();
 
-void BvhTraceNodes(Ray ray, MapSection *sect, u16 node_id, float smallest_dist, BvhNode *node_hit);
+void BvhTraceNodes(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float smallest_dist, BvhNode *node_hit);
 
 // Trace a point through world space
-void BvhTracePoint(Ray ray, MapSection *sect, u16 node_id, float *smallest_dist, Vector3 *point, bool skip_root);
+void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *smallest_dist, Vector3 *point, bool skip_root);
 
-void BvhTracePointEx(Ray ray, MapSection *sect, u16 node_id, bool skip_root, BvhTraceData *data);
+void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool skip_root, BvhTraceData *data);
 
 void BvhBoxSweep(Ray ray, MapSection *sect, u16 node_id, BoundingBox *box, BvhTraceData *data);
 

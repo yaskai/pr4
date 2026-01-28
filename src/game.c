@@ -129,11 +129,84 @@ void GameDraw(Game *game) {
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
 
-			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
+			//DrawBoundingBox(game->test_section.bvh[0].nodes[0].bounds, WHITE);
+			//DrawBoundingBox(game->test_section.bvh[1].nodes[0].bounds, ORANGE);
 
 			/*
-			for(u16 i = 0; i < game->test_section.bvh.count; i++) {
-				BvhNode *node = &game->test_section.bvh.nodes[i];
+			for(u16 i = 0; i < game->test_section.bvh[0].count; i++) {
+				BvhNode *node = &game->test_section.bvh[0].nodes[i];
+
+				bool is_leaf = node->tri_count > 0;
+				if(!is_leaf) continue;
+
+				DrawBoundingBox(node->bounds, GREEN);
+
+				for(u16 j = 0; j < node->tri_count; j++) {
+					u16 tri_id = game->test_section.bvh[0].tri_ids[node->first_tri + j];
+					Tri tri = game->test_section.tris[tri_id];
+
+					Color color = colors[tri_id % 6];
+					DrawTriangle3D(tri.vertices[0], tri.vertices[1], tri.vertices[2], ColorAlpha(color, 0.5f));
+					DrawLine3D(tri.vertices[2], tri.vertices[0], BLACK);
+					DrawLine3D(tri.vertices[1], tri.vertices[0], BLACK);
+					DrawLine3D(tri.vertices[0], tri.vertices[2], BLACK);
+				}
+			}
+			*/
+
+			/*
+			for(u16 i = 0; i < game->test_section.bvh[1].count; i++) {
+				BvhNode *node = &game->test_section.bvh[1].nodes[i];
+
+				bool is_leaf = node->tri_count > 0;
+				if(!is_leaf) continue;
+
+				DrawBoundingBox(node->bounds, SKYBLUE);
+
+				for(u16 j = 0; j < node->tri_count; j++) {
+					u16 tri_id = game->test_section.bvh[1].tri_ids[node->first_tri + j];
+					Tri tri = game->test_section.tris[tri_id];
+
+					if(game->test_section.bvh[1].use_fit_volume) {
+						Vector3 h = Vector3Scale(game->test_section.bvh[1].fit_volume, 0.5f);
+
+						Vector3 extend = (Vector3) {
+							fabsf(tri.normal.x) * h.x, 
+							fabsf(tri.normal.y) * h.y, 
+							fabsf(tri.normal.z) * h.z 
+						};
+
+						tri = TriTranslate(tri, extend);
+					}
+
+					Color color = colors[tri_id % 6];
+
+					//DrawTriangle3D(tri.vertices[0], tri.vertices[1], tri.vertices[2], ColorAlpha(color, 0.5f));
+					
+					//DrawLine3D(tri->vertices[2], tri->vertices[0], BLACK);
+					//DrawLine3D(tri->vertices[1], tri->vertices[0], BLACK);
+					//DrawLine3D(tri->vertices[0], tri->vertices[2], BLACK);
+				}
+			}
+			*/
+			RenderEntities(&game->ent_handler);
+
+		EndMode3D();
+	EndTextureMode();
+	
+	// 3D Rendering, debug
+	BeginTextureMode(game->render_target_debug);
+	ClearBackground(ColorAlpha(BLACK, 0.85f));
+		BeginMode3D(game->camera_debug);
+			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 0.1f));
+			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
+			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
+
+			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
+
+			/*
+			for(u16 i = 0; i < game->test_section.bvh[1].count; i++) {
+				BvhNode *node = &game->test_section.bvh[1].nodes[i];
 
 				bool is_leaf = node->tri_count > 0;
 				if(!is_leaf) continue;
@@ -145,29 +218,14 @@ void GameDraw(Game *game) {
 					u16 tri_id = node->first_tri + j;
 					Tri *tri = &game->test_section.tris[tri_id];
 
-					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], color);
+					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.5f));
 					
-					DrawLine3D(tri->vertices[2], tri->vertices[0], BLACK);
-					DrawLine3D(tri->vertices[1], tri->vertices[0], BLACK);
-					DrawLine3D(tri->vertices[0], tri->vertices[2], BLACK);
+					//DrawLine3D(tri->vertices[2], tri->vertices[0], BLACK);
+					//DrawLine3D(tri->vertices[1], tri->vertices[0], BLACK);
+					//DrawLine3D(tri->vertices[0], tri->vertices[2], BLACK);
 				}
 			}
 			*/
-
-			RenderEntities(&game->ent_handler);
-
-		EndMode3D();
-	EndTextureMode();
-	
-	// 3D Rendering, debug
-	BeginTextureMode(game->render_target_debug);
-	ClearBackground(ColorAlpha(BLACK, 0.85f));
-		BeginMode3D(game->camera_debug);
-			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 0.1f));
-			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
-			DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
-
-			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 
 		EndMode3D();
 

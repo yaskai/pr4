@@ -98,7 +98,7 @@ void GameLoadTestScene(Game *game, char *path) {
 		.flags = (ENT_ACTIVE)
 	};
 
-	player.comp_transform.bounds.max = (Vector3) { PLAYER_BOX_LENGTH, PLAYER_BOX_HEIGHT, PLAYER_BOX_LENGTH };
+	player.comp_transform.bounds.max = BODY_VOLUME_MEDIUM;
 	player.comp_transform.bounds.min = Vector3Scale(player.comp_transform.bounds.max, -1);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
 	player.comp_transform.position.y = 30;

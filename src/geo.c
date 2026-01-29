@@ -542,7 +542,7 @@ void MapSectionInit(MapSection *sect, Model model) {
 	sect->tris = ModelToTris(model, &sect->tri_count, &sect->tri_ids);
 
 	BvhConstruct(sect, &sect->bvh[0], Vector3Zero());
-	BvhConstruct(sect, &sect->bvh[1], VOLUME_MEDIUM);
+	BvhConstruct(sect, &sect->bvh[1], BODY_VOLUME_MEDIUM);
 
 	sect->flags = (MAP_SECT_LOADED);
 }
@@ -658,7 +658,6 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 	};
 
 	for(u16 i = 0; i < node->tri_count; i++) {
-		//u16 tri_id = sect->tri_ids[node->first_tri + i];
 		u16 tri_id = bvh->tri_ids[node->first_tri + i];
 		Tri tri = sect->tris[tri_id];
 

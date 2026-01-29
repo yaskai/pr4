@@ -96,9 +96,6 @@ void EntHandlerClose(EntityHandler *handler);
 void UpdateEntities(EntityHandler *handler, float dt);
 void RenderEntities(EntityHandler *handler);
 
-#define PLAYER_BOX_LENGTH	10
-#define PLAYER_BOX_HEIGHT	20
-
 typedef struct {
 	BoundingBox sweep_box;
 

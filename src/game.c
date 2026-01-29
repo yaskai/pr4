@@ -123,8 +123,8 @@ void GameDraw(Game *game) {
 	ClearBackground(BLACK);
 		BeginMode3D(game->camera);
 
-			DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
-			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
+			//DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
+			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
 
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
@@ -132,27 +132,25 @@ void GameDraw(Game *game) {
 			//DrawBoundingBox(game->test_section.bvh[0].nodes[0].bounds, WHITE);
 			//DrawBoundingBox(game->test_section.bvh[1].nodes[0].bounds, ORANGE);
 
-			/*
 			for(u16 i = 0; i < game->test_section.bvh[0].count; i++) {
 				BvhNode *node = &game->test_section.bvh[0].nodes[i];
 
 				bool is_leaf = node->tri_count > 0;
 				if(!is_leaf) continue;
 
-				DrawBoundingBox(node->bounds, GREEN);
+				//DrawBoundingBox(node->bounds, GREEN);
 
 				for(u16 j = 0; j < node->tri_count; j++) {
 					u16 tri_id = game->test_section.bvh[0].tri_ids[node->first_tri + j];
 					Tri tri = game->test_section.tris[tri_id];
 
 					Color color = colors[tri_id % 6];
-					DrawTriangle3D(tri.vertices[0], tri.vertices[1], tri.vertices[2], ColorAlpha(color, 0.5f));
-					DrawLine3D(tri.vertices[2], tri.vertices[0], BLACK);
-					DrawLine3D(tri.vertices[1], tri.vertices[0], BLACK);
-					DrawLine3D(tri.vertices[0], tri.vertices[2], BLACK);
+					DrawTriangle3D(tri.vertices[0], tri.vertices[1], tri.vertices[2], ColorAlpha(color, 1.0f));
+					//DrawLine3D(tri.vertices[2], tri.vertices[0], BLACK);
+					//DrawLine3D(tri.vertices[1], tri.vertices[0], BLACK);
+					//DrawLine3D(tri.vertices[0], tri.vertices[2], BLACK);
 				}
 			}
-			*/
 
 			/*
 			for(u16 i = 0; i < game->test_section.bvh[1].count; i++) {

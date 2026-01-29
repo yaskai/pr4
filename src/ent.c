@@ -60,7 +60,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 
 		tr = (tr1.distance <= tr0.distance) ? tr1 : tr0;
 
-		if(!tr.hit || tr.distance > Vector3Length(wish_move) + 0.1f) {
+		if(!tr.hit || tr.distance > Vector3Length(wish_move)) {
 			pos = Vector3Add(pos, vel);
 			break;
 		}
@@ -68,7 +68,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		float allowed = (tr.distance - 0.1f);
 		pos = Vector3Add(pos, Vector3Scale(ray.direction, allowed));
 
-		if(clip_count + 1 < MAX_CLIPS)
+		if(clip_count < MAX_CLIPS)
 			clips[clip_count++] = tr.normal;
 
 		vel = wish_move;
@@ -88,12 +88,12 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt) {
 	comp_transform->on_ground = CheckGround(comp_transform, sect, bvh);
 
-	if(comp_transform->on_ground) {
-		comp_transform->velocity.y = 0;
-	}
-
 	comp_transform->velocity.y -= gravity * dt;
 	comp_transform->position.y += comp_transform->velocity.y * dt;
+
+	if(comp_transform->on_ground && fabsf(comp_transform->velocity.y) >= EPSILON) {
+		comp_transform->velocity.y = 0;
+	}
 }
 
 short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh) {
@@ -112,12 +112,11 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 	BvhTracePoint(ray, sect, bvh, 0, &ground_dist, &ground_point, false);
 
 	if(ground_point.y > feet_y && ground_dist <= half_height) {
-		if(comp_transform->velocity.y < 0) {
+		if(comp_transform->velocity.y <= 0) {
 			float delta = ground_point.y - feet_y;
-			comp_transform->position.y += delta;
+			comp_transform->position.y = roundf(ray.position.y + delta);
+			return 1;
 		}
-
-		return 1;
 	}
 	
 	return 0;

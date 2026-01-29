@@ -1,5 +1,6 @@
 #include <math.h>
 #include <float.h>
+#include <stdio.h>
 #include "raylib.h"
 #include "raymath.h"
 #include "ent.h"
@@ -102,23 +103,18 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 
 	if(input->actions[ACTION_MOVE_UP].state == INPUT_ACTION_DOWN)
 		move_forward = Vector3Add(move_forward, player->comp_transform.forward);
-		//movement = Vector3Add(movement, player->comp_transform.forward);
 
 	if(input->actions[ACTION_MOVE_DOWN].state == INPUT_ACTION_DOWN)	
 		move_forward = Vector3Subtract(move_forward, player->comp_transform.forward);
-		//movement = Vector3Subtract(movement, Vector3Scale(player->comp_transform.forward, 1));
 
 	if(input->actions[ACTION_MOVE_RIGHT].state == INPUT_ACTION_DOWN)
 		move_side = Vector3Add(move_side, Vector3Scale(right, 1));
-		//movement = Vector3Add(movement, Vector3Scale(right, 1));
 
 	if(input->actions[ACTION_MOVE_LEFT].state == INPUT_ACTION_DOWN)	
 		move_side = Vector3Subtract(move_side, Vector3Scale(right, 1));
-		//movement = Vector3Subtract(movement, Vector3Scale(right, 1));
 	
-	movement.y = 0;
-	//movement = Vector3Normalize(movement);
-	//movement = Vector3Scale(movement, PLAYER_SPEED * dt);
+	move_forward = Vector3Normalize( (Vector3) { move_forward.x, 0, move_forward.z } );
+	move_side = Vector3Normalize( (Vector3) { move_side.x, 0, move_side.z } );
 	movement = Vector3Normalize(Vector3Add(move_forward, move_side));
 
 	float t = GetTime();

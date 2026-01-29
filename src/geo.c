@@ -356,17 +356,6 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume) {
 	for(u16 i = 0; i < sect->tri_count; i++) {
 		Tri tri = sect->tris[bvh->tri_ids[i]];
 
-		/*
-		if(bvh->use_fit_volume) {
-			float diff = (
-				fabsf(tri.normal.x) * h.x +
-				fabsf(tri.normal.y) * h.y +
-				fabsf(tri.normal.z) * h.z );
-
-			tri = TriTranslate(tri, Vector3Scale(tri.normal, diff));		
-		}
-		*/
-
 		for(short j = 0; j < 3; j++) {
 			root.bounds = BoxExpandToPoint(root.bounds, tri.vertices[j]);
 		}
@@ -404,22 +393,7 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 		float vmin = FLT_MAX, vmax = -FLT_MAX;
 
 		for(u16 i = 0; i < node->tri_count; i++) {
-			//Tri tri = sect->tris[sect->tri_ids[node->first_tri + i]];
 			Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
-
-			/*
-			if(bvh->use_fit_volume) {
-				Vector3 h = Vector3Scale(bvh->fit_volume, 0.5f);
-
-				float diff = (
-					fabsf(tri.normal.x) * h.x + 
-					fabsf(tri.normal.y) * h.y + 
-					fabsf(tri.normal.z) * h.z ); 
-
-				tri = TriTranslate(tri, Vector3Scale(tri.normal, diff));
-			}
-			*/
-
 			float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 			vmin = fminf(vmin, centroid.v[a]);
@@ -434,22 +408,7 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 		float scale = BVH_BIN_COUNT / (vmax - vmin);
 
 		for(u16 i = 0; i < node->tri_count; i++) {
-			//Tri tri = sect->tris[sect->tri_ids[node->first_tri + i]];
 			Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
-
-			/*
-			if(bvh->use_fit_volume) {
-				Vector3 h = Vector3Scale(bvh->fit_volume, 0.5f);
-
-				float diff = (
-					fabsf(tri.normal.x) * h.x + 
-					fabsf(tri.normal.y) * h.y + 
-					fabsf(tri.normal.z) * h.z ); 
-
-				tri = TriTranslate(tri, Vector3Scale(tri.normal, diff));
-			}
-			*/
-
 			float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 			int bin_id = fmin(BVH_BIN_COUNT - 1, (int)((centroid.v[a] - vmin) * scale));
@@ -525,26 +484,10 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	u16 i = node->first_tri;
 	u16 j = i + node->tri_count - 1;
 	while(i <= j) {
-		//Tri tri = sect->tris[sect->tri_ids[i]];
 		Tri tri = sect->tris[bvh->tri_ids[i]];
-
-		/*
-		if(bvh->use_fit_volume) {
-			Vector3 h = Vector3Scale(bvh->fit_volume, 0.5f);
-
-			float diff = (
-				fabsf(tri.normal.x) * h.x +
-				fabsf(tri.normal.y) * h.y +
-				fabsf(tri.normal.z) * h.z );
-
-			tri = TriTranslate(tri, Vector3Scale(tri.normal, diff));		
-		}
-		*/
-
 		float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 		if(centroid.v[split_axis] < split_pos) i++;
-		//else SwapTriIds(&sect->tri_ids[i], &sect->tri_ids[j--]);
 		else SwapTriIds(&bvh->tri_ids[i], &bvh->tri_ids[j--]);
 	}
 
@@ -719,15 +662,11 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 		u16 tri_id = bvh->tri_ids[node->first_tri + i];
 		Tri tri = sect->tris[tri_id];
 
-		//if(Vector3DotProduct(tri.normal, ray.direction) > 0) continue;
+		if(Vector3DotProduct(tri.normal, ray.direction) > 0) tri.normal = Vector3Negate(tri.normal);
 
 		if(bvh->use_fit_volume) {
 			Vector3 h = Vector3Scale(bvh->fit_volume, 0.5f);
-
-			float diff = (
-				fabsf(tri.normal.x) * h.x + 
-				fabsf(tri.normal.y) * h.y + 
-				fabsf(tri.normal.z) * h.z ); 
+			float diff = ( fabsf(tri.normal.x) * h.x +  fabsf(tri.normal.y) * h.y + fabsf(tri.normal.z) * h.z ); 
 
 			tri = TriTranslate(tri, Vector3Scale(tri.normal, diff));
 		}
@@ -737,7 +676,7 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 
 		if(coll.distance < data->distance) {
 			data->point = coll.point;
-			data->normal = tri.normal;
+			data->normal = coll.normal;
 			data->distance = coll.distance;
 			data->tri_id = tri_id;
 			data->node_id = node_id;

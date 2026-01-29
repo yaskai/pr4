@@ -38,51 +38,48 @@ DrawFunc draw_fn[4] = {
 	NULL
 };
 
-#define MAX_CLIPS 3
+#define MAX_CLIPS 6
 #define SLIDE_STEPS 4
 
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
-	Vector3 start = comp_transform->position;
+	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
+	Vector3 pos = comp_transform->position;
+	Vector3 vel = wish_move;
 
-	Vector3 move_dir = Vector3Subtract(wish_point, start);
-	Vector3 move = move_dir;
-	float move_len = Vector3Length(move_dir);
-	move_dir = Vector3Normalize(move_dir);
-	Vector3 pos = start;
-
-	Vector3 clip[MAX_CLIPS];
-	u8 clip_count = 0;
+	Vector3 clips[MAX_CLIPS] = {0};
+	short clip_count = 0;
 
 	for(short i = 0; i < SLIDE_STEPS; i++) {
-		move_dir = Vector3Normalize(move);
-		move_len = Vector3Length(move);
-
-		if(move_len <= EPSILON)
-			break;
+		Ray ray = (Ray) { .position = pos, .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
-		Ray ray = (Ray) { .position = start, .direction = move_dir };
-		BvhTracePointEx(ray, sect, &sect->bvh[0], 0, false, &tr);
+		BvhTraceData tr0 = tr, tr1 = tr;
 
-		BvhTraceData tr1 = TraceDataEmpty();
+		BvhTracePointEx(ray, sect, &sect->bvh[0], 0, false, &tr0);
 		BvhTracePointEx(ray, sect, &sect->bvh[1], 0, false, &tr1);
 
-		if(tr1.distance < tr.distance) {
-			tr = tr1;
-		}
+		tr = (tr1.distance <= tr0.distance) ? tr1 : tr0;
 
-		if(!tr.hit || tr.distance > move_len) {
-			pos = Vector3Add(pos, move);
+		if(!tr.hit || tr.distance > Vector3Length(wish_move) + 0.1f) {
+			pos = Vector3Add(pos, vel);
 			break;
 		}
 
-		pos = Vector3Add(pos, Vector3Scale(move_dir, tr.distance));
+		float allowed = (tr.distance - 0.1f);
+		pos = Vector3Add(pos, Vector3Scale(ray.direction, allowed));
 
-		float vn = Vector3DotProduct(move, tr.normal);
-		if(vn < 0.0f) 
-			move = Vector3Subtract(move, Vector3Scale(tr.normal, vn));
+		if(clip_count + 1 < MAX_CLIPS)
+			clips[clip_count++] = tr.normal;
 
-		pos = Vector3Add(pos, Vector3Scale(tr.normal, 0.001f));
+		vel = wish_move;
+		for(short j = 0; j < clip_count; j++) {
+			float into = Vector3DotProduct(vel, clips[j]);	
+			if(into < 0) {
+				vel = Vector3Subtract(vel, Vector3Scale(clips[j], into));	
+			}
+		}
+
+		pos = Vector3Subtract(pos, Vector3Scale(tr.normal, 0.001f));
 	}
 
 	comp_transform->position = pos;

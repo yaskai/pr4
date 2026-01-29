@@ -42,6 +42,9 @@ DrawFunc draw_fn[4] = {
 #define SLIDE_STEPS 4
 
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
+	float y_dir = (comp_transform->velocity.y >= 0) ? 1 : -1;
+	float y_offset = -(BoxExtent(comp_transform->bounds).y * (0.25f * y_dir));
+
 	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
 	Vector3 pos = comp_transform->position;
 	Vector3 vel = wish_move;
@@ -50,7 +53,8 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 	short clip_count = 0;
 
 	for(short i = 0; i < SLIDE_STEPS; i++) {
-		Ray ray = (Ray) { .position = pos, .direction = Vector3Normalize(vel) };
+		//Ray ray = (Ray) { .position = pos, .direction = Vector3Normalize(vel) };
+		Ray ray = (Ray) { .position = Vector3Add(pos, Vector3Scale(UP, y_offset)), .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
 		BvhTraceData tr0 = tr, tr1 = tr;
@@ -65,10 +69,23 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 			break;
 		}
 
-		float allowed = (tr.distance - 0.1f);
+		float allowed = (tr.distance - 0.001f);
+		float diff = 0;
+
+		if(tr.distance == tr0.distance) {
+			Vector3 h = Vector3Scale(BoxExtent(comp_transform->bounds), 0.5f);
+
+			diff = (fabsf(tr.normal.x) * h.x + 
+					fabsf(tr.normal.y) * h.y + 
+					fabsf(tr.normal.z) * h.z );
+
+			allowed -= diff;
+		}
+
+		if(allowed < 0) allowed = 0;
 		pos = Vector3Add(pos, Vector3Scale(ray.direction, allowed));
 
-		if(clip_count < MAX_CLIPS)
+		if(clip_count + 1 < MAX_CLIPS)
 			clips[clip_count++] = tr.normal;
 
 		vel = wish_move;
@@ -79,9 +96,11 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 			}
 		}
 
-		pos = Vector3Subtract(pos, Vector3Scale(tr.normal, 0.001f));
+		//pos = Vector3Subtract(pos, Vector3Scale(tr.normal, 0.01f));
 	}
 
+	
+	//comp_transform->velocity = (Vector3) { vel.x, comp_transform->velocity.y, vel.z };
 	comp_transform->position = pos;
 }
 
@@ -114,7 +133,7 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 	if(ground_point.y > feet_y && ground_dist <= half_height) {
 		if(comp_transform->velocity.y <= 0) {
 			float delta = ground_point.y - feet_y;
-			comp_transform->position.y = roundf(ray.position.y + delta);
+			comp_transform->position.y = (ray.position.y + delta);
 			return 1;
 		}
 	}

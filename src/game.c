@@ -146,9 +146,9 @@ void GameDraw(Game *game) {
 
 					Color color = colors[tri_id % 6];
 					DrawTriangle3D(tri.vertices[0], tri.vertices[1], tri.vertices[2], ColorAlpha(color, 1.0f));
-					//DrawLine3D(tri.vertices[2], tri.vertices[0], BLACK);
-					//DrawLine3D(tri.vertices[1], tri.vertices[0], BLACK);
-					//DrawLine3D(tri.vertices[0], tri.vertices[2], BLACK);
+					DrawLine3D(tri.vertices[2], tri.vertices[0], BLACK);
+					DrawLine3D(tri.vertices[1], tri.vertices[0], BLACK);
+					DrawLine3D(tri.vertices[0], tri.vertices[2], BLACK);
 				}
 			}
 
@@ -197,7 +197,7 @@ void GameDraw(Game *game) {
 	ClearBackground(ColorAlpha(BLACK, 0.85f));
 		BeginMode3D(game->camera_debug);
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 0.1f));
-			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
+			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
 			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
 			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);

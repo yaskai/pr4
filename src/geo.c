@@ -675,7 +675,7 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 
 		if(coll.distance < data->distance) {
 			data->point = coll.point;
-			data->normal = coll.normal;
+			data->normal = tri.normal;
 			data->distance = coll.distance;
 			data->tri_id = tri_id;
 			data->node_id = node_id;

@@ -154,27 +154,6 @@ Vector3 BoxSurfaceDelta(BoundingBox box, Vector3 point, Vector3 normal) {
 	return offset;
 }
 
-// Get furthest point a box face within line
-Vector3 BoxGetEdge(BoundingBox box, Vector3 normal) {
-	Vector3 edge;	
-
-	BoxNormals norms = BoxGetFaceNormals(box);
-
-	Vector3 face_dir = norms.n[0];
-	float d = -FLT_MAX;
-
-	for(u8 i = 0; i < 6; i++) {
-		float dot = Vector3DotProduct(normal, norms.n[i]);
-
-		if(dot > d) {
-			d = dot;
-			face_dir = norms.n[i];
-		}
-	}
-
-	return edge;
-}
-
 BoxNormals BoxGetFaceNormals(BoundingBox box) {
 	BoxNormals normals = {0};
 
@@ -663,15 +642,16 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 
 		if(Vector3DotProduct(tri.normal, ray.direction) > 0) tri.normal = Vector3Negate(tri.normal);
 
-		if(bvh->use_fit_volume) {
-			Vector3 h = Vector3Scale(bvh->fit_volume, 0.5f);
-			float diff = ( fabsf(tri.normal.x) * h.x +  fabsf(tri.normal.y) * h.y + fabsf(tri.normal.z) * h.z ); 
-
-			tri = TriTranslate(tri, Vector3Scale(tri.normal, diff));
-		}
 
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
 		if(!coll.hit) continue;
+
+		if(bvh->use_fit_volume) { Vector3 h = Vector3Scale(bvh->fit_volume, 0.5f);
+			float diff = ( fabsf(tri.normal.x) * h.x +  fabsf(tri.normal.y) * h.y + fabsf(tri.normal.z) * h.z ); 
+
+			coll.distance -= diff;
+			coll.point = Vector3Subtract(coll.point, Vector3Scale(ray.direction, diff));
+		}
 
 		if(coll.distance < data->distance) {
 			data->point = coll.point;

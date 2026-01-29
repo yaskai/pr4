@@ -63,7 +63,7 @@ void PlayerUpdate(Entity *player, float dt) {
 	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
 	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0], GRAV_DEFAULT, dt);
 
-	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(player->comp_transform.forward, -1.0f));
+	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(player->comp_transform.forward, 0.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
 
 	if(!player->comp_transform.on_ground) cam_bob = 0;
@@ -125,7 +125,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	if(len_forward > 0) {
 		player_accel_forward = Clamp(player_accel_forward + (PLAYER_SPEED * 0.25f) * dt, 1.0f, PLAYER_MAX_ACCEL);
 		//cam_bob = Lerp(cam_bob, (1.95f + len_forward * 0.75f) * sinf(t * 12 + (len_forward * 0.95f)) + 1.0f, player_accel_forward * dt);
-		float bob_targ = (3 * (len_forward)) * sinf(t * 12 + (len_forward) * 5.95f) + 1;
+		float bob_targ = (3 * (len_forward + len_side)) * sinf(t * 12 + (len_forward) * 5.95f) + 1;
 		cam_bob = Lerp(cam_bob, bob_targ, 10 * dt);
 	} else {
 		cam_bob = Lerp(cam_bob, 0, 10 * dt);
@@ -174,6 +174,12 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 			player->comp_transform.velocity.y = 200;
 		}
 	}
+
+	if(IsKeyPressed(KEY_R)) {
+		player->comp_transform.position = (Vector3) { 0, 30, 0 };
+		player->comp_transform.velocity = Vector3Zero();
+		player->comp_transform.on_ground = true;
+	} 
 }
 
 void PlayerDamage(Entity *player, short amount) {

@@ -72,9 +72,6 @@ typedef struct {
 
 BoxNormals BoxGetFaceNormals(BoundingBox box);
 
-// Get furthest point in a box within line
-Vector3 BoxGetEdge(BoundingBox box, Vector3 normal);
-
 // Create a primitive array from mesh
 Tri *MeshToTris(Mesh mesh, u16 *tri_count);
 
@@ -147,7 +144,7 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
-#define BODY_VOLUME_MEDIUM (Vector3) { 14, 20, 14 }
+#define BODY_VOLUME_MEDIUM (Vector3) { 12, 20, 12 }
 
 // Start BVH tree construction
 void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume);

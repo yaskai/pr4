@@ -42,8 +42,8 @@ DrawFunc draw_fn[4] = {
 #define SLIDE_STEPS 4
 
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
-	float y_dir = (comp_transform->velocity.y >= 0) ? 1 : -1;
-	float y_offset = -(BoxExtent(comp_transform->bounds).y * (0.25f * y_dir));
+	float y_dir = (comp_transform->velocity.y >= 0) ? 1.5f : -1;
+	float y_offset = -(BoxExtent(comp_transform->bounds).y * (0.235f * y_dir));
 
 	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
 	Vector3 pos = comp_transform->position;
@@ -57,12 +57,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		Ray ray = (Ray) { .position = Vector3Add(pos, Vector3Scale(UP, y_offset)), .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
-		BvhTraceData tr0 = tr, tr1 = tr;
-
-		BvhTracePointEx(ray, sect, &sect->bvh[0], 0, false, &tr0);
-		BvhTracePointEx(ray, sect, &sect->bvh[1], 0, false, &tr1);
-
-		tr = (tr1.distance <= tr0.distance) ? tr1 : tr0;
+		BvhTracePointEx(ray, sect, bvh, 0, false, &tr);
 
 		if(!tr.hit || tr.distance > Vector3Length(wish_move)) {
 			pos = Vector3Add(pos, vel);
@@ -70,17 +65,6 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		}
 
 		float allowed = (tr.distance - 0.001f);
-		float diff = 0;
-
-		if(tr.distance == tr0.distance) {
-			Vector3 h = Vector3Scale(BoxExtent(comp_transform->bounds), 0.5f);
-
-			diff = (fabsf(tr.normal.x) * h.x + 
-					fabsf(tr.normal.y) * h.y + 
-					fabsf(tr.normal.z) * h.z );
-
-			allowed -= diff;
-		}
 
 		if(allowed < 0) allowed = 0;
 		pos = Vector3Add(pos, Vector3Scale(ray.direction, allowed));

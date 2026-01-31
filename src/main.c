@@ -17,7 +17,8 @@ int main() {
 	//SetTargetFPS(144);
 
 	GameRenderSetup(&game);
-	GameLoadTestScene(&game, "resources/maps/test1");
+	//GameLoadTestScene(&game, "resources/maps/test1");
+	GameLoadTestScene(&game, "resources/maps/encounter_00");
 
 	// Disable exit key
 	SetExitKey(KEY_NULL);

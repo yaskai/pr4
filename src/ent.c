@@ -63,9 +63,14 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 			break;
 		}
 
+		if(fabsf(tr.normal.y) >= 1.0f - EPSILON)  
+			break;
+
 		float allowed = (tr.distance - 0.001f);
 
-		if(allowed < 0) allowed = 0;
+		//if(allowed < 0) allowed = 0;
+		//if(allowed <= 0) break;
+
 		pos = Vector3Add(pos, Vector3Scale(ray.direction, allowed));
 
 		if(clip_count + 1 < MAX_CLIPS)
@@ -82,6 +87,8 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		pos = Vector3Subtract(pos, Vector3Scale(tr.normal, 0.01f));
 	}
 
+	//comp_transform->velocity.x = vel.x;
+	//comp_transform->velocity.z = vel.z;
 	comp_transform->position = pos;
 }
 
@@ -100,6 +107,7 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 
 	Vector3 offset = (Vector3) { comp_transform->velocity.x, 0, comp_transform->velocity.z };
 	offset = Vector3Scale(offset, dt);
+	offset = Vector3Zero();
 
 	Ray ray = (Ray) { .position = comp_transform->position, .direction = DOWN };
 
@@ -110,11 +118,13 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 	if(tr.distance > EPSILON) 
 		return 0;
 
+		
+
 	float dot = Vector3DotProduct(tr.normal, DOWN);
 	if(dot > 0.0f) return 0;
 
 	float diff = tr.point.y - comp_transform->position.y;
-	if(diff <= -0.1f) {
+	if(diff < 0.0f) {
 		comp_transform->velocity.y = 0;
 		return 0;
 	}

@@ -124,8 +124,8 @@ void GameDraw(Game *game) {
 	ClearBackground(BLACK);
 		BeginMode3D(game->camera);
 
-			//DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
-			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
+			DrawModel(game->test_section.model, Vector3Zero(), 1, DARKGREEN);
+			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
 
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
@@ -133,6 +133,7 @@ void GameDraw(Game *game) {
 			//DrawBoundingBox(game->test_section.bvh[0].nodes[0].bounds, WHITE);
 			//DrawBoundingBox(game->test_section.bvh[1].nodes[0].bounds, ORANGE);
 
+			/*
 			for(u16 i = 0; i < game->test_section.bvh.count; i++) {
 				BvhNode *node = &game->test_section.bvh.nodes[i];
 
@@ -152,6 +153,7 @@ void GameDraw(Game *game) {
 					DrawLine3D(tri.vertices[0], tri.vertices[2], BLACK);
 				}
 			}
+			*/
 
 			/*
 			for(u16 i = 0; i < game->test_section.bvh[1].count; i++) {

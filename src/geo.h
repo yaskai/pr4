@@ -111,8 +111,11 @@ typedef struct {
 #define BVH_TREE_START_CAPACITY	1024
 
 typedef struct {
-	// Node array
 	BvhNode *nodes;
+
+	u16 *tri_ids;
+
+	Vector3 shape;
 
 	u16 count;
 	u16 capacity;
@@ -123,7 +126,7 @@ typedef struct {
 #define MAP_SECT_QUEUED	0x02
 
 typedef struct {
-	BvhTree bvh;
+	BvhTree bvh[3];
 
 	Model model;
 
@@ -191,8 +194,25 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data);
 void BvhBoxSweepNoInvert(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data);
 
+typedef struct {
+	Vector3 point;
+	Vector3 normal;
+	float t;
+	
+} SweepEntry;
+
+typedef struct {
+	SweepEntry *entries;
+	u16 count;
+
+} SweepStack;
+
+void BvhBoxSweepStack(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data, SweepStack *stack);
+
 void MapSectionDisplayNormals(MapSection *sect);
 
 float BoundsToRadius(BoundingBox bounds);
+
+float MinkowskiDiff(Vector3 normal, Vector3 h);
 
 #endif

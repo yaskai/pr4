@@ -13,8 +13,6 @@ int main() {
 	SetTraceLogLevel(LOG_ERROR);
 	SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_VSYNC_HINT | FLAG_FULLSCREEN_MODE);
 	InitWindow(conf.window_width, conf.window_height, "PR4");
-	//SetTargetFPS(60);
-	//SetTargetFPS(144);
 
 	GameRenderSetup(&game);
 	//GameLoadTestScene(&game, "resources/maps/test1");

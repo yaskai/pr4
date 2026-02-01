@@ -41,6 +41,27 @@ DrawFunc draw_fn[4] = {
 #define MAX_CLIPS 6
 #define SLIDE_STEPS 4
 
+Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce) {
+	float3 out = Vector3ToFloatV(in), in3 = out;
+	float3 n = Vector3ToFloatV(normal);
+
+	float backoff;
+	float change;
+
+	backoff = Vector3DotProduct(in, normal) * overbounce;
+
+	for(short i = 0; i < 3; i++) {
+		change = n.v[i] * backoff;
+		out.v[i] = in3.v[i] - change;
+
+		if(out.v[i] > -EPSILON && out.v[i] < EPSILON)
+			out.v[i] = 0; 
+
+	}
+
+	return (Vector3) { out.v[0], out.v[1], out.v[2] };
+}
+
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
 	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
 	Vector3 pos = comp_transform->position;
@@ -56,7 +77,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		Ray ray = (Ray) { .position = Vector3Add(pos, Vector3Scale(UP, y_offset)), .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
-		BvhBoxSweep(ray, sect, bvh, 0, &comp_transform->bounds, &tr);
+		BvhTracePointEx(ray, sect, bvh, 0, false, &tr);
 
 		if(!tr.hit || tr.distance > Vector3Length(wish_move)) {
 			pos = Vector3Add(pos, vel);
@@ -64,7 +85,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		}
 
 		if(fabsf(tr.normal.y) >= 1.0f - EPSILON)  
-			break;
+			continue;
 
 		float allowed = (tr.distance - 0.001f);
 
@@ -107,6 +128,7 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 
 	Vector3 offset = (Vector3) { comp_transform->velocity.x, 0, comp_transform->velocity.z };
 	offset = Vector3Scale(offset, dt);
+	offset = Vector3Zero();
 
 	Ray ray = (Ray) { .position = comp_transform->position, .direction = DOWN };
 
@@ -114,11 +136,11 @@ short CheckGround(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 	BvhBoxSweepNoInvert(ray, sect, bvh, 0, &comp_transform->bounds, &tr);
 
 	// No surface
-	if(tr.distance > EPSILON) 
+	if(tr.distance > 0.1f) 
 		return 0;
 
-	float dot = Vector3DotProduct(tr.normal, DOWN);
-	if(dot > 0.0f) return 0;
+	//float dot = Vector3DotProduct(tr.normal, DOWN);
+	//if(dot > 0.0f) return 0;
 
 	float diff = tr.point.y - comp_transform->position.y;
 	if(diff < 0.0f) {

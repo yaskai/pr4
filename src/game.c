@@ -127,6 +127,8 @@ void GameDraw(Game *game) {
 			DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
 			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
 
+			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
+
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
 

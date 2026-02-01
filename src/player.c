@@ -62,8 +62,8 @@ void PlayerUpdate(Entity *player, float dt) {
 	Vector3 horizontal_velocity = (Vector3) { player->comp_transform.velocity.x, 0, player->comp_transform.velocity.z };
 	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
 
-	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh, dt);
-	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh, GRAV_DEFAULT, dt);
+	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
+	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0], GRAV_DEFAULT, dt);
 
 	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 0.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
@@ -161,7 +161,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	player->comp_transform.velocity.z += horizontal_velocity.z * dt;
 
 	if(input->actions[ACTION_JUMP].state == INPUT_ACTION_PRESSED) {
-		if(player->comp_transform.on_ground && !CheckCeiling(&player->comp_transform, ptr_sect, &ptr_sect->bvh)) {
+		if(player->comp_transform.on_ground && !CheckCeiling(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0])) {
 			player->comp_transform.position.y += 0.01f;	
 			player->comp_transform.on_ground = false;
 			player->comp_transform.velocity.y = PLAYER_BASE_JUMP_FORCE + player_accel_forward * 2.5f;
@@ -191,7 +191,7 @@ void PlayerDisplayDebugInfo(Entity *player) {
 
 	BvhTraceData tr = TraceDataEmpty();
 	//BvhTracePoint(view_ray, ptr_sect, &ptr_sect->bvh, 0, &player_debug_data->view_length, &player_debug_data->view_dest, false);	
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh, 0, false, &tr);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, false, &tr);
 	player_debug_data->view_dest = tr.point;
 
 	//DrawLine3D(player->comp_transform.position, player_debug_data->view_dest, GREEN);
@@ -214,16 +214,15 @@ void PlayerDisplayDebugInfo(Entity *player) {
 
 	BoundingBox sweep_box = player->comp_transform.bounds;
 	BvhTraceData sweep_data = TraceDataEmpty();
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh, 0, false, &sweep_data);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, false, &sweep_data);
 	DrawLine3D(player->comp_transform.position, tr.point, GREEN);
 
-	/*
 	sweep_box = player->comp_transform.bounds;
 	sweep_data = TraceDataEmpty();
-	BvhBoxSweep(move_ray, ptr_sect, &ptr_sect->bvh, 0, &sweep_box, &sweep_data);
-	sweep_box = BoxTranslate(sweep_box, sweep_data.point);
+	//BvhBoxSweep(view_ray, ptr_sect, &ptr_sect->bvh, 0, &sweep_box, &sweep_data);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, false, &tr);
+	sweep_box = BoxTranslate(sweep_box, tr.point);
 	DrawBoundingBox(sweep_box, SKYBLUE);
-	DrawRay(move_ray, RED);
-	*/
+	//DrawRay(move_ray, RED);
 }
 

@@ -22,6 +22,7 @@ typedef struct  {
 
 } comp_Transform;
 
+Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce);
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt);
 
 #define GRAV_DEFAULT 800.0f

@@ -3,6 +3,7 @@
 #include <float.h>
 #include "raylib.h"
 #include "raymath.h"
+#include "rlgl.h"
 #include "game.h"
 #include "input_handler.h"
 #include "geo.h"
@@ -196,6 +197,7 @@ void GameDraw(Game *game) {
 
 		EndMode3D();
 	EndTextureMode();
+	
 	
 	// 3D Rendering, debug
 	BeginTextureMode(game->render_target_debug);

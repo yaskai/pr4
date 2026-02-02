@@ -11,7 +11,7 @@ int main() {
 	GameInit(&game, &conf);
 
 	SetTraceLogLevel(LOG_ERROR);
-	SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_VSYNC_HINT | FLAG_FULLSCREEN_MODE);
+	SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_VSYNC_HINT | FLAG_BORDERLESS_WINDOWED_MODE | FLAG_MSAA_4X_HINT);
 	InitWindow(conf.window_width, conf.window_height, "PR4");
 
 	GameRenderSetup(&game);

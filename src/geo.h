@@ -144,7 +144,7 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
-#define BODY_VOLUME_MEDIUM (Vector3) { 12, 20, 12 }
+#define BODY_VOLUME_MEDIUM (Vector3) { 14, 20, 14 }
 
 // Start BVH tree construction
 void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume);
@@ -189,7 +189,7 @@ void BvhTraceNodes(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float s
 // Trace a point through world space
 void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *smallest_dist, Vector3 *point, bool skip_root);
 
-void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool skip_root, BvhTraceData *data);
+void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data);
 
 void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data);
 void BvhBoxSweepNoInvert(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data);

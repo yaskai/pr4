@@ -65,7 +65,7 @@ void PlayerUpdate(Entity *player, float dt) {
 	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
 	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0], GRAV_DEFAULT, dt);
 
-	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 0.0f));
+	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 6.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
 
 	if(!player->comp_transform.on_ground) cam_bob = 0;
@@ -141,7 +141,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 
 		float side_vel = Vector3DotProduct(movement, right);
 
-		float tilt_max = Clamp(len_side, 0, 0.08f);
+		float tilt_max = Clamp(len_side, 0, 0.05f);
 
 		cam_tilt = (side_vel * len_side * player_accel_side);
 		cam_tilt = Clamp(cam_tilt, -tilt_max, tilt_max);
@@ -184,14 +184,14 @@ void PlayerDie(Entity *player) {
 void PlayerDisplayDebugInfo(Entity *player) {
 	DrawBoundingBox(player->comp_transform.bounds, RED);
 
-	Ray view_ray = (Ray) { .position = player->comp_transform.position, .direction = player->comp_transform.forward };	
+	Ray view_ray = (Ray) { .position = ptr_cam->position, .direction = player->comp_transform.forward };	
 	player_debug_data->view_dest = Vector3Add(view_ray.position, Vector3Scale(view_ray.direction, FLT_MAX * 0.25f));	
 
 	player_debug_data->view_length = FLT_MAX;
 
 	BvhTraceData tr = TraceDataEmpty();
 	//BvhTracePoint(view_ray, ptr_sect, &ptr_sect->bvh, 0, &player_debug_data->view_length, &player_debug_data->view_dest, false);	
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, false, &tr);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
 	player_debug_data->view_dest = tr.point;
 
 	//DrawLine3D(player->comp_transform.position, player_debug_data->view_dest, GREEN);
@@ -214,15 +214,23 @@ void PlayerDisplayDebugInfo(Entity *player) {
 
 	BoundingBox sweep_box = player->comp_transform.bounds;
 	BvhTraceData sweep_data = TraceDataEmpty();
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, false, &sweep_data);
-	DrawLine3D(player->comp_transform.position, tr.point, GREEN);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &sweep_data);
+
+	if(tr.hit)
+		DrawLine3D(player->comp_transform.position, tr.point, GREEN);
+	else 
+		DrawRay(view_ray, GREEN);
 
 	sweep_box = player->comp_transform.bounds;
 	sweep_data = TraceDataEmpty();
 	//BvhBoxSweep(view_ray, ptr_sect, &ptr_sect->bvh, 0, &sweep_box, &sweep_data);
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, false, &tr);
-	sweep_box = BoxTranslate(sweep_box, tr.point);
-	DrawBoundingBox(sweep_box, SKYBLUE);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
+	//sweep_box = BoxTranslate(sweep_box, tr.point);
+	//DrawBoundingBox(sweep_box, GREEN);
 	//DrawRay(move_ray, RED);
+
+	Tri *tri = &ptr_sect->tris[tr.tri_id];
+	DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
+	DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
 }
 

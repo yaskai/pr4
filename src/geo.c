@@ -606,13 +606,13 @@ void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *
 	BvhTracePoint(ray, sect, bvh, node->child_lft, smallest_dist, point, true);
 }
 
-void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool skip_root, BvhTraceData *data) {
+void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data) {
 	BvhNode *node = &bvh->nodes[node_id];
 
 	RayCollision coll;
 	Vector3 h = Vector3Scale(bvh->shape, 0.5f);
 
-	if(!skip_root) {
+	if(node_id == 0) {
 		coll = GetRayCollisionBox(ray, node->bounds);
 
 		if(!coll.hit)
@@ -657,13 +657,13 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, bool 
 	float dr = (hit_r.hit) ? hit_r.distance : FLT_MAX;
 
 	if(dl < dr) {
-		BvhTracePointEx(ray, sect, bvh, node->child_lft, true, data);
-		BvhTracePointEx(ray, sect, bvh, node->child_rgt, true, data);
+		BvhTracePointEx(ray, sect, bvh, node->child_lft, data);
+		BvhTracePointEx(ray, sect, bvh, node->child_rgt, data);
 		return;
 	}
 
-	BvhTracePointEx(ray, sect, bvh, node->child_rgt, true, data);
-	BvhTracePointEx(ray, sect, bvh, node->child_lft, true, data);
+	BvhTracePointEx(ray, sect, bvh, node->child_rgt, data);
+	BvhTracePointEx(ray, sect, bvh, node->child_lft, data);
 }
 
 /*
@@ -785,9 +785,6 @@ void BvhBoxSweepNoInvert(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, B
 	for(u16 i = 0; i < node->tri_count; i++) {
 		u16 tri_id = bvh->tri_ids[node->first_tri + i];
 		Tri tri = sect->tris[tri_id];
-
-		// No invert!
-		//if(Vector3DotProduct(tri.normal, ray.direction) > 0) tri.normal = Vector3Negate(tri.normal);
 
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
 		if(!coll.hit) continue;

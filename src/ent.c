@@ -77,7 +77,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		Ray ray = (Ray) { .position = Vector3Add(pos, Vector3Scale(UP, y_offset)), .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
-		BvhTracePointEx(ray, sect, bvh, 0, false, &tr);
+		BvhTracePointEx(ray, sect, bvh, 0, &tr);
 
 		if(!tr.hit || tr.distance > Vector3Length(wish_move)) {
 			pos = Vector3Add(pos, vel);

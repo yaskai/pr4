@@ -864,12 +864,17 @@ void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_i
 	
 	bool leaf = node->tri_count > 0;
 	if(leaf) {
+		data->hit_nodes[data->node_count++] = node_id;
+
 		for(u16 i = 0; i < node->tri_count; i++) {
+			u16 tri_id = bvh->tri_ids[node->first_tri + i];
+			data->hit_tris[data->tri_count++] = tri_id;
 		}
 
 		return;
 	}
 	
-	//BvhBoxIntersect(box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data)	
+	BvhBoxIntersect(box, sect, bvh, node->child_lft, data);	
+	BvhBoxIntersect(box, sect, bvh, node->child_rgt, data);	
 }
 

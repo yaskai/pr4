@@ -12,7 +12,7 @@ int main() {
 
 	SetTraceLogLevel(LOG_ERROR);
 	SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_VSYNC_HINT | FLAG_BORDERLESS_WINDOWED_MODE | FLAG_MSAA_4X_HINT);
-	InitWindow(conf.window_width, conf.window_height, "PR4");
+	InitWindow(conf.window_width, conf.window_height, "DISRUPTOR");
 
 	GameRenderSetup(&game);
 	GameLoadTestScene(&game, "resources/maps/test1");
@@ -23,12 +23,10 @@ int main() {
 	DisableCursor();
 
 	bool exit = false;
-
 	while(!exit) {
 		exit = ((game.flags & FLAG_EXIT_REQUEST) || WindowShouldClose());
-
-		float delta_time = GetFrameTime();
-		GameUpdate(&game, delta_time);
+		float dt = GetFrameTime(); 	
+		GameUpdate(&game, dt);
 		GameDraw(&game);
 	}
 

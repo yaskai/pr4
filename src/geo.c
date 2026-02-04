@@ -626,12 +626,19 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 		u16 tri_id = bvh->tri_ids[node->first_tri + i];
 		Tri tri = sect->tris[tri_id];
 
-		//if(Vector3DotProduct(tri.normal, ray.direction) > 0) tri.normal = Vector3Negate(tri.normal);
+		float diff = MinkowskiDiff(tri.normal, h);
+
+		/*
+		Vector3 centroid = TriCentroid(tri);
+		for(short j = 0; j < 3; j++) {
+			Vector3 to_centroid = Vector3Normalize(Vector3Subtract(centroid, tri.vertices[j]));
+			tri.vertices[j] = Vector3Subtract(tri.vertices[j], Vector3Scale(to_centroid, diff));
+		}
+		*/
 
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
 		if(!coll.hit) continue;
 
-		float diff = MinkowskiDiff(tri.normal, h);
 		coll.point = Vector3Add(ray.position, Vector3Scale(ray.direction, coll.distance - diff));
 		coll.distance -= diff;
 		
@@ -843,5 +850,26 @@ float BoundsToRadius(BoundingBox bounds) {
 // Calculate Minkowski Difference from normal of shape A and half extents of shape B
 float MinkowskiDiff(Vector3 normal, Vector3 h) {
 	return fabsf(normal.x) * h.x +  fabsf(normal.y) * h.y + fabsf(normal.z) * h.z; 
+}
+
+IntersectData IntersectDataEmpty() {
+	return (IntersectData) {0};
+}
+
+void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data) {
+	BvhNode *node = &bvh->nodes[node_id];
+
+	if(!CheckCollisionBoxes(box, node->bounds))
+		return;
+	
+	bool leaf = node->tri_count > 0;
+	if(leaf) {
+		for(u16 i = 0; i < node->tri_count; i++) {
+		}
+
+		return;
+	}
+	
+	//BvhBoxIntersect(box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data)	
 }
 

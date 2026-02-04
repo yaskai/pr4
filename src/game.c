@@ -198,7 +198,6 @@ void GameDraw(Game *game) {
 		EndMode3D();
 	EndTextureMode();
 	
-	
 	// 3D Rendering, debug
 	BeginTextureMode(game->render_target_debug);
 	ClearBackground(ColorAlpha(BLACK, 0.95f));
@@ -243,7 +242,7 @@ void VirtCameraControls(Camera3D *cam, float dt) {
 	
 	Vector3 movement = Vector3Zero();	
 
-	movement = Vector3Add(movement, Vector3Scale(forward, GetMouseWheelMove()));
+	movement = Vector3Add(movement, Vector3Scale(forward, GetMouseWheelMove() * 10));
 
 	if(IsKeyDown(KEY_UP)) 		movement = Vector3Add(movement, cam->up);
 	if(IsKeyDown(KEY_RIGHT)) 	movement = Vector3Add(movement, right);

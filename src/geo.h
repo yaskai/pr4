@@ -222,4 +222,17 @@ float BoundsToRadius(BoundingBox bounds);
 // Calculate Minkowski Difference from normal of shape A and half extents of shape B
 float MinkowskiDiff(Vector3 normal, Vector3 h);
 
+typedef struct {
+	u16 hit_nodes[8];
+	u16 hit_tris[32];
+
+	u16 node_count;
+	u16 tri_count;
+
+} IntersectData;
+
+IntersectData IntersectDataEmpty();
+
+void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data);
+
 #endif

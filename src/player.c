@@ -71,7 +71,7 @@ void PlayerUpdate(Entity *player, float dt) {
 
 
 	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
-	if(player->comp_transform.velocity.y == 0 && y_vel_prev <= -325.0f) {
+	if(player->comp_transform.velocity.y == 0 && y_vel_prev <= -335.0f) {
 		land_frame = true;
 	}
 
@@ -99,9 +99,9 @@ void PlayerDraw(Entity *player) {
 void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	// Adjust pitch and yaw using mouse delta
 	player->comp_transform.pitch = Clamp(
-		player->comp_transform.pitch - input->mouse_delta.y * dt * input->mouse_sensitivity, -PLAYER_MAX_PITCH, PLAYER_MAX_PITCH);
+		player->comp_transform.pitch - input->mouse_delta.y * input->mouse_sensitivity, -PLAYER_MAX_PITCH, PLAYER_MAX_PITCH);
 
-	player->comp_transform.yaw += input->mouse_delta.x * dt * input->mouse_sensitivity;
+	player->comp_transform.yaw += input->mouse_delta.x * input->mouse_sensitivity;
 	
 	// Update player's forward vector
 	player->comp_transform.forward = (Vector3) {
@@ -152,8 +152,8 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 		if(cam_bob <= EPSILON) cam_bob = 0;
 	}
 
-	if(land_frame)
-		cam_bob -= 18.5f;
+	if(land_frame && player_accel_forward >= PLAYER_MAX_ACCEL * 0.85f)
+		cam_bob += (18.5f * y_vel_prev * 0.00125f);
 
 	Vector3 cam_roll_targ = UP;
 	if(len_side) {

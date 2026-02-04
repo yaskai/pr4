@@ -3,7 +3,11 @@ INC_DIR := include
 # Compiler and flags
 CC := gcc
 CFLAGS := -Wall -std=c99 -O2 -I$(INC_DIR) -Ibuild/external/raylib/src -I/usr/include/SDL2 -DPLATFORM_DESKTOP_SDL
+#CFLAGS := -Wall -std=c99 -O2 -I$(INC_DIR) -Ibuild/external/raylib/src -DPLATFORM_DESKTOP
+#CFLAGS := -Wall -std=c99 -O2 -I$(INC_DIR) -Ibuild/external/raylib/src -I/usr/include/SDL3 -DPLATFORM_DESKTOP_SDL3
 LDFLAGS := -lSDL2 -lm -ldl -lpthread -lGL -lrt -lX11
+
+#PLATFORM=PLATFORM_DESKTOP_SDL3 SDL_INCLUDE_PATH=/usr/include/SDL3 SDL_LIBRARY_PATH=/usr/lib SDL_LIBRARIES="-lSDL3" GRAPHICS=GRAPHICS_API_OPENG_33
 
 # Paths
 SRC_DIR := src

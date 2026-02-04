@@ -95,6 +95,9 @@ void EntHandlerClose(EntityHandler *handler);
 void UpdateEntities(EntityHandler *handler, float dt);
 void RenderEntities(EntityHandler *handler);
 
+void DrawEntsDebugInfo();
+
+// *** Player defs *** 
 typedef struct {
 	BoundingBox sweep_box;
 
@@ -119,5 +122,6 @@ void PlayerDie(Entity *player);
 void PlayerDisplayDebugInfo(Entity *player);
 
 void PlayerMove(Entity *player, float dt);
+// ***
 
 #endif

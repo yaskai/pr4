@@ -15,8 +15,8 @@ int main() {
 	InitWindow(conf.window_width, conf.window_height, "PR4");
 
 	GameRenderSetup(&game);
-	//GameLoadTestScene(&game, "resources/maps/test1");
-	GameLoadTestScene(&game, "resources/maps/encounter_00");
+	GameLoadTestScene(&game, "resources/maps/test1");
+	//GameLoadTestScene(&game, "resources/maps/encounter_00");
 
 	// Disable exit key
 	SetExitKey(KEY_NULL);

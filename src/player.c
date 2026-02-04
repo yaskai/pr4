@@ -63,6 +63,9 @@ void PlayerUpdate(Entity *player, float dt) {
 	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
 
 	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
+	//CheckGround()
+	//player->comp_transform.on_ground = CheckGround(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], dt);
+
 	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], GRAV_DEFAULT, dt);
 
 	/*
@@ -168,7 +171,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	if(input->actions[ACTION_JUMP].state == INPUT_ACTION_PRESSED) {
 		if(player->comp_transform.on_ground && !CheckCeiling(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0])) {
 			player->comp_transform.position.y += 0.01f;	
-			player->comp_transform.on_ground = false;
+			player->comp_transform.on_ground = 0;
 			player->comp_transform.velocity.y = PLAYER_BASE_JUMP_FORCE + player_accel_forward * 2.5f;
 		}
 	}
@@ -195,20 +198,12 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	player_debug_data->view_length = FLT_MAX;
 
 	BvhTraceData tr = TraceDataEmpty();
-	//BvhTracePoint(view_ray, ptr_sect, &ptr_sect->bvh, 0, &player_debug_data->view_length, &player_debug_data->view_dest, false);	
 	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
 	player_debug_data->view_dest = tr.point;
 
-	//DrawLine3D(player->comp_transform.position, player_debug_data->view_dest, GREEN);
-	//DrawSphere(player_debug_data.view_dest, 4, GREEN);
-
-	/*
-	Tri view_tri = ptr_sect->tris[tr.tri_id]; 
-	DrawTriangle3D(view_tri.vertices[0], view_tri.vertices[1], view_tri.vertices[2], ColorAlpha(SKYBLUE, 0.5f));
-	DrawTriangle3D(view_tri.vertices[2], view_tri.vertices[1], view_tri.vertices[0], ColorAlpha(SKYBLUE, 0.5f));
-	*/
-
-	for(short i = 0; i < 8; i++) DrawSphere(box_points.v[i], 2, RED);
+	// Draw box points
+	for(short i = 0; i < 8; i++)
+		DrawSphere(box_points.v[i], 2, RED);
 
 	player_debug_data->accel = player_accel;	
 
@@ -228,11 +223,7 @@ void PlayerDisplayDebugInfo(Entity *player) {
 
 	sweep_box = player->comp_transform.bounds;
 	sweep_data = TraceDataEmpty();
-	//BvhBoxSweep(view_ray, ptr_sect, &ptr_sect->bvh, 0, &sweep_box, &sweep_data);
 	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
-	//sweep_box = BoxTranslate(sweep_box, tr.point);
-	//DrawBoundingBox(sweep_box, GREEN);
-	//DrawRay(move_ray, RED);
 
 	Tri *tri = &ptr_sect->tris[tr.tri_id];
 	DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));

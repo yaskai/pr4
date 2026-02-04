@@ -214,6 +214,7 @@ void GameDraw(Game *game) {
 
 		// 2D
 		//DrawText(TextFormat("accel: %.02f", player_data.accel), 0, 40, 32, RAYWHITE);
+		DrawEntsDebugInfo();
 
 	EndTextureMode();
 

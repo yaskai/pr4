@@ -126,7 +126,7 @@ void GameDraw(Game *game) {
 		BeginMode3D(game->camera);
 
 			DrawModel(game->test_section.model, Vector3Zero(), 1, GRAY);
-			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
+			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLACK);
 
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 
@@ -214,7 +214,7 @@ void GameDraw(Game *game) {
 
 		// 2D
 		//DrawText(TextFormat("accel: %.02f", player_data.accel), 0, 40, 32, RAYWHITE);
-		DrawEntsDebugInfo();
+		//DrawEntsDebugInfo();
 
 	EndTextureMode();
 

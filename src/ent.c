@@ -110,6 +110,8 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 			float into = Vector3DotProduct(vel, clips[j]);	
 			if(into < 0.0f) {
 				vel = Vector3Subtract(vel, Vector3Scale(clips[j], into));	
+				comp_transform->velocity = Vector3Subtract(comp_transform->velocity, Vector3Scale(clips[j], into * dt));	
+				//comp_transform->velocity = vel;
 			}
 		}
 
@@ -137,12 +139,14 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 	if(tr.distance > ent_height || comp_transform->velocity.y > 0.0f)
 		return;
 
-	float dot = Vector3DotProduct(h_vel, tr.normal);
-	float slope_y = -(dot) / tr.normal.y;
+	// Find slope offset
+	float into_slope = Vector3DotProduct(h_vel, tr.normal);
+	float slope_y = (into_slope) / tr.normal.y;
 
+	// Set grounded true, clear vertical velocity, set new Y position
 	comp_transform->on_ground = 1;
-	comp_transform->position.y = tr.point.y + ent_height + slope_y;
 	comp_transform->velocity.y = 0;
+	comp_transform->position.y = tr.point.y + ent_height - slope_y;
 }
 
 void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt) {

@@ -15,6 +15,9 @@ float player_accel;
 float player_accel_forward;
 float player_accel_side;
 
+bool land_frame = false;
+float y_vel_prev;
+
 #define PLAYER_FRICTION 11.25f 
 #define PLAYER_AIR_FRICTION 9.05f
 
@@ -41,9 +44,13 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 }
 
 void PlayerUpdate(Entity *player, float dt) {
+
 	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
 
 	PlayerInput(player, ptr_input, dt);
+
+	y_vel_prev = player->comp_transform.velocity.y;
+	land_frame = false;
 
 	// **
 	// Apply friction
@@ -62,9 +69,11 @@ void PlayerUpdate(Entity *player, float dt) {
 	Vector3 horizontal_velocity = (Vector3) { player->comp_transform.velocity.x, 0, player->comp_transform.velocity.z };
 	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
 
+
 	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
-	//CheckGround()
-	//player->comp_transform.on_ground = CheckGround(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], dt);
+	if(player->comp_transform.velocity.y == 0 && y_vel_prev <= -300.0f) {
+		land_frame = true;
+	}
 
 	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], GRAV_DEFAULT, dt);
 
@@ -143,6 +152,9 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 		if(cam_bob <= EPSILON) cam_bob = 0;
 	}
 
+	if(land_frame)
+		cam_bob = -10;
+
 	Vector3 cam_roll_targ = UP;
 	if(len_side) {
 		player_accel_side = Clamp(player_accel_side + (PLAYER_SPEED) * dt, 0.9f, PLAYER_MAX_ACCEL);
@@ -160,6 +172,10 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 	}
 
 	ptr_cam->up = Vector3Lerp(ptr_cam->up, cam_roll_targ, 0.1f);
+
+	// Slight tilt when player lands on ground
+	if(land_frame) 
+		ptr_cam->up = Vector3RotateByAxisAngle(ptr_cam->up, player->comp_transform.forward, 0.0001f * y_vel_prev);
 
 	Vector3 vel_forward = Vector3Scale(move_forward, (PLAYER_SPEED * player_accel_forward) * dt);
 	Vector3 vel_side = Vector3Scale(move_side, (PLAYER_SPEED * player_accel_side) * dt);
@@ -225,8 +241,10 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	sweep_data = TraceDataEmpty();
 	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
 
-	Tri *tri = &ptr_sect->tris[tr.tri_id];
-	DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
-	DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
+	if(tr.hit) {
+		Tri *tri = &ptr_sect->tris[tr.tri_id];
+		DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
+		DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
+	}
 }
 

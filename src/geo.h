@@ -171,6 +171,10 @@ typedef struct {
 	u16 *tri_ids;
 	u16 tri_count;
 
+	Tri *tris_B;
+	u16 *tri_ids_B;
+	u16 tri_count_B;
+
 	u16 hull_count;
 	u8 flags;
 

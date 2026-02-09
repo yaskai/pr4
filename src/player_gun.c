@@ -40,7 +40,7 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	mat = MatrixMultiply(mat, MatrixRotateY(REVOLVER_ANGLE_REST * DEG2RAD));
 
 	friction = (recoil > 40) ? 4.9f : 10.5f;
-	friction = friction - (recoil * 0.01f);
+	//if(recoil >= 100) friction = friction - (recoil * 0.033f);
 
 	//recoil -= ((recoil * (1 - EPSILON)) * 11.5f) * dt; 
 	recoil -= (recoil * friction) * dt; 
@@ -48,7 +48,7 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && recoil <= 1.0f) {
 		recoil_add = false;
-		recoil += 120 + (GetRandomValue(10, 30) * 0.1f);
+		recoil += 100 + (GetRandomValue(10, 30) * 0.1f);
 	}
 
 	//gun_pos.z = REVOLVER_REST.z - (recoil * 0.0485f);

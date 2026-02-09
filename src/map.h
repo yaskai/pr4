@@ -30,6 +30,12 @@ typedef struct {
 void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model);
 BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents);
 
+typedef struct {
+	Vector3 p;
+	float a;
+
+} FaceVert;
+
 Tri *BrushToTris(Brush *brush, u16 *count);
 Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count);
 

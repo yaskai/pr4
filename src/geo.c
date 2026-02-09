@@ -272,7 +272,6 @@ Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids, u16 *hull_count, Hu
 	Tri *tris = NULL;
 	u16 *ids = NULL;
 
-
 	*hull_count = model.meshCount;
 	//*hulls = (Hull*)calloc(sizeof(Hull), model.meshCount);
 	Hull *temp_hulls = calloc(sizeof(Hull), model.meshCount);

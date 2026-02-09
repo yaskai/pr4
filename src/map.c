@@ -1,3 +1,4 @@
+#include <math.h>
 #include <string.h>
 #include <float.h>
 #include <stdio.h>
@@ -6,6 +7,7 @@
 #include "raymath.h"
 #include "map.h"
 #include "geo.h"
+#include "../include/sort.h"
 
 int point_total = 0;
 Model *brush_point_meshes;
@@ -217,20 +219,99 @@ BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents) {
 }
 
 Tri *BrushToTris(Brush *brush, u16 *count) {
+	Tri *tris = calloc(32, sizeof(Tri));
+	u16 tri_count = 0;
+
 	for(u8 i = 0; i < brush->plane_count; i++) {
-		Vector3 face_verts[16] = {0};
+		FaceVert face_verts[255] = {0};
 		u8 fv_count = 0;
+
+	 	Plane *plane = &brush->planes[i];
+
+		for(u8 j = 0; j < brush->vert_count; j++) {
+			Vector3 v = brush->verts[j];
+
+			bool in = (fabsf(Vector3DotProduct(plane->normal, v) - plane->d) <= 0.02f);
+			if(!in) continue;
+
+			face_verts[fv_count++].p = v;
+		}
+
+		if(fv_count < 3) continue;
+
+		Vector3 center = Vector3Zero();
+		for(u8 j = 0; j < fv_count; j++) 
+			center = Vector3Add(center, face_verts[j].p);
+		center = Vector3Scale(center, 1.0f / fv_count);		
+
+		Vector3 u = Vector3Normalize(
+			(fabsf(plane->normal.x) > 0.9f) ? 
+			Vector3CrossProduct(plane->normal, UP) :
+			Vector3CrossProduct(plane->normal, (Vector3) { 1, 0, 0 } )
+		);
+		Vector3 v = Vector3CrossProduct(plane->normal, u); 	
+
+		for(u8 j = 0; j < fv_count; j++) {
+			Vector3 d = Vector3Subtract(face_verts[j].p, center);
+			float x = Vector3DotProduct(d, u);
+			float y = Vector3DotProduct(d, v);
+			face_verts[j].a = atan2f(y, x);
+		}
+
+		for(u8 a = 0; a < fv_count; a++) {
+			for(u8 b = a+1; b < fv_count; b++) {
+				if(face_verts[a].a > face_verts[b].a) {
+					FaceVert temp = face_verts[b];
+					face_verts[b] = face_verts[a];
+					face_verts[a] = temp;
+				}
+			}
+		}
+
+		for(u8 j = 1; j < fv_count - 1; j++) {
+			tris[tri_count++] = (Tri) {
+				.vertices[0] = face_verts[0].p,
+				.vertices[1] = face_verts[j].p,
+				.vertices[2] = face_verts[j+1].p,
+				.normal = plane->normal
+			};
+		}
 	}
 	
-	return NULL;
+	*count = tri_count;
+
+ 	if(tri_count)
+		tris = realloc(tris, sizeof(Tri) * tri_count);
+
+	return tris;
 }
 
 Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count) {
-	for(u8 i = 0; i < brush_pool->count; i++) {
-		
+	u16 tri_count = 0;
+	u16 tri_cap = 1024;
+	Tri *tris = calloc(tri_cap, sizeof(Tri));
+
+	for(u16 i = 0; i < brush_pool->count; i++) {
+		Brush *brush = &brush_pool->brushes[i];
+
+		u16 temp_count = 0;
+		Tri *brush_tris = BrushToTris(brush, &temp_count);
+
+		if(tri_count + temp_count > tri_cap) {
+			tri_cap = tri_cap << 1;
+			tris = realloc(tris, sizeof(Tri) * tri_cap);
+		}
+
+		memcpy(tris + tri_count, brush_tris, sizeof(Tri) * temp_count);
+		tri_count += temp_count;
+
+		free(brush_tris);
 	}
 
-	return NULL;
+	*count = tri_count;
+	tri_cap = tri_count;
+	if(tri_count) tris = realloc(tris, sizeof(Tri) * tri_cap);
+	return tris;
 }
 
 void BrushTestView(BrushPool *brush_pool, Color color) {

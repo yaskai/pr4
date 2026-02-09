@@ -31,6 +31,9 @@ Material mat_default;
 BrushPool brush_pool = (BrushPool) {0};
 BrushPool brush_pool_exp = (BrushPool) {0};
 
+Tri *tris;
+u16 tri_count = 0;
+
 void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
 
@@ -111,6 +114,8 @@ void GameLoadTestScene(Game *game, char *path) {
 	if(mpf_id > -1) LoadMapFile(&brush_pool, path_list.paths[mpf_id], &model);
 
 	brush_pool_exp = ExpandBrushes(&brush_pool, BODY_VOLUME_MEDIUM);
+	tris = TrisFromBrushPool(&brush_pool_exp, &tri_count);
+	//tris = BrushToTris(&brush_pool_exp.brushes[2], &tri_count);
 
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data);
 
@@ -168,8 +173,6 @@ void GameUpdate(Game *game, float dt) {
 }
 
 void GameDraw(Game *game) {
-	rlDisableBackfaceCulling();
-
 	// 3D Rendering, main
 	BeginDrawing();
 	BeginTextureMode(game->render_target3D);
@@ -201,13 +204,12 @@ void GameDraw(Game *game) {
 			}
 			*/
 
-			for(u16 i = 0; i < game->test_section.hull_count; i++) {
-				Hull *hull = &game->test_section.hulls[i];
-		
-				DrawMesh(game->test_section.model.meshes[i], mat_default, game->test_section.model.transform);
-			}
-
 			//DrawModelPoints(game->test_section.model, Vector3Zero(), 1, BLUE);
+			
+			for(u16 i = 0; i < tri_count; i++) {
+				Tri *tri = &tris[i];
+				DrawTriangle3D(tris->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(SKYBLUE, 0.5f));
+			}
 			
 		EndMode3D();
 

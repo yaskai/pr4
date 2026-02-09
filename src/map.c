@@ -56,7 +56,7 @@ void BrushGetVertices(Brush *brush) {
 					i8 in = true;
 					for(u8 p = 0; p < brush->plane_count; p++) {
 						Plane plane = brush->planes[p];
-						if(Vector3DotProduct(plane.normal, v) - plane.d > EPSILON) {
+						if(Vector3DotProduct(plane.normal, v) - plane.d > 0) {
 							in = 0;
 							break;
 						}
@@ -214,6 +214,15 @@ BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents) {
 	}	
 	
 	return exp;
+}
+
+Tri *BrushToTris(Brush *brush, u16 *count) {
+	for(u8 i = 0; i < brush->plane_count; i++) {
+		Vector3 face_verts[16] = {0};
+		u8 fv_count = 0;
+	}
+	
+	return NULL;
 }
 
 Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count) {

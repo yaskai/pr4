@@ -564,6 +564,30 @@ void MapSectionInit(MapSection *sect, Model model) {
 	sect->flags = (MAP_SECT_LOADED);
 }
 
+void ConstructExpandedMapMesh(MapSection *sect, Model model, BoundingBox aabb) {
+	u16 hull_count = model.meshCount;
+	
+	BoxNormals normals = BoxGetFaceNormals(aabb);
+	Vector3 half_extents = Vector3Scale(BoxExtent(aabb), 0.5f);
+
+	Mesh **expanded = malloc((sizeof(Mesh*) * hull_count) * 6);
+
+	for(u16 h = 0; h < hull_count; h++) {
+		Mesh hull_mesh = model.meshes[h];
+		
+		u16 vertex_count = hull_mesh.vertexCount;
+		Vector3 *vertices = (Vector3*)hull_mesh.vertices;
+
+		for(u16 d = 0; d < 6; d++) {
+			
+
+			//Mesh mesh = expanded[h][d];
+		}
+	}
+
+	//Vector3 *vertices()
+}
+
 // Unload map section data
 void MapSectionClose(MapSection *sect) {
 	if(sect->tris) 
@@ -750,11 +774,15 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 		u16 tri_id = bvh->tri_ids[node->first_tri + i];
 		Tri tri = sect->tris[tri_id];
 
+		if(Vector3DotProduct(tri.normal, ray.direction) > 0) continue;
+
 		float diff = MinkowskiDiff(tri.normal, h);
 
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
-		//if(!coll.hit) continue;
+		if(!coll.hit) continue;
 
+		/*
+		bool tri_hit = coll.hit;
 		bool plane_hit = coll.hit;
 		if(!coll.hit) {
 			Plane p = TriToPlane(tri);
@@ -762,7 +790,7 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 			float plane_dist = PlaneDistance(p, ray.position);
 			float denom = Vector3DotProduct(ray.direction, p.normal);
 
-			if(fabsf(denom) > EPSILON) {
+			if(fabsf(denom) > 0) {
 				float t = -plane_dist / denom;
 
 				if(t > 0.0f && t < data->distance) {
@@ -770,10 +798,20 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 					coll.point = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
 					coll.hit = true;
 					plane_hit = true;
+
+					data->point = coll.point;
+					data->normal = tri.normal;
+					data->distance = coll.distance;
+					data->tri_id = tri_id;
+					data->node_id = node_id;
+					data->hit = true;
+					data->distance = coll.distance;
 				}
 			}
 		}
-		if(!plane_hit) continue;
+		if(!plane_hit && !tri_hit) continue;
+		*/
+
 		if(coll.distance > data->distance) continue;
 
 		data->point = coll.point;

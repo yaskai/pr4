@@ -9,6 +9,7 @@
 #include "input_handler.h"
 #include "geo.h"
 #include "../include/log_message.h"
+#include "map.h"
 
 void VirtCameraControls(Camera3D *cam, float dt);
 
@@ -25,15 +26,16 @@ Color colors[] = {
 
 PlayerDebugData player_data = {0};
 
-u32  hull_point_count = 0;
-Model *hull_point_meshes = NULL;
-
 Material mat_default;
+
+BrushPool brush_pool = (BrushPool) {0};
+BrushPool brush_pool_exp = (BrushPool) {0};
 
 void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
 
 	InputInit(&game->input_handler);
+
 }
 
 void GameClose(Game *game) {
@@ -43,9 +45,6 @@ void GameClose(Game *game) {
 
 	if(IsTextureValid(game->render_target2D.texture))
 		UnloadRenderTexture(game->render_target2D);
-
-	for(int i = 0; i < hull_point_count; i++) 
-		UnloadModel(hull_point_meshes[i]);
 }
 
 void GameRenderSetup(Game *game) {
@@ -104,6 +103,15 @@ void GameLoadTestScene(Game *game, char *path) {
 	game->test_section = (MapSection) {0};
 	MapSectionInit(&game->test_section, model);
 
+	short mpf_id = -1;
+	for(short i = 0; i < path_list.count; i++) {
+		if(strcmp(GetFileExtension(path_list.paths[i]), ".map") == 0) 
+			mpf_id = i;
+	}
+	if(mpf_id > -1) LoadMapFile(&brush_pool, path_list.paths[mpf_id], &model);
+
+	brush_pool_exp = ExpandBrushes(&brush_pool, BODY_VOLUME_MEDIUM);
+
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data);
 
 	Entity player = (Entity) {
@@ -160,6 +168,8 @@ void GameUpdate(Game *game, float dt) {
 }
 
 void GameDraw(Game *game) {
+	rlDisableBackfaceCulling();
+
 	// 3D Rendering, main
 	BeginDrawing();
 	BeginTextureMode(game->render_target3D);
@@ -167,10 +177,14 @@ void GameDraw(Game *game) {
 		BeginMode3D(game->camera);
 
 			DrawModel(game->test_section.model, Vector3Zero(), 1, WHITE);
+			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(WHITE, 0.95f));
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, GREEN);
 
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			RenderEntities(&game->ent_handler);
+
+			BrushTestView(&brush_pool, SKYBLUE);
+			BrushTestView(&brush_pool_exp, RED);
 
 			/*
 			for(u16 i = 0; i < game->test_section.tri_count; i++) {
@@ -214,6 +228,12 @@ void GameDraw(Game *game) {
 
 			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			RenderEntities(&game->ent_handler);
+			BrushTestView(&brush_pool, SKYBLUE);
+			BrushTestView(&brush_pool_exp, RED);
+
+			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {1, 0, 0} }, RED);
+			DrawRay((Ray){.position = Vector3Zero(), .direction = UP}, GREEN);
+			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, SKYBLUE);
 
 		EndMode3D();
 

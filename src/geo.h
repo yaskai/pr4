@@ -206,6 +206,8 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id);
 // Load geometry, materials, construct BVH, etc.  
 void MapSectionInit(MapSection *sect, Model model);
 
+void ConstructExpandedMapMesh(MapSection *sect, Model model, BoundingBox aabb);
+
 // Unload map section data
 void MapSectionClose(MapSection *sect);
 
@@ -270,6 +272,9 @@ typedef struct {
 IntersectData IntersectDataEmpty();
 
 void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data);
+
+Vector3 SupportBox(BoundingBox box, Vector3 dir);
+Vector3 SupportHull(Hull *hull, Vector3 dir);
 
 #endif
 

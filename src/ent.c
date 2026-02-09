@@ -68,7 +68,6 @@ Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce) {
 	return (Vector3) { out.v[0], out.v[1], out.v[2] };
 }
 
-
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
 	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
 	Vector3 pos = comp_transform->position;
@@ -134,9 +133,6 @@ void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 		comp_transform->velocity.y -= gravity * dt;
 		comp_transform->position.y += comp_transform->velocity.y * dt;
 	}
-
-	if(comp_transform->position.y < 30)
-		comp_transform->position.y = 30;
 }
 
 short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt) {

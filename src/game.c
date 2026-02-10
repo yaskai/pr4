@@ -129,47 +129,12 @@ void GameDraw(Game *game) {
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			//RenderEntities(&game->ent_handler);
 
-			//BrushTestView(&brush_pool, SKYBLUE);
-			//BrushTestView(&brush_pool_exp, RED);
-
-			/*
-			for(u16 i = 0; i < game->test_section.tri_count; i++) {
-				//Tri *tri = &game->test_section.tris[i];
-
-				Color color = colors[tri->hull_id % 6];
-				//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.5f));
-			}
-			*/
-
 			/*
 			for(u16 i = 0; i < tri_count; i++) {
 				Tri *tri = &tris[i];
 
 				Color color = colors[i % 6];
 				DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 1.00f));
-			}
-			*/
-
-			/*
-			for(u16 i = 0; i < hull_point_count; i++) {
-				DrawModel(hull_point_meshes[i], Vector3Zero(), 1, BLUE);	
-			}
-			*/
-
-			/*
-			for(u16 i = 0; i < game->test_section.bvh[1].count; i++) {	
-				BvhNode *node = &game->test_section.bvh[1].nodes[i];
-
-
-				//DrawBoundingBox(node->bounds, RED);
-			}
-			*/
-
-			/*
-			for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
-				//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-				Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-				DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(RED, 0.5f));
 			}
 			*/
 
@@ -181,8 +146,6 @@ void GameDraw(Game *game) {
 				DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.5f));
 			}
 			*/
-
-			//DrawModelPoints(game->test_section.model, Vector3Zero(), 1, BLUE);
 			
 		EndMode3D();
 
@@ -198,7 +161,7 @@ void GameDraw(Game *game) {
 	ClearBackground(ColorAlpha(BLACK, 0.95f));
 		BeginMode3D(game->camera_debug);
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 0.1f));
-			DrawModelWires(game->test_section.model, Vector3Zero(), 1, BLUE);
+			DrawModelWires(game->test_section.model, Vector3Zero(), 1, RAYWHITE);
 			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
 			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
@@ -206,9 +169,9 @@ void GameDraw(Game *game) {
 			//BrushTestView(&brush_pool, SKYBLUE);
 			//BrushTestView(&brush_pool_exp, RED);
 
-			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {-1, 0, 0} }, RED);
+			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {1, 0, 0} }, RED);
 			DrawRay((Ray){.position = Vector3Zero(), .direction = UP}, GREEN);
-			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, SKYBLUE);
+			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, BLUE);
 
 		EndMode3D();
 

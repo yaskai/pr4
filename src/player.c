@@ -8,7 +8,7 @@
 #include "player_gun.h"
 
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
-#define PLAYER_SPEED 130.0f
+#define PLAYER_SPEED 230.0f
 #define PLAYER_MAX_VEL 200.5f
 
 #define PLAYER_MAX_ACCEL 15.5f
@@ -22,7 +22,9 @@ float y_vel_prev;
 #define PLAYER_FRICTION 11.25f 
 #define PLAYER_AIR_FRICTION 9.05f
 
-#define PLAYER_BASE_JUMP_FORCE 180
+#define PLAYER_BASE_JUMP_FORCE 280
+
+Vector3 clipY(Vector3 vec) { return Vector3Normalize((Vector3) { vec.x, 0, vec.z }); }
 
 Camera3D *ptr_cam;
 InputHandler *ptr_input;
@@ -36,7 +38,59 @@ BoxPoints box_points;
 
 PlayerDebugData *player_debug_data = { 0 };
 
-short PlayerMoveXZ(Vector3 wish_dir);
+void cam_Adjust(comp_Transform *ct);
+
+// -----------------------------------------------------------------------------
+// ** 
+// Player movement functions 
+// labeled "pm_<Function>"
+typedef struct {
+	Vector3 wish_dir;
+
+	Vector3 ground_normal;
+
+	float wish_speed;
+
+	float accel;
+	float acc_forward;	
+	float acc_side;
+
+	float step;
+	float ground;
+
+	u8 block;
+
+} pmInfo;
+pmInfo pm_info = {0};
+
+// Main movement loop
+void pm_Move(comp_Transform *ct, InputHandler *input, float dt);
+
+// Get look direction
+Vector3 pm_GetLookDir(comp_Transform *ct, InputHandler *input); 
+
+// Get (desired!) direction of movement 
+Vector3 pm_GetWishMove(comp_Transform *ct, InputHandler *input);
+
+void pm_Accelerate(comp_Transform *ct, float dt);
+void pm_Friction(comp_Transform *ct, float dt);
+
+u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce);
+
+Vector3 pm_TraceMove(comp_Transform *ct, Vector3 start, MapSection *sect, float dt);
+
+// Add velocity, adjust position
+void pm_Slide(comp_Transform *ct, MapSection *sect, float dt);
+void pm_GroundMove(comp_Transform *ct, u8 block, float dt);
+
+bool pm_CheckGround(comp_Transform *ct, MapSection *sect, float dt);
+
+void pm_ApplyGravity(comp_Transform *ct, float dt);
+
+Vector3 pm_Step(comp_Transform *ct, Vector3 start, MapSection *sect, float dt);
+
+// **
+// -----------------------------------------------------------------------------
 
 void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data) {
 	ptr_cam = camera;
@@ -49,12 +103,13 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 void PlayerUpdate(Entity *player, float dt) {
 	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
 
+	/*
 	PlayerInput(player, ptr_input, dt);
 
 	y_vel_prev = player->comp_transform.velocity.y;
 	land_frame = false;
 
-	// **
+	// -
 	// Apply friction
 	float friction = (player->comp_transform.on_ground) ? PLAYER_FRICTION : PLAYER_AIR_FRICTION;
 
@@ -66,7 +121,7 @@ void PlayerUpdate(Entity *player, float dt) {
 
 	player->comp_transform.velocity.x = Clamp(player->comp_transform.velocity.x, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
 	player->comp_transform.velocity.z = Clamp(player->comp_transform.velocity.z, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
-	// **
+	// -
 
 	Vector3 horizontal_velocity = (Vector3) { player->comp_transform.velocity.x, 0, player->comp_transform.velocity.z };
 	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
@@ -78,13 +133,16 @@ void PlayerUpdate(Entity *player, float dt) {
 	}
 
 	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], GRAV_DEFAULT, dt);
+	*/
 
 	/*
 	PlayerMove(player, dt);
 	player->comp_transform.position = Vector3Add(player->comp_transform.position, Vector3Scale(player->comp_transform.velocity, 100 * dt));
 	*/
 
-	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 1.0f));
+	pm_Move(&player->comp_transform, ptr_input, dt);
+
+	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 0.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
 
 	if(!player->comp_transform.on_ground) cam_bob = 0;
@@ -98,21 +156,10 @@ void PlayerDraw(Entity *player) {
 	//PlayerDisplayDebugInfo(player);
 }
 
+/*
 void PlayerInput(Entity *player, InputHandler *input, float dt) {
-	// Adjust pitch and yaw using mouse delta
-	player->comp_transform.pitch = Clamp(
-		player->comp_transform.pitch - input->mouse_delta.y * input->mouse_sensitivity, -PLAYER_MAX_PITCH, PLAYER_MAX_PITCH);
-
-	player->comp_transform.yaw += input->mouse_delta.x * input->mouse_sensitivity;
-	
-	// Update player's forward vector
-	player->comp_transform.forward = (Vector3) {
-		.x = cosf(player->comp_transform.yaw) * cosf(player->comp_transform.pitch),
-		.y = sinf(player->comp_transform.pitch),
-		.z = sinf(player->comp_transform.yaw) * cosf(player->comp_transform.pitch)
-	};
-
-	player->comp_transform.forward = Vector3Normalize(player->comp_transform.forward);
+	// Get look direction
+	player->comp_transform.forward = pm_GetLookDir(&player->comp_transform, input, dt);
 
 	// Update camera target
 	ptr_cam->target = Vector3Add(player->comp_transform.position, player->comp_transform.forward);
@@ -179,12 +226,6 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 
 	ptr_cam->up = Vector3Lerp(ptr_cam->up, cam_roll_targ, 0.1f);
 
-	/*
-	if(land_frame) 
-		cam_roll_targ = Vector3RotateByAxisAngle(ptr_cam->up, player->comp_transform.forward, 15 + (y_vel_prev) / 1000);
-		//ptr_cam->up = Vector3RotateByAxisAngle(ptr_cam->up, player->comp_transform.forward, 15 + (y_vel_prev) / 1000);
-		//ptr_cam->up = Vector3RotateByAxisAngle(ptr_cam->up, player->comp_transform.forward, 0.00005f * y_vel_prev);
-	*/
 
 	Vector3 vel_forward = Vector3Scale(move_forward, (PLAYER_SPEED * player_accel_forward) * dt);
 	Vector3 vel_side = Vector3Scale(move_side, (PLAYER_SPEED * player_accel_side) * dt);
@@ -208,6 +249,7 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 		player->comp_transform.on_ground = true;
 	} 
 }
+*/
 
 void PlayerDamage(Entity *player, short amount) {
 }
@@ -224,25 +266,17 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	player_debug_data->view_length = FLT_MAX;
 
 	BvhTraceData tr = TraceDataEmpty();
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
-
-	BoundingBox vbox = player->comp_transform.bounds;
-
-	BvhBoxSweep(view_ray, ptr_sect, &ptr_sect->bvh[0], 0, vbox, &tr);
-	player_debug_data->view_dest = tr.point;
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[0], 0, &tr);
 
 	if(tr.hit) {
-		DrawLine3D(player->comp_transform.position, tr.point, GREEN);
-		BoundingBox box = BoxTranslate(vbox, tr.contact);
-		DrawBoundingBox(box, GREEN);
-
+		DrawLine3D(player->comp_transform.position, tr.point, SKYBLUE);
 	} else 
-		DrawRay(view_ray, GREEN);
+		DrawRay(view_ray, SKYBLUE);
 
 	if(tr.hit) {
-		Tri *tri = &ptr_sect->bvh[1].tris.arr[tr.tri_id];
-		DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
-		DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
+		Tri *tri = &ptr_sect->bvh[0].tris.arr[tr.tri_id];
+		DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(SKYBLUE, 0.25f));
+		DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(SKYBLUE, 0.25f));
 	}
 
 	// Draw box points
@@ -251,34 +285,270 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	}
 
 	player_debug_data->accel = player_accel;	
+}
 
-	/*
-	Ray move_ray = (Ray) { .position = player->comp_transform.position, .direction = Vector3Normalize(horizontal_velocity) };
-	player_debug_data->move_dir = move_ray.direction;
+void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
+	ct->forward = pm_GetLookDir(ct, input);
+	pm_ApplyGravity(ct, dt);
 
-	BoundingBox sweep_box = player->comp_transform.bounds;
-	BvhTraceData sweep_data = TraceDataEmpty();
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &sweep_data);
+	Vector3 wish_move = pm_GetWishMove(ct, input);
+	Vector3 wish_dir = Vector3Normalize(wish_move);
+	float wish_speed = Vector3Length(wish_move);
 
-	if(tr.hit)
-		DrawLine3D(player->comp_transform.position, tr.point, GREEN);
-	else 
-		DrawRay(view_ray, GREEN);
+	pm_info.wish_dir = wish_dir;
+	pm_info.wish_speed = wish_speed;
 
-	sweep_box = player->comp_transform.bounds;
-	sweep_data = TraceDataEmpty();
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
+	pm_Friction(ct, dt);
 
-	if(tr.hit) {
-		Tri *tri = &ptr_sect->tris[tr.tri_id];
-		DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
-		DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
+	pm_info.accel += wish_speed;
+	pm_Accelerate(ct, dt);
+
+	ct->on_ground = pm_CheckGround(ct, ptr_sect, dt);
+
+	pm_Slide(ct, ptr_sect, dt);
+	
+	if(ct->on_ground && input->actions[ACTION_JUMP].state == 1) {
+		float jump = PLAYER_BASE_JUMP_FORCE;
+		ct->velocity.y = jump;
+		ct->on_ground = false;
+		return;
 	}
-	*/
 
-	/*
-	float feet = player->comp_transform.position.y - (BoxExtent(player->comp_transform.bounds).y * 0.5f);	
-	DrawSphere((Vector3) { player->comp_transform.position.x, feet, player->comp_transform.position.z }, 3, PINK);	
-	*/
+	
+	if(IsKeyPressed(KEY_R)) {
+		ct->position = (Vector3) { 0, 40, 0 };
+		ct->velocity = Vector3Zero();
+		ct->on_ground = true;
+	}
+}
+
+Vector3 pm_GetLookDir(comp_Transform *ct, InputHandler *input) {
+	ct->pitch = Clamp(
+		ct->pitch - input->mouse_delta.y * input->mouse_sensitivity, -PLAYER_MAX_PITCH, PLAYER_MAX_PITCH);
+
+	ct->yaw += input->mouse_delta.x * input->mouse_sensitivity;
+
+	return (Vector3) {
+		.x = cosf(ct->yaw) * cosf(ct->pitch),
+		.y = sinf(ct->pitch),
+		.z = sinf(ct->yaw) * cosf(ct->pitch)
+	};
+}
+
+#define PM_SPEED_F 150.0f
+#define PM_SPEED_S 145.0f
+Vector3 pm_GetWishMove(comp_Transform *ct, InputHandler *input) {
+	Vector3 right = Vector3CrossProduct(ct->forward, UP);
+
+	short f_input[2] = {
+		(input->actions[ACTION_MOVE_U].state == 1) ? 1 : 0,
+		(input->actions[ACTION_MOVE_D].state == 1) ? 1 : 0
+	};
+
+	short s_input[2] = {
+		(input->actions[ACTION_MOVE_R].state == 1) ? 1 : 0,
+		(input->actions[ACTION_MOVE_L].state == 1) ? 1 : 0
+	};
+
+	Vector3 f_move = (Vector3) {0};
+	f_move = Vector3Add(f_move, Vector3Scale(ct->forward,  f_input[0]));
+	f_move = Vector3Add(f_move, Vector3Scale(ct->forward, -f_input[1]));
+	f_move = clipY(f_move);
+
+	Vector3 s_move = (Vector3) {0};
+	s_move = Vector3Add(s_move, Vector3Scale(right,  s_input[0]));
+	s_move = Vector3Add(s_move, Vector3Scale(right, -s_input[1]));
+	s_move = clipY(s_move);
+
+	Vector3 sum = Vector3Add(f_move, s_move);
+
+	Vector3 wish = Vector3Scale(Vector3Normalize(sum), PLAYER_SPEED);
+	return wish;
+}
+
+void pm_Accelerate(comp_Transform *ct, float dt) {
+	float curr_speed = Vector3DotProduct(ct->velocity, pm_info.wish_dir);
+	float add_speed = pm_info.wish_speed - curr_speed;
+
+	if(add_speed <= 0)
+		return;
+
+	float accel_speed = pm_info.accel * dt * pm_info.wish_speed; 
+	if(accel_speed > add_speed)
+		accel_speed = add_speed;
+
+	ct->velocity = Vector3Add(ct->velocity, Vector3Scale(pm_info.wish_dir, accel_speed));
+}
+
+void pm_Friction(comp_Transform *ct, float dt) {
+	Vector3 vel = ct->velocity;
+
+	float speed = Vector3LengthSqr(vel);
+	if(speed < 1) {
+		ct->velocity.x = 0;
+		ct->velocity.z = 0;
+		return;
+	}
+
+	if(!ct->on_ground) {
+		//return;
+	}
+
+	ct->velocity.x += -(ct->velocity.x * PLAYER_FRICTION * dt);
+	ct->velocity.z += -(ct->velocity.z * PLAYER_FRICTION * dt);
+}
+
+#define STOP_EPSILON 0.0001f
+#define FLOOR_NORMAL_Y 0.7f
+
+#define BLOCK_GROUND	0x01
+#define BLOCK_STEP		0x02
+
+u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce) {
+	u8 blocked = 0;	
+	if(normal.y >= 0.5f)  				// Floor
+		blocked |= BLOCK_GROUND;		
+	else if(fabsf(normal.y) < 0.01f)	// Wall or step
+		blocked |= BLOCK_STEP; 		
+
+	float backoff = Vector3DotProduct(in, normal) * bounce;
+
+	Vector3 change = Vector3Scale(normal, backoff);
+	*out = Vector3Subtract(in, change);
+
+	if(fabsf(out->x) < STOP_EPSILON) out->x = 0;
+	if(fabsf(out->y) < STOP_EPSILON) out->y = 0;
+	if(fabsf(out->z) < STOP_EPSILON) out->z = 0;
+
+	return blocked;
+}
+
+#define PM_STEP_Y 8.0f
+
+// ** 
+// NOTE:
+// Add in velocity argument to trace.
+// Needed for pm_Step(), using raw ct and pm_info changes state.
+#define MAX_CLIPS 5
+#define MAX_BUMPS 3
+Vector3 pm_TraceMove(comp_Transform *ct, Vector3 start, MapSection *sect, float dt) {
+	Vector3 dest = start;
+
+	u8 block = 0;
+	Vector3 clips[MAX_CLIPS] = {0};	
+	short num_clips = 0;
+
+	Vector3 vel = ct->velocity;
+
+	float t_remain = dt;
+
+	for(short i = 0; i < MAX_BUMPS; i++) {
+		if(Vector3Length(vel) <= STOP_EPSILON) 
+			break;
+
+		Vector3 move = Vector3Scale(vel, t_remain);
+		Ray ray = (Ray) { .position = dest, .direction = Vector3Normalize(move) }; 
+
+		BvhTraceData tr = TraceDataEmpty();
+		BvhBoxSweep(ray, sect, &sect->bvh[1], 0, ct->bounds, &tr);
+
+		float fraction = (tr.contact_dist / Vector3Length(move));
+		fraction = Clamp(fraction, 0.0f, 1.0f);
+
+		dest = Vector3Add(dest, Vector3Scale(move, fraction));
+		if(fraction >= 1.0f) break;	
+
+		if(num_clips + 1 < MAX_CLIPS)
+			clips[num_clips++] = tr.normal;			
+		else 
+			break;
+			
+		for(short j = 0; j < num_clips; j++) {
+			float into = Vector3DotProduct(vel, clips[j]);
+
+			if(into < 0) {
+				block = pm_ClipVelocity(vel, clips[j], &vel, 1);
+
+				/*
+				if(block & BLOCK_GROUND) {
+					pm_info.ground_normal = tr.normal;
+				}
+
+				if(block & BLOCK_STEP) {
+					pm_info.step = tr.point.y; 
+				}
+				*/
+			}
+		}
+
+		t_remain *= (1 - fraction);
+	}
+
+	return dest;
+}
+
+void pm_Slide(comp_Transform *ct, MapSection *sect, float dt) {
+	Vector3 dest = pm_TraceMove(ct, ct->position, sect, dt);
+
+	if(ct->on_ground) {
+		Vector3 dest_step = pm_Step(ct, ct->position, sect, dt);	
+		
+		Vector2 xz = (Vector2) { ct->position.x, ct->position.z };
+		if(Vector2Distance(xz, (Vector2) { dest_step.x, dest_step.z }) > Vector2Distance(xz, (Vector2) { dest.x, dest.z })) {
+			dest = dest_step;			
+		}
+	}
+
+	ct->position = dest;
+}
+
+bool pm_CheckGround(comp_Transform *ct, MapSection *sect, float dt) {
+	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };
+
+	BvhTraceData tr = TraceDataEmpty();
+	BvhBoxSweep(ray, sect, &sect->bvh[1], 0, ct->bounds, &tr);
+
+	if(!tr.hit) 
+		return false;
+
+	if(tr.normal.y < FLOOR_NORMAL_Y)
+		return false;
+
+	if(tr.distance > BODY_VOLUME_MEDIUM.y)
+		return false;
+
+	pm_info.ground_normal = tr.normal;
+	pm_info.ground = tr.contact.y;
+
+	return true;
+}
+
+#define GROUND_EPSILON 0.1f
+void pm_ApplyGravity(comp_Transform *ct, float dt) {
+	float grav = (GRAV_DEFAULT * 1.25f) * dt;
+	ct->velocity.y -= grav;
+
+	if(ct->on_ground) {
+		/*
+		if(fabsf(ct->position.y - pm_info.ground) <= GROUND_EPSILON) {
+			if(ct->position.y < pm_info.ground)
+				ct->velocity.y += grav + (GROUND_EPSILON * dt);
+		}
+		*/
+		
+		pm_ClipVelocity(ct->velocity, pm_info.ground_normal, &ct->velocity, 1.0001f);
+	}
+
+	printf("y: %f\n", ct->position.y);
+}
+
+Vector3 pm_Step(comp_Transform *ct, Vector3 start, MapSection *sect, float dt) {
+	Vector3 pos = start;
+	pos.y += PM_STEP_Y;
+
+	pos = pm_TraceMove(ct, pos, sect, dt);
+	pos.y -= PM_STEP_Y;
+
+	return pos;
 }
 

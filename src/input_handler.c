@@ -7,10 +7,10 @@ void InputInit(InputHandler *handler) {
 	//handler->mouse_sensitivity = 0.475f;
 	handler->mouse_sensitivity = 0.0045f;
 
-	handler->actions[ACTION_MOVE_LEFT].key 	= KEY_A;
-	handler->actions[ACTION_MOVE_RIGHT].key = KEY_D;
-	handler->actions[ACTION_MOVE_UP].key 	= KEY_W;
-	handler->actions[ACTION_MOVE_DOWN].key 	= KEY_S;
+	handler->actions[ACTION_MOVE_L].key 	= KEY_A;
+	handler->actions[ACTION_MOVE_R].key 	= KEY_D;
+	handler->actions[ACTION_MOVE_U].key 	= KEY_W;
+	handler->actions[ACTION_MOVE_D].key 	= KEY_S;
 
 	handler->actions[ACTION_JUMP].key = KEY_SPACE;
 }

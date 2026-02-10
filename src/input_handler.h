@@ -23,10 +23,10 @@ typedef struct {
 #define INPUT_ACTION_COUNT	16
 
 // Action indices
-#define ACTION_MOVE_UP		0
-#define ACTION_MOVE_LEFT	1
-#define ACTION_MOVE_DOWN	2
-#define ACTION_MOVE_RIGHT	3
+#define ACTION_MOVE_U		0
+#define ACTION_MOVE_L		1
+#define ACTION_MOVE_D		2
+#define ACTION_MOVE_R		3
 #define ACTION_JUMP			4
 
 typedef struct {

@@ -109,24 +109,33 @@ Tri *MeshToTris(Mesh mesh, u16 *tri_count, u16 hull_id, Hull *hull);
 // Create a primitive array from model (with indexing)
 Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids, u16 *hull_count, Hull **hulls);
 
+// Tri primitive collection
+typedef struct { 
+	Tri *arr;
+	u16 *ids;
+	u16 count;
+
+} TriPool;
+
 #define MAX_TRIS_PER_NODE	4
 // BVH node struct
-// Size of 32 bytes reduces cache misses
 typedef struct {
 	// Minimum and maximum points
-	BoundingBox bounds;
+	BoundingBox bounds;				// 24 bytes
 
 	// Number of primitives 
-	u16 tri_count;
+	u16 tri_count;					// 2 bytes
 
 	// Index of first primitive contained in node
-	u16 first_tri;
+	u16 first_tri;					// 2 bytes
 
 	// Child node indices
-	u16 child_lft, child_rgt;
+	u16 child_lft, child_rgt;		// 4 bytes
 
-} BvhNode;
+} BvhNode;							// 32 byte total
 
+// *
+// Not used 
 typedef struct {
 	BoundingBox bounds;
 
@@ -144,7 +153,9 @@ typedef struct {
 } Bin;
 
 #define BVH_TREE_START_CAPACITY	1024
-
+// BVH Tree struct
+// Separate from nodes for indexed based approach
+// Using pointers means at least 2x node size, slowing search
 typedef struct {
 	BvhNode *nodes;
 
@@ -162,6 +173,8 @@ typedef struct {
 
 typedef struct {
 	BvhTree bvh[3];
+
+	TriPool tri_pools[3];
 
 	Hull *hulls;
 
@@ -195,7 +208,7 @@ enum BVH_SHAPES : u8 {
 };
 
 // Start BVH tree construction
-void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume);
+void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_pool);
 
 // Unload BVH tree
 void BvhClose(BvhTree *bvh);

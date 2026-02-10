@@ -349,7 +349,7 @@ void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id) {
 }
 
 // Start BVH tree construction
-void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume) {
+void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_pool) {
 	// Reset count
 	bvh->count = 0;
 
@@ -557,8 +557,8 @@ void MapSectionInit(MapSection *sect, Model model) {
 	sect->model = model;
 	sect->tris = ModelToTris(model, &sect->tri_count, &sect->tri_ids, &sect->hull_count, &sect->hulls);
 
-	BvhConstruct(sect, &sect->bvh[0], Vector3Zero());
-	BvhConstruct(sect, &sect->bvh[1], BODY_VOLUME_MEDIUM);
+	BvhConstruct(sect, &sect->bvh[0], Vector3Zero(), NULL);
+	BvhConstruct(sect, &sect->bvh[1], BODY_VOLUME_MEDIUM, NULL);
 
 	sect->flags = (MAP_SECT_LOADED);
 }

@@ -17,6 +17,7 @@ int main() {
 	GameRenderSetup(&game);
 	GameLoadTestScene(&game, "resources/maps/test1");
 	//GameLoadTestScene(&game, "resources/maps/encounter_00");
+	//GameLoadTestScene(&game, "resources/maps/test02");
 
 	// Disable exit key
 	SetExitKey(KEY_NULL);

@@ -31,14 +31,13 @@ Material mat_default;
 BrushPool brush_pool = (BrushPool) {0};
 BrushPool brush_pool_exp = (BrushPool) {0};
 
-Tri *tris;
 u16 tri_count = 0;
+Tri *tris;
 
 void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
 
 	InputInit(&game->input_handler);
-
 }
 
 void GameClose(Game *game) {
@@ -115,7 +114,19 @@ void GameLoadTestScene(Game *game, char *path) {
 
 	brush_pool_exp = ExpandBrushes(&brush_pool, BODY_VOLUME_MEDIUM);
 	tris = TrisFromBrushPool(&brush_pool_exp, &tri_count);
-	//tris = BrushToTris(&brush_pool_exp.brushes[2], &tri_count);
+
+	TriPool tri_pools[3] = {0};
+	tri_pools[0].count = game->test_section.tri_count;
+	tri_pools[0].arr = calloc(tri_pools[0].count, sizeof(Tri));
+	memcpy(tri_pools[0].arr, game->test_section.tris, sizeof(Tri) * tri_pools[0].count);
+	tri_pools[0].ids = calloc(tri_pools[0].count, sizeof(u16));
+	memcpy(tri_pools[0].ids, game->test_section.tri_ids, sizeof(u16) * tri_pools[0].count);
+
+	tri_pools[1].count = tri_count;
+	tri_pools[1].arr = calloc(tri_pools[1].count, sizeof(Tri));
+	memcpy(tri_pools[1].arr, tris, sizeof(Tri) * tri_pools[1].count);
+	tri_pools[1].ids = calloc(tri_pools[1].count, sizeof(u16));
+	for(u16 i = 0; i < tri_pools[1].count; i++) tri_pools[1].ids[i] = i;
 
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data);
 
@@ -186,15 +197,24 @@ void GameDraw(Game *game) {
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			RenderEntities(&game->ent_handler);
 
-			BrushTestView(&brush_pool, SKYBLUE);
-			BrushTestView(&brush_pool_exp, RED);
+			//BrushTestView(&brush_pool, SKYBLUE);
+			//BrushTestView(&brush_pool_exp, RED);
 
 			/*
 			for(u16 i = 0; i < game->test_section.tri_count; i++) {
-				Tri *tri = &game->test_section.tris[i];
+				//Tri *tri = &game->test_section.tris[i];
 
 				Color color = colors[tri->hull_id % 6];
 				//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.5f));
+			}
+			*/
+
+			/*
+			for(u16 i = 0; i < tri_count; i++) {
+				Tri *tri = &tris[i];
+
+				Color color = colors[i % 6];
+				DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 1.00f));
 			}
 			*/
 
@@ -204,12 +224,13 @@ void GameDraw(Game *game) {
 			}
 			*/
 
-			//DrawModelPoints(game->test_section.model, Vector3Zero(), 1, BLUE);
-			
-			for(u16 i = 0; i < tri_count; i++) {
-				Tri *tri = &tris[i];
-				DrawTriangle3D(tris->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(SKYBLUE, 0.5f));
+			for(u16 i = 0; i < game->test_section.hull_count; i++) {
+				Hull *hull = &game->test_section.hulls[i];
+		
+				DrawMesh(game->test_section.model.meshes[i], mat_default, game->test_section.model.transform);
 			}
+
+			//DrawModelPoints(game->test_section.model, Vector3Zero(), 1, BLUE);
 			
 		EndMode3D();
 

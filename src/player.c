@@ -77,6 +77,23 @@ void pm_Friction(comp_Transform *ct, float dt);
 
 u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce);
 
+#define MAX_CLIPS 4
+typedef struct {
+	Vector3 clips[MAX_CLIPS];	// Clip planes hit 
+
+	Vector3 end_pos; 			// Destination of trace
+	Vector3 end_vel;			// Velocity after clip
+
+	Vector3 ground_normal;		// Ground normal at trace end point
+
+	float fraction;				// How much of the requested movement was actually traveled 
+	float move_dist;			// How far player moved
+
+	u8 clip_count;				// How many clip planes were hit during trace
+	u8 block;					// What blocks movement: GROUND, STEP, WALL, etc.
+
+} pmTraceData;
+
 Vector3 pm_TraceMove(comp_Transform *ct, Vector3 start, MapSection *sect, float dt);
 
 // Add velocity, adjust position
@@ -429,7 +446,6 @@ u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce) {
 // NOTE:
 // Add in velocity argument to trace.
 // Needed for pm_Step(), using raw ct and pm_info changes state.
-#define MAX_CLIPS 5
 #define MAX_BUMPS 3
 Vector3 pm_TraceMove(comp_Transform *ct, Vector3 start, MapSection *sect, float dt) {
 	Vector3 dest = start;
@@ -538,8 +554,6 @@ void pm_ApplyGravity(comp_Transform *ct, float dt) {
 		
 		pm_ClipVelocity(ct->velocity, pm_info.ground_normal, &ct->velocity, 1.0001f);
 	}
-
-	printf("y: %f\n", ct->position.y);
 }
 
 Vector3 pm_Step(comp_Transform *ct, Vector3 start, MapSection *sect, float dt) {

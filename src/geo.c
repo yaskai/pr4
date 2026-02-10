@@ -182,15 +182,12 @@ BoxPoints BoxGetPoints(BoundingBox box) {
 }
 
 // Create a primitive array from mesh
-Tri *MeshToTris(Mesh mesh, u16 *tri_count, u16 hull_id, Hull *hull) {
+Tri *MeshToTris(Mesh mesh, u16 *tri_count) {
 	// Get triangle count
 	u16 count = mesh.triangleCount;
 	*tri_count = count;
 
-	*hull = (Hull) {0};
-
 	Vector3 mesh_center = BoxCenter(GetMeshBoundingBox(mesh));	
-	hull->position = mesh_center;
 	
 	// Create and populate array
 	Tri *tris = calloc(count, sizeof(Tri));
@@ -217,71 +214,26 @@ Tri *MeshToTris(Mesh mesh, u16 *tri_count, u16 hull_id, Hull *hull) {
 		// Calculate normal vector
 		tri.normal = TriNormal(tri);
 
-		tri.hull_id = hull_id;
-
 		// Copy triangle to array
 		tris[i] = tri;
-
-		Plane hull_plane = TriToPlane(tri);
-
-		bool plane_exists = false;
-		for(short j = 0; j < hull->plane_count; j++) {
-			// Don't add pre-exisiting planes to hull
-			/*
-			if(Vector3Equals(hull_plane.normal, hull->planes[j].normal)) {
-				plane_exists = true;
-				break;
-			}
-			*/
-
-			if(Vector3DotProduct(hull_plane.normal, hull->planes[j].normal) >= 0.99f) {
-				plane_exists = true;
-			}
-		}
-
-		if(!plane_exists) {
-			float dist = PlaneDistance(hull_plane, mesh_center);
-			if(dist > 0) {
-				hull_plane.normal = Vector3Negate(hull_plane.normal);
-				hull_plane.d = -hull_plane.d;
-			}
-
-			hull->planes[hull->plane_count++] = hull_plane;
-		}
 	}
-
-	for(int i = 0; i < mesh.vertexCount; i++) {
-		int vertex_id = i * 3;
-
-		hull->vertices[hull->vertex_count++] = (Vector3) {
-			.x = mesh.vertices[vertex_id + 0],
-			.y = mesh.vertices[vertex_id + 1],
-			.z = mesh.vertices[vertex_id + 2]
-		};
-	}
-
 	// Return array
 	return tris;
 }
 
 // Create a primitive array from model (with indexing)
-Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids, u16 *hull_count, Hull **hulls) {
+Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids) {
 	u16 count = 0;
 
 	// Intialize arrays
 	Tri *tris = NULL;
 	u16 *ids = NULL;
 
-	*hull_count = model.meshCount;
-	//*hulls = (Hull*)calloc(sizeof(Hull), model.meshCount);
-	Hull *temp_hulls = calloc(sizeof(Hull), model.meshCount);
-
 	// Iterate through meshes
 	for(u16 i = 0; i < model.meshCount; i++) {
 		// Create temporary array for mesh triangles
 		u16 temp_count = 0;
-		Tri *temp_tris = MeshToTris(model.meshes[i], &temp_count, i, &temp_hulls[i]);
-		//Tri *temp_tris = MeshToTris(model.meshes[i], &temp_count, i, hulls[i]);
+		Tri *temp_tris = MeshToTris(model.meshes[i], &temp_count);
 
 		// Increment count by mesh's tri count
 		count += temp_count; 
@@ -302,8 +254,6 @@ Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids, u16 *hull_count, Hu
 		// Free temporary array
 		free(temp_tris);
 	}
-
-	*hulls = temp_hulls;
 
 	// Set id and count values 
 	*tri_ids = ids;
@@ -555,7 +505,7 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 // Load geometry, materials, construct BVH, etc.  
 void MapSectionInit(MapSection *sect, Model model) {
 	sect->model = model;
-	sect->tris = ModelToTris(model, &sect->tri_count, &sect->tri_ids, &sect->hull_count, &sect->hulls);
+	sect->tris = ModelToTris(model, &sect->tri_count, &sect->tri_ids);
 
 	BvhConstruct(sect, &sect->bvh[0], Vector3Zero(), NULL);
 	BvhConstruct(sect, &sect->bvh[1], BODY_VOLUME_MEDIUM, NULL);
@@ -850,52 +800,6 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 	}
 	*/
 
-	/*
-	float best_dist = FLT_MAX;
-	for(short i = 0; i < hull_count; i++) {
-		Hull *hull = &sect->hulls[hulls[i]];
-		RayCollision mesh_coll = GetRayCollisionMesh(ray, sect->model.meshes[hulls[i]], sect->model.transform);
-
-		if(!mesh_coll.hit) continue;
-		if(mesh_coll.distance > data->distance) continue;
-
-		float diff = MinkowskiDiff(mesh_coll.normal, h);
-
-		data->point = coll.point;
-		data->normal = coll.normal;
-		data->distance = coll.distance;
-		data->node_id = node_id;
-		data->hit = true;
-
-		data->contact_dist = coll.distance - diff;
-		data->contact = Vector3Add(ray.position, Vector3Scale(ray.direction, data->contact_dist));
-	}
-	*/
-
-	/*
-	// Test hulls
-	float best_dist = FLT_MAX;
-	for(short i = 0; i < hull_count; i++) {
-		Hull *hull = &sect->hulls[hulls[i]];
-		HullTraceData hull_trace = HullTraceDataEmpty();
-		TraceHull(ray, h, &hull_trace, hull);	
-
-		float dist = Vector3Distance(ray.position, hull_trace.point);
-		if(!hull_trace.hit) continue;
-		if(dist >= best_dist) continue;
-
-		data->point = hull_trace.point;
-		data->normal = hull_trace.normal;
-		data->distance = dist;
-		data->hit = hull_trace.hit;
-
-		float diff = MinkowskiDiff(data->normal, h);
-
-		data->contact_dist = dist;
-		data->contact = Vector3Add(ray.position, Vector3Scale(ray.direction, data->contact_dist));
-	}
-	*/
-	
 	bool leaf = (node->tri_count > 0);
 	if(leaf) return;
 
@@ -1027,61 +931,5 @@ void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_i
 	
 	BvhBoxIntersect(box, sect, bvh, node->child_lft, data);	
 	BvhBoxIntersect(box, sect, bvh, node->child_rgt, data);	
-}
-
-HullTraceData HullTraceDataEmpty() {
-	return (HullTraceData) {
-		.point = Vector3Zero(),
-		.normal = Vector3Zero(),
-		.t = FLT_MAX,
-		.hull_id = 0,
-		.hit = false
-	};
-}
-
-void TraceHull(Ray ray, Vector3 half_extents, HullTraceData *data, Hull *hull) {
-	float t_in = 0.0f;
-	float t_out = data->t;
-	Vector3 norm = Vector3Zero();
-
-	for(short i = 0; i < hull->plane_count; i++) {
-		Plane *p = &hull->planes[i];
-
-		float diff = MinkowskiDiff(p->normal, half_extents);	
-
-		float dist = PlaneDistance(*p, ray.position) - diff;
-
-		// denom < 0 = in, denom > 0 = out
-		float denom = Vector3DotProduct(p->normal, ray.direction);
-
-		if(fabsf(denom) < EPSILON) {
-			// Trace never enters hull
-			if(dist > 0.0f) return;
-
-			continue;
-		}
-
-		float t = -dist / denom;
-
-		if(denom < 0.0f) {
-			if(t > t_in) {
-				t_in = t;
-				norm = p->normal;
-			}
-		} else {
-			if(t < t_out) 
-				t_out = t;
-		}
-
-		if(t_in > t_out)
-			return;
-	}
-
-	if(t_in >= 0.0f && t_in < data->t) {
-		data->point = Vector3Add(ray.position, Vector3Scale(ray.direction, t_in));
-		data->normal = norm;
-		data->t = t_in;
-		data->hit = true;
-	}
 }
 

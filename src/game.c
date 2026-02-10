@@ -38,6 +38,8 @@ void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
 
 	InputInit(&game->input_handler);
+
+	SetLogState(1);
 }
 
 void GameClose(Game *game) {
@@ -82,6 +84,8 @@ void GameRenderSetup(Game *game) {
 }
 
 void GameLoadTestScene(Game *game, char *path) {
+	BuildMapSect(path);
+	
 	if(!DirectoryExists(path)) {
 		MessageError("Missing directory", path);
 		return;
@@ -145,30 +149,6 @@ void GameLoadTestScene(Game *game, char *path) {
 	player.comp_transform.on_ground = true;
 	player.comp_transform.air_time = 0;
 	game->ent_handler.ents[game->ent_handler.count++] = player;
-
-	/*
-	hull_point_count = 0;
-	for(u16 i = 0; i < game->test_section.hull_count; i++) {
-		Hull *hull = &game->test_section.hulls[i];
-		hull_point_count += hull->vertex_count;
-	}
-
-	hull_point_meshes = calloc(hull_point_count, sizeof(Model));
-	hull_point_count = 0;
-
-	for(u16 i = 0; i < game->test_section.hull_count; i++) {
-		Hull *hull = &game->test_section.hulls[i];
-
-		for(short j = 0; j < hull->vertex_count; j++) {
-			Vector3 v = hull->vertices[j];
-
-			Mesh mesh = GenMeshSphere(2, 8, 16);
-			Model model = LoadModelFromMesh(mesh);
-			model.transform = MatrixTranslate(v.x, v.y, v.z);	
-			hull_point_meshes[hull_point_count++] = model;
-		}
-	}
-	*/
 }
 
 void GameUpdate(Game *game, float dt) {
@@ -223,12 +203,6 @@ void GameDraw(Game *game) {
 				DrawModel(hull_point_meshes[i], Vector3Zero(), 1, BLUE);	
 			}
 			*/
-
-			for(u16 i = 0; i < game->test_section.hull_count; i++) {
-				Hull *hull = &game->test_section.hulls[i];
-		
-				DrawMesh(game->test_section.model.meshes[i], mat_default, game->test_section.model.transform);
-			}
 
 			//DrawModelPoints(game->test_section.model, Vector3Zero(), 1, BLUE);
 			

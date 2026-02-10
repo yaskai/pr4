@@ -8,6 +8,7 @@
 #include "map.h"
 #include "geo.h"
 #include "../include/sort.h"
+#include "../include/log_message.h"
 
 int point_total = 0;
 Model *brush_point_meshes;
@@ -456,5 +457,56 @@ void BrushTestView(BrushPool *brush_pool, Color color) {
 		//DrawSphere(, float radius, Color color)
 	}
 	*/
+}
+
+MapSection BuildMapSect(char *path) {
+	MessageDiag("Constructing map section", path, ANSI_BLUE);
+
+	MapSection sect = (MapSection) {0};
+
+	if(!DirectoryExists(path)) {
+		MessageError("Missing directory", path);
+		return sect;
+	}
+
+	FilePathList path_list = LoadDirectoryFiles(path);
+
+	// 1. Load 3d model, rendering
+	Message("Loading model...", ANSI_BLUE);
+	short model_id = -1;
+	for(short i = 0; i < path_list.count; i++) 
+		if(strcmp(GetFileExtension(path_list.paths[i]), ".glb") == 0) model_id = i;
+
+	// No model, exit
+	if(model_id == -1) {
+		MessageError("Missing model", NULL);
+		return sect;
+	}
+	
+	Model model = LoadModel(path_list.paths[model_id]);
+	sect.model = model;
+
+	TriPool tri_pools[3] = {0};
+	tri_pools[0].arr = ModelToTris(model, &tri_pools[0].count, &tri_pools[0].ids);
+	if(GetLogState()) printf("model tri_count: %d\n", tri_pools[0].count);
+
+	BrushPool brush_pools[3] = {0};
+
+	// 2. Load .map file, collision, physics, ai logic, etc. 
+	Message("Loading map file...", ANSI_BLUE);
+	short mpf_id = -1;
+	for(short i = 0; i < path_list.count; i++) {
+		if(strcmp(GetFileExtension(path_list.paths[i]), ".map") == 0) 
+			mpf_id = i;
+	}
+
+	if(mpf_id == -1) { 
+		MessageError("Missing .map file", NULL);
+		return sect;
+	}
+
+	LoadMapFile(&brush_pools[0], path_list.paths[mpf_id], &model);
+
+	return sect;
 }
 

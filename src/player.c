@@ -36,18 +36,12 @@ BoxPoints box_points;
 
 PlayerDebugData *player_debug_data = { 0 };
 
-Hull test_hull;
-
 void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data) {
 	ptr_cam = camera;
 	ptr_input = input;
 	ptr_sect = test_section;
 
 	player_debug_data = debug_data;
-
-	Mesh test_mesh = GenMeshCube(30, 30, 30);
-	u16 tri_count = 0;
-	MeshToTris(test_mesh, &tri_count, 0, &test_hull);
 }
 
 void PlayerUpdate(Entity *player, float dt) {

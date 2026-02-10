@@ -41,4 +41,7 @@ Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count);
 
 void BrushTestView(BrushPool *brush_pool, Color color);
 
+MapSection BuildMapSect(char *file_path);
+
 #endif
+

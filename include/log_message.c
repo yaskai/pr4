@@ -4,7 +4,13 @@
 #include "log_message.h"
 #include "ansi_codes.h"
 
+short log_state = 1;
+void SetLogState(short state) { log_state = state; }
+short GetLogState() { return log_state; }
+
 void Message(char *text, char *color) {
+	if(!log_state) return;
+
 	char *line_esc = strchr(text, '\n');
 	if(line_esc) *line_esc = '\0';
 
@@ -19,6 +25,8 @@ void Message(char *text, char *color) {
 }
 
 void MessageError(char *text, char *param) {
+	if(!log_state) return;
+
 	// Set text color to red
 	printf("%s", ANSI_RED);
 
@@ -33,7 +41,26 @@ void MessageError(char *text, char *param) {
 	printf("%s\n", ANSI_WHITE);
 }
 
+void MessageDiag(char *text, char *param, char *color) {
+	if(!log_state) return;
+
+	// Set text color to red
+	printf("%s", color);
+
+	// Print text 
+	printf("%s", text);	
+
+	// Print error parameter (if provided)
+	if(param) 
+		printf(" [%s]", param);
+
+	// Reset text color, print new line
+	printf("%s\n", ANSI_WHITE);
+}
+
 void MessageKeyValPair(char *key, char *val) {
+	if(!log_state) return;
+
 	char *line_esc = strchr(val, '\n');
 	if(line_esc) *line_esc = '\0';
 

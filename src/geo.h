@@ -77,37 +77,11 @@ typedef struct {
 
 BoxNormals BoxGetFaceNormals(BoundingBox box);
 
-typedef struct {
-	Vector3 vertices[18];
-	Plane planes[16]; 
-
-	Vector3 position;
-
-	short vertex_count;
-	short plane_count;
-	
-} Hull;
-
-typedef struct {
-	Vector3 point;
-	Vector3 normal;
-
-	float t;
-
-	u16 hull_id;
-
-	bool hit;
-
-} HullTraceData;
-
-HullTraceData HullTraceDataEmpty();
-void TraceHull(Ray ray, Vector3 half_extents, HullTraceData *data, Hull *hull);
-
 // Create a primitive array from mesh
-Tri *MeshToTris(Mesh mesh, u16 *tri_count, u16 hull_id, Hull *hull);
+Tri *MeshToTris(Mesh mesh, u16 *tri_count);
 
 // Create a primitive array from model (with indexing)
-Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids, u16 *hull_count, Hull **hulls);
+Tri *ModelToTris(Model model, u16 *tri_count, u16 **tri_ids);
 
 // Tri primitive collection
 typedef struct { 
@@ -175,8 +149,6 @@ typedef struct {
 	BvhTree bvh[3];
 
 	TriPool tri_pools[3];
-
-	Hull *hulls;
 
 	Model model;
 
@@ -289,9 +261,6 @@ typedef struct {
 IntersectData IntersectDataEmpty();
 
 void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data);
-
-Vector3 SupportBox(BoundingBox box, Vector3 dir);
-Vector3 SupportHull(Hull *hull, Vector3 dir);
 
 #endif
 

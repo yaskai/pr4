@@ -8,8 +8,8 @@
 typedef struct {
 	BoundingBox bounds;
 
-	Vector3 verts[18];
-	Plane planes[16];
+	Vector3 verts[24];
+	Plane planes[18];
 
 	Vector3 center;
 

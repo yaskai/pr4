@@ -83,8 +83,8 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 		Ray ray = (Ray) { .position = Vector3Add(pos, Vector3Scale(UP, y_offset)), .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
-		//BvhTracePointEx(ray, sect, &sect->bvh[0], 0, &tr);
-		BvhBoxSweep(ray, sect, &sect->bvh[0], 0, comp_transform->bounds, &tr);
+		//BvhTracePointEx(ray, sect, bvh, 0, &tr);
+		BvhBoxSweep(ray, sect, &sect->bvh[1], 0, comp_transform->bounds, &tr);
 
 		if(tr.contact_dist > Vector3Length(wish_move)) {
 			pos = Vector3Add(pos, vel);
@@ -108,7 +108,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 			if(into <= 0.0f) {
 				vel = Vector3Subtract(vel, Vector3Scale(clips[j], into));	
 				comp_transform->velocity =
-					Vector3Subtract(comp_transform->velocity, Vector3Scale(clips[j], into * dt));	
+					Vector3Subtract(comp_transform->velocity, Vector3Scale(clips[j], (into * 1 + EPSILON) * dt));	
 					//Vector3Subtract(comp_transform->velocity, Vector3Scale(comp_transform->velocity, 0.1f * dt));	
 			}
 		}
@@ -117,7 +117,7 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 	}
 
 	comp_transform->position = pos;
-	comp_transform->on_ground = CheckGround(comp_transform, pos, sect, bvh, dt);
+	comp_transform->on_ground = CheckGround(comp_transform, pos, sect, &sect->bvh[1], dt);
 }
 
 void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt) {
@@ -145,11 +145,12 @@ short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect,
 	float feet = (ent_height * 0.5f) - 1;
 
 	Ray ray = (Ray) { .position = pos, .direction = DOWN };
-	ray.position = Vector3Add(ray.position, offset);
+	ray.position = comp_transform->position;
+	//ray.position = Vector3Add(ray.position, offset);
 
 	BvhTraceData tr = TraceDataEmpty();
-	BvhBoxSweep(ray, sect, &sect->bvh[0], 0, comp_transform->bounds, &tr);
-	//BvhTracePointEx(ray, sect, &sect->bvh[0], 0, &tr);
+	BvhBoxSweep(ray, sect, &sect->bvh[1], 0, comp_transform->bounds, &tr);
+	//BvhTracePointEx(ray, sect, &sect->bvh[1], 0, &tr);
 
 	if(tr.contact_dist >= 1.0f) {
 		return 0;
@@ -167,6 +168,7 @@ short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect,
 
 	float change = (tr.contact.y - slope_y) - (comp_transform->position.y);
 	comp_transform->position.y = (tr.contact.y - slope_y);
+	//comp_transform->position.y = (tr.point.y + ent_height*2) - slope_y;
 
 	comp_transform->last_ground_surface = tr.tri_id; 
 	//comp_transform->position.y += change;
@@ -220,7 +222,7 @@ short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bv
 	Ray ray = (Ray) { .position = comp_transform->position, .direction = UP };
 	
 	BvhTraceData tr = TraceDataEmpty();	
-	BvhBoxSweepNoInvert(ray, sect, bvh, 0, &comp_transform->bounds, &tr);
+	//BvhBoxSweepNoInvert(ray, sect, bvh, 0, &comp_transform->bounds, &tr);
 
 	if(tr.distance > EPSILON)
 		return 0;

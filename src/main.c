@@ -15,9 +15,10 @@ int main() {
 	InitWindow(conf.window_width, conf.window_height, "DISRUPTOR");
 
 	GameRenderSetup(&game);
-	GameLoadTestScene(&game, "resources/maps/test1");
+	//GameLoadTestScene(&game, "resources/maps/test1");
 	//GameLoadTestScene(&game, "resources/maps/encounter_00");
 	//GameLoadTestScene(&game, "resources/maps/test02");
+	GameLoadTestScene1(&game, "resources/maps/test1");
 
 	// Disable exit key
 	SetExitKey(KEY_NULL);

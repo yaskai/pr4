@@ -38,6 +38,7 @@ void GameClose(Game *game);
 
 void GameRenderSetup(Game *game);
 void GameLoadTestScene(Game *game, char *path);
+void GameLoadTestScene1(Game *game, char *path);
 
 void GameUpdate(Game *game, float dt);
 void GameDraw(Game *game);

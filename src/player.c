@@ -36,6 +36,8 @@ BoxPoints box_points;
 
 PlayerDebugData *player_debug_data = { 0 };
 
+short PlayerMoveXZ(Vector3 wish_dir);
+
 void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data) {
 	ptr_cam = camera;
 	ptr_input = input;
@@ -70,12 +72,12 @@ void PlayerUpdate(Entity *player, float dt) {
 	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
 
 
-	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[0], dt);
+	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
 	if(player->comp_transform.velocity.y == 0 && y_vel_prev <= -335.0f) {
 		land_frame = true;
 	}
 
-	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0], GRAV_DEFAULT, dt);
+	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], GRAV_DEFAULT, dt);
 
 	/*
 	PlayerMove(player, dt);
@@ -222,7 +224,7 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	player_debug_data->view_length = FLT_MAX;
 
 	BvhTraceData tr = TraceDataEmpty();
-	//BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr);
 
 	BoundingBox vbox = player->comp_transform.bounds;
 
@@ -237,22 +239,11 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	} else 
 		DrawRay(view_ray, GREEN);
 
-	/*
 	if(tr.hit) {
-		Tri *tri = &ptr_sect->tris[tr.tri_id];
-		//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
-		//DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
-
-		u16 hull_id = tri->hull_id;
-		Hull *hull = &ptr_sect->hulls[hull_id];
-
-		for(short i = 0; i < hull->vertex_count; i++) {
-			//DrawSphereEx(hull->vertices[i], 2, , int slices, Color color)
-			DrawSphere(hull->vertices[i], 1.5f, SKYBLUE);
-			//DrawPoint3D(hull->vertices[i], SKYBLUE);
-		}
+		Tri *tri = &ptr_sect->bvh[1].tris.arr[tr.tri_id];
+		DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(GREEN, 0.25f));
+		DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(GREEN, 0.25f));
 	}
-	*/
 
 	// Draw box points
 	for(short i = 0; i < 8; i++) {

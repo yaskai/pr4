@@ -131,9 +131,9 @@ typedef struct {
 // Separate from nodes for indexed based approach
 // Using pointers means at least 2x node size, slowing search
 typedef struct {
-	BvhNode *nodes;
+	TriPool tris;
 
-	u16 *tri_ids;
+	BvhNode *nodes;
 
 	Vector3 shape;
 
@@ -147,18 +147,9 @@ typedef struct {
 
 typedef struct {
 	BvhTree bvh[3];
-
-	TriPool tri_pools[3];
+	TriPool _tris[3];
 
 	Model model;
-
-	Tri *tris;
-	u16 *tri_ids;
-	u16 tri_count;
-
-	Tri *tris_B;
-	u16 *tri_ids_B;
-	u16 tri_count_B;
 
 	u16 hull_count;
 	u8 flags;
@@ -171,7 +162,7 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
-#define BODY_VOLUME_MEDIUM (Vector3) { 12, 20, 12 }
+#define BODY_VOLUME_MEDIUM (Vector3) { 18, 22, 18 }
 
 enum BVH_SHAPES : u8 {
 	BVH_POINT		= 0,	

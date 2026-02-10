@@ -83,57 +83,10 @@ void GameRenderSetup(Game *game) {
 	mat_default.maps[MATERIAL_MAP_DIFFUSE].color = ColorAlpha(BLUE, 0.25f);
 }
 
-void GameLoadTestScene(Game *game, char *path) {
-	BuildMapSect(path);
-	
-	if(!DirectoryExists(path)) {
-		MessageError("Missing directory", path);
-		return;
-	}
-
-	FilePathList path_list = LoadDirectoryFiles(path);
-
-	short model_id = -1;
-	for(short i = 0; i < path_list.count; i++) {
-		if(strcmp(GetFileExtension(path_list.paths[i]), ".glb") == 0) 
-			model_id = i;
-	}
-
-	if(model_id == -1) {
-		MessageError("Missing model", NULL);
-		return;
-	}
-
-	Model model = LoadModel(path_list.paths[model_id]);
-
-	game->test_section = (MapSection) {0};
-	MapSectionInit(&game->test_section, model);
-
-	short mpf_id = -1;
-	for(short i = 0; i < path_list.count; i++) {
-		if(strcmp(GetFileExtension(path_list.paths[i]), ".map") == 0) 
-			mpf_id = i;
-	}
-	if(mpf_id > -1) LoadMapFile(&brush_pool, path_list.paths[mpf_id], &model);
-
-	brush_pool_exp = ExpandBrushes(&brush_pool, BODY_VOLUME_MEDIUM);
-	tris = TrisFromBrushPool(&brush_pool_exp, &tri_count);
-
-	TriPool tri_pools[3] = {0};
-	tri_pools[0].count = game->test_section.tri_count;
-	tri_pools[0].arr = calloc(tri_pools[0].count, sizeof(Tri));
-	memcpy(tri_pools[0].arr, game->test_section.tris, sizeof(Tri) * tri_pools[0].count);
-	tri_pools[0].ids = calloc(tri_pools[0].count, sizeof(u16));
-	memcpy(tri_pools[0].ids, game->test_section.tri_ids, sizeof(u16) * tri_pools[0].count);
-
-	tri_pools[1].count = tri_count;
-	tri_pools[1].arr = calloc(tri_pools[1].count, sizeof(Tri));
-	memcpy(tri_pools[1].arr, tris, sizeof(Tri) * tri_pools[1].count);
-	tri_pools[1].ids = calloc(tri_pools[1].count, sizeof(u16));
-	for(u16 i = 0; i < tri_pools[1].count; i++) tri_pools[1].ids[i] = i;
+void GameLoadTestScene1(Game *game, char *path) {
+	game->test_section = BuildMapSect(path);
 
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data);
-
 	Entity player = (Entity) {
 		.comp_transform = (comp_Transform) {0},
 		.comp_health = (comp_Health) {0},
@@ -141,7 +94,6 @@ void GameLoadTestScene(Game *game, char *path) {
 		.behavior_id = 0,
 		.flags = (ENT_ACTIVE)
 	};
-
 	player.comp_transform.bounds.max = BODY_VOLUME_MEDIUM;
 	player.comp_transform.bounds.min = Vector3Scale(player.comp_transform.bounds.max, -1);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
@@ -175,7 +127,7 @@ void GameDraw(Game *game) {
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, GREEN);
 
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
-			RenderEntities(&game->ent_handler);
+			//RenderEntities(&game->ent_handler);
 
 			//BrushTestView(&brush_pool, SKYBLUE);
 			//BrushTestView(&brush_pool_exp, RED);
@@ -204,6 +156,32 @@ void GameDraw(Game *game) {
 			}
 			*/
 
+			/*
+			for(u16 i = 0; i < game->test_section.bvh[1].count; i++) {	
+				BvhNode *node = &game->test_section.bvh[1].nodes[i];
+
+
+				//DrawBoundingBox(node->bounds, RED);
+			}
+			*/
+
+			/*
+			for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
+				//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+				Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+				DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(RED, 0.5f));
+			}
+			*/
+
+			/*
+			for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
+				//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+				Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+				Color color = colors[j % 6];
+				DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.5f));
+			}
+			*/
+
 			//DrawModelPoints(game->test_section.model, Vector3Zero(), 1, BLUE);
 			
 		EndMode3D();
@@ -225,10 +203,10 @@ void GameDraw(Game *game) {
 
 			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			RenderEntities(&game->ent_handler);
-			BrushTestView(&brush_pool, SKYBLUE);
-			BrushTestView(&brush_pool_exp, RED);
+			//BrushTestView(&brush_pool, SKYBLUE);
+			//BrushTestView(&brush_pool_exp, RED);
 
-			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {1, 0, 0} }, RED);
+			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {-1, 0, 0} }, RED);
 			DrawRay((Ray){.position = Vector3Zero(), .direction = UP}, GREEN);
 			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, SKYBLUE);
 

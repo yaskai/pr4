@@ -6,6 +6,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "../include/num_redefs.h"
+#include "../include/log_message.h"
 #include "geo.h"
 
 // Swap triangle indices
@@ -13,6 +14,13 @@ void SwapTriIds(u16 *a, u16 *b) {
 	u16 temp = *a;
 	*a = *b;
 	*b = temp;
+} 
+
+// Swap triangle indices
+void SimpleSwap(u16 a, u16 b) {
+	u16 temp = a;
+	a = b;
+	b = temp;
 } 
 
 // Compute a triangle's normal vector
@@ -275,8 +283,10 @@ void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	node->bounds = EmptyBox();
 	
 	for(u16 i = 0; i < node->tri_count; i++) {
-		u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		Tri tri = sect->tris[tri_id];
+		//u16 tri_id = bvh->tri_ids[node->first_tri + i];
+		//Tri tri = sect->tris[tri_id];
+		u16 tri_id = bvh->tris.ids[node->first_tri + i];
+		Tri tri = bvh->tris.arr[tri_id];
 
 		for(short j = 0; j < 3; j++) {
 			node->bounds.min = (Vector3) {
@@ -293,15 +303,33 @@ void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id) {
 		}
 	}
 
+	/*
 	Vector3 h = Vector3Scale(bvh->shape, 0.5f);
 	node->bounds.min = Vector3Subtract(node->bounds.min, h);
 	node->bounds.max = Vector3Add(node->bounds.max, h);
+	*/
 }
 
 // Start BVH tree construction
 void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_pool) {
 	// Reset count
 	bvh->count = 0;
+
+	Message("bvh_construct()", ANSI_BLUE);
+	if(GetLogState()) {
+		printf("tri_pool info:\n");
+		printf("-> count %d:\n", tri_pool->count);
+	}
+
+	/*
+	Message("tri copy...", ANSI_BLUE);
+	bvh->tris = (TriPool) { .count = tri_pool->count };
+	bvh->tris.arr = calloc(bvh->tris.count, sizeof(Tri)),
+    bvh->tris.ids = calloc(bvh->tris.count, sizeof(u16)),
+	memcpy(bvh->tris.arr, tri_pool->arr, sizeof(Tri) * tri_pool->count);
+	memcpy(bvh->tris.arr, tri_pool->ids, sizeof(u16) * tri_pool->count);
+	Message("success!", ANSI_BLUE);
+	*/
 
 	// Allocate memory for nodes
 	bvh->capacity = BVH_TREE_START_CAPACITY;
@@ -310,17 +338,20 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_p
 	bvh->shape = volume;
 	Vector3 shape_half = Vector3Scale(bvh->shape, 0.5f);
 
-	bvh->tri_ids = malloc(sect->tri_count * sizeof(u16));
-	memcpy(bvh->tri_ids, sect->tri_ids, sizeof(u16) * sect->tri_count);
+	//bvh->tri_ids = malloc(sect->tri_count * sizeof(u16));
+	//memcpy(bvh->tri_ids, sect->tri_ids, sizeof(u16) * sect->tri_count);
+	//memcpy(tri_pool->ids, bvh->tri_ids, sizeof(u16) * tri_pool->count); 
 
 	// Initalize empty node to use as root
 	BvhNode root = (BvhNode) {0};
 	root.bounds = EmptyBox();
+	root.first_tri = 0;
 
 	// Grow bounds of root to contain all section geoemetry  
-	for(u16 i = 0; i < sect->tri_count; i++) {
+	for(u16 i = 0; i < bvh->tris.count; i++) {
 		//Tri tri = sect->tris[sect->tri_ids[i]];
-		Tri tri = sect->tris[bvh->tri_ids[i]];
+		//Tri tri = sect->tris[bvh->tri_ids[i]];
+		Tri tri = tri_pool->arr[tri_pool->ids[i]];
 
 		float diff = MinkowskiDiff(tri.normal, shape_half);
 
@@ -334,7 +365,8 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_p
 	root.bounds.max = Vector3Add(root.bounds.max, shape_half);
 
 	// Assign root to array, increment node count 
-	root.tri_count = sect->tri_count;
+	//root.tri_count = sect->tri_count;
+	root.tri_count = bvh->tris.count;
 	bvh->nodes[bvh->count++] = root;
 
 	// Start recursive node splitting
@@ -360,7 +392,11 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 
 		for(u16 i = 0; i < node->tri_count; i++) {
 			//Tri tri = sect->tris[sect->tri_ids[node->first_tri + i]];
-			Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
+			//Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
+			//Tri tri = bvh->tris.arr[bvh->tri_ids[node->first_tri + i]];
+			u16 tri_id = bvh->tris.ids[node->first_tri + i];
+			Tri tri = bvh->tris.arr[tri_id];
+
 			float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 			vmin = fminf(vmin, centroid.v[a]);
@@ -376,7 +412,8 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 
 		for(u16 i = 0; i < node->tri_count; i++) {
 			//Tri tri = sect->tris[sect->tri_ids[node->first_tri + i]];
-			Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
+			//Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
+			Tri tri = bvh->tris.arr[bvh->tris.ids[node->first_tri + i]];
 			float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 			int bin_id = fmin(BVH_BIN_COUNT - 1, (int)((centroid.v[a] - vmin) * scale));
@@ -450,12 +487,15 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	u16 i = node->first_tri;
 	u16 j = i + node->tri_count - 1;
 	while(i <= j) {
-		Tri tri = sect->tris[bvh->tri_ids[i]];
+		//Tri tri = sect->tris[bvh->tri_ids[i]];
+		//Tri tri = bvh->tris.arr[bvh->tris.ids[i]];
+		Tri tri = bvh->tris.arr[bvh->tris.ids[i]];
 
 		float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 		if(centroid.v[split_axis] < split_pos) i++;
-		else SwapTriIds(&bvh->tri_ids[i], &bvh->tri_ids[j--]);
+		else SwapTriIds(&bvh->tris.ids[i], &bvh->tris.ids[j--]);
+		//else SwapTriIds(&bvh->tri_ids[i], &bvh->tri_ids[j--]);
 	}
 
 	u16 count_lft = i - node->first_tri;
@@ -501,8 +541,10 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	BvhNodeSubdivide(sect, bvh, child_lft);
 	BvhNodeSubdivide(sect, bvh, child_rgt);
 }
+
 // Initialize map section,
 // Load geometry, materials, construct BVH, etc.  
+/*
 void MapSectionInit(MapSection *sect, Model model) {
 	sect->model = model;
 	sect->tris = ModelToTris(model, &sect->tri_count, &sect->tri_ids);
@@ -512,33 +554,11 @@ void MapSectionInit(MapSection *sect, Model model) {
 
 	sect->flags = (MAP_SECT_LOADED);
 }
-
-void ConstructExpandedMapMesh(MapSection *sect, Model model, BoundingBox aabb) {
-	u16 hull_count = model.meshCount;
-	
-	BoxNormals normals = BoxGetFaceNormals(aabb);
-	Vector3 half_extents = Vector3Scale(BoxExtent(aabb), 0.5f);
-
-	Mesh **expanded = malloc((sizeof(Mesh*) * hull_count) * 6);
-
-	for(u16 h = 0; h < hull_count; h++) {
-		Mesh hull_mesh = model.meshes[h];
-		
-		u16 vertex_count = hull_mesh.vertexCount;
-		Vector3 *vertices = (Vector3*)hull_mesh.vertices;
-
-		for(u16 d = 0; d < 6; d++) {
-			
-
-			//Mesh mesh = expanded[h][d];
-		}
-	}
-
-	//Vector3 *vertices()
-}
+*/
 
 // Unload map section data
 void MapSectionClose(MapSection *sect) {
+	/*
 	if(sect->tris) 
 		free(sect->tris);	
 
@@ -547,6 +567,7 @@ void MapSectionClose(MapSection *sect) {
 
 	BvhClose(&sect->bvh[0]);	
 	BvhClose(&sect->bvh[1]);	
+	*/
 	UnloadModel(sect->model);
 }
 
@@ -575,7 +596,7 @@ void BvhTraceNodes(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float s
 		node_hit = node;
 	}
 
-	bool leaf = (node->tri_count > 0 && node->child_rgt + node->child_lft == 0);
+	bool leaf = (node->tri_count > 0);
 	if(leaf) return;
 
 	BvhTraceNodes(ray, sect, bvh, node->child_lft, smallest_dist, node_hit);
@@ -600,8 +621,10 @@ void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *
 
 	for(u16 i = 0; i < node->tri_count; i++) {
 		//u16 tri_id = sect->tri_ids[node->first_tri + i];
-		u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		Tri *tri = &sect->tris[tri_id];
+		//u16 tri_id = bvh->tri_ids[node->first_tri + i];
+		//Tri *tri = &sect->tris[tri_id];
+		u16 tri_id = bvh->tris.ids[node->first_tri + i];
+		Tri *tri = &bvh->tris.arr[tri_id];
 
 		coll = GetRayCollisionTriangle(ray, tri->vertices[0], tri->vertices[1], tri->vertices[2]);
 		if(!coll.hit) continue;
@@ -650,18 +673,12 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 	};
 
 	for(u16 i = 0; i < node->tri_count; i++) {
-		u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		Tri tri = sect->tris[tri_id];
+		//u16 tri_id = bvh->tri_ids[node->first_tri + i];
+		//Tri tri = sect->tris[tri_id];
+		u16 tri_id = bvh->tris.ids[node->first_tri + i];
+		Tri tri = bvh->tris.arr[tri_id];
 
 		float diff = MinkowskiDiff(tri.normal, h);
-
-		/*
-		Vector3 centroid = TriCentroid(tri);
-		for(short j = 0; j < 3; j++) {
-			Vector3 to_centroid = Vector3Normalize(Vector3Subtract(centroid, tri.vertices[j]));
-			tri.vertices[j] = Vector3Subtract(tri.vertices[j], Vector3Scale(to_centroid, diff));
-		}
-		*/
 
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
 		if(!coll.hit) continue;
@@ -678,8 +695,11 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 		data->node_id = node_id;
 		data->hit = true;
 
-		data->contact_dist = coll.distance - diff;
-		data->contact = Vector3Add(ray.position, Vector3Scale(ray.direction, data->contact_dist));
+		data->contact_dist = coll.distance;
+		data->contact = coll.point;
+
+		//data->contact_dist = coll.distance - diff;
+		//data->contact = Vector3Add(ray.position, Vector3Scale(ray.direction, data->contact_dist));
 	}
 
 	bool leaf = (node->tri_count > 0);
@@ -720,8 +740,8 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 	};
 
 	for(u16 i = 0; i < node->tri_count; i++) {
-		u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		Tri tri = sect->tris[tri_id];
+		u16 tri_id = bvh->tris.ids[node->first_tri + i];
+		Tri tri = bvh->tris.arr[tri_id];
 
 		if(Vector3DotProduct(tri.normal, ray.direction) > 0) continue;
 
@@ -729,37 +749,6 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
 		if(!coll.hit) continue;
-
-		/*
-		bool tri_hit = coll.hit;
-		bool plane_hit = coll.hit;
-		if(!coll.hit) {
-			Plane p = TriToPlane(tri);
-
-			float plane_dist = PlaneDistance(p, ray.position);
-			float denom = Vector3DotProduct(ray.direction, p.normal);
-
-			if(fabsf(denom) > 0) {
-				float t = -plane_dist / denom;
-
-				if(t > 0.0f && t < data->distance) {
-					coll.distance = t;
-					coll.point = Vector3Add(ray.position, Vector3Scale(ray.direction, t));
-					coll.hit = true;
-					plane_hit = true;
-
-					data->point = coll.point;
-					data->normal = tri.normal;
-					data->distance = coll.distance;
-					data->tri_id = tri_id;
-					data->node_id = node_id;
-					data->hit = true;
-					data->distance = coll.distance;
-				}
-			}
-		}
-		if(!plane_hit && !tri_hit) continue;
-		*/
 
 		if(coll.distance > data->distance) continue;
 
@@ -773,32 +762,6 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 		data->contact_dist = coll.distance - diff;
 		data->contact = Vector3Add(ray.position, Vector3Scale(ray.direction, data->contact_dist));
 	}
-
-	/*
-	// Find hulls to test
-	u16 hulls[32] = {0};
-	short hull_count = 0;
-	for(u16 i = 0; i < node->tri_count; i++) {
-		u16 tri_id = sect->tri_ids[node->first_tri + i];
-		Tri *tri = &sect->tris[tri_id];
-
-		// Skip adding hulls to stack if already added
-		bool hull_added = false;
-		for(short j = 0; j < hull_count; j++) {
-			if(hulls[j] == tri->hull_id) {
-				hull_added = true;
-			}
-		}
-
-		if(hull_added)
-			continue;
-
-		if(hull_count + 1 >= 8)
-			break;
-
-		hulls[hull_count++] = tri->hull_id;
-	}
-	*/
 
 	bool leaf = (node->tri_count > 0);
 	if(leaf) return;
@@ -831,73 +794,15 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 	BvhBoxSweep(ray, sect, bvh, node->child_lft, box, data);
 }
 
-
-void BvhBoxSweepNoInvert(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data) {
-	BvhNode *node = &bvh->nodes[node_id];
-
-	RayCollision coll;
-
-	if(node_id == 0) {
-		coll = GetRayCollisionBox(ray, node->bounds);
-
-		if(!coll.hit)
-			return;
-
-		if(coll.distance > data->distance)
-			return;
-	};
-
-	for(u16 i = 0; i < node->tri_count; i++) {
-		u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		Tri tri = sect->tris[tri_id];
-
-		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
-		if(!coll.hit) continue;
-
-		Vector3 h = Vector3Scale(BoxExtent(*box), 0.5f);
-		float diff = ( fabsf(tri.normal.x) * h.x +  fabsf(tri.normal.y) * h.y + fabsf(tri.normal.z) * h.z ); 
-		
-		coll.distance -= diff;
-		coll.point = Vector3Subtract(coll.point, Vector3Scale(ray.direction, diff));
-
-		if(coll.distance < data->distance) {
-			data->point = coll.point;
-			data->normal = tri.normal;
-			data->distance = coll.distance;
-			data->tri_id = tri_id;
-			data->node_id = node_id;
-			data->hit = true;
-		}
-	}
-
-	bool leaf = (node->tri_count > 0);
-	if(leaf) return;
-
-	RayCollision hit_l = GetRayCollisionBox(ray, bvh->nodes[node->child_lft].bounds);	
-	RayCollision hit_r = GetRayCollisionBox(ray, bvh->nodes[node->child_rgt].bounds);
-
-	if(!(hit_l.hit + hit_r.hit)) return;
-
-	float dl = (hit_l.hit) ? hit_l.distance : FLT_MAX;
-	float dr = (hit_r.hit) ? hit_r.distance : FLT_MAX;
-
-	if(dl < dr) {
-		BvhBoxSweepNoInvert(ray, sect, bvh, node->child_lft, box, data);
-		BvhBoxSweepNoInvert(ray, sect, bvh, node->child_rgt, box, data);
-		return;
-	}
-
-	BvhBoxSweepNoInvert(ray, sect, bvh, node->child_rgt, box, data);
-	BvhBoxSweepNoInvert(ray, sect, bvh, node->child_lft, box, data);
-}
-
 void MapSectionDisplayNormals(MapSection *sect) {
+	/*
 	for(u16 i = 0; i < sect->tri_count; i++) {
 		Tri tri = sect->tris[i];
 		Vector3 centroid = TriCentroid(tri);
 
 		DrawLine3D(centroid, Vector3Add(centroid, Vector3Scale(tri.normal, 4)), SKYBLUE);
 	}
+	*/
 }
 
 float BoundsToRadius(BoundingBox bounds) {

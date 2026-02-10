@@ -45,6 +45,50 @@ short ThreePlaneIntersect(Plane a, Plane b, Plane c, Vector3 *v) {
 	return 1;
 } 
 
+
+/*
+void BrushGetVertices(Brush *brush) {
+	u8 count = 0;
+	Vector3 vertices[64];
+
+	for(u8 i = 0; i < brush->plane_count; i++) {
+		Plane a = brush->planes[i];
+		for(u8 j = i+1; j < brush->plane_count; j++) {
+			Plane b = brush->planes[j];
+			for(u8 k = j+1; k < brush->plane_count; k++) {
+				Plane c = brush->planes[k];
+
+				Vector3 v;
+				if(ThreePlaneIntersect(a, b, c, &v)) {
+					i8 in = true;
+					for(u8 p = 0; p < brush->plane_count; p++) {
+						Plane plane = brush->planes[p];
+						if(Vector3DotProduct(plane.normal, v) - plane.d > 0) {
+							in = 0;
+							break;
+						}
+					}
+					if(in) {
+						bool unique = true;
+						for(u8 t = 0; t < count; t++) {
+							if(Vector3Distance(vertices[t], v) < 0.01f) {
+								unique = false;
+								break;
+							}
+						}
+						if(unique)
+							vertices[count++] = v;
+					}
+				}
+			}
+		}
+	}
+
+	brush->vert_count = count;
+	memcpy(brush->verts, vertices, sizeof(Vector3) * count);
+}
+*/
+
 Vector3 *CollectTriplets(Brush *brush, u8 *t_count) {
 	u8 count = 0;
 	Vector3 *vertices = calloc(64, sizeof(Vector3));
@@ -463,34 +507,19 @@ MapSection BuildMapSect(char *path) {
 
 	// 3. Build expanded geometry for character to world collsions 
 	for(short i = 1; i < 3; i++) {
-		brush_pools[i].count = brush_pools[0].count;
-		brush_pools[i].brushes = calloc(brush_pools[i].count, sizeof(Brush));
-		memcpy(brush_pools[i].brushes, brush_pools[0].brushes, sizeof(Brush) * brush_pools[0].count);
-
 		// Expand brush planes/vertices
-		BrushPool exp = ExpandBrushes(&brush_pools[i], BODY_VOLUME_MEDIUM);
-		//brush_pools[i] = ExpandBrushes(&brush_pools[i], BODY_VOLUME_MEDIUM);
+		brush_pools[i] = brush_pools[0];
+		ExpandBrushes(&brush_pools[i], BODY_VOLUME_MEDIUM);
 
 		// Extract tris
-		sect._tris[i].arr = TrisFromBrushPool(&exp, &sect._tris[i].count);
+		sect._tris[i].arr = TrisFromBrushPool(&brush_pools[i], &sect._tris[i].count);
 		sect._tris[i].ids = calloc(sect._tris[i].count, sizeof(u16));
-		for(u16 j = 0; j < sect._tris[i].count; j++) sect._tris[i].ids[j] = j;
+		for(u16 j = 0; j < sect._tris[0].count; j++) sect._tris[i].ids[j] = j;
 	}
 
 	// 3. Construct BVH trees for each geometry set
-	for(short i = 0; i < 2; i++) {
-		BvhTree *bvh = &sect.bvh[i];
-		bvh->tris = (TriPool) {0};
-		bvh->tris.count = sect._tris[i].count;
-		bvh->tris.arr = calloc(sect._tris[i].count, sizeof(Tri));
-		bvh->tris.ids = calloc(sect._tris[i].count, sizeof(u16));
-		for(u16 j = 0; j < sect._tris[i].count; j++) {
-			bvh->tris.arr[j] = sect._tris[i].arr[j];
-			bvh->tris.ids[j] = sect._tris[i].ids[j];
-		}
-
+	for(short i = 0; i < 1; i++) {
 		BvhConstruct(&sect, &sect.bvh[i], Vector3Zero(), &sect._tris[i]);
-		if(GetLogState()) printf("bvh[%d] node count: %d\n", i, sect.bvh->count);
 	}
 
 	return sect;

@@ -17,7 +17,11 @@ void InputInit(InputHandler *handler) {
 
 void PollInput(InputHandler *handler) {
 	handler->mouse_position = GetMousePosition();
+
+	// Get mouse delta, scale by sensitivity setting
 	handler->mouse_delta = GetMouseDelta();
+	handler->mouse_delta.x *= handler->mouse_sensitivity;
+	handler->mouse_delta.y *= handler->mouse_sensitivity;
 
 	for(u8 i = 0; i < INPUT_ACTION_COUNT; i++) {
 		InputAction *action = &handler->actions[i];
@@ -26,15 +30,15 @@ void PollInput(InputHandler *handler) {
 		if(!key) continue;
 
 		if(IsKeyUp(key))
-			action->state = INPUT_ACTION_UP;
+			action->state = INPUT_UP;
 
 		if(IsKeyDown(key)) 
-			action->state = INPUT_ACTION_DOWN;
+			action->state = INPUT_DOWN;
 
 		if(IsKeyPressed(key))
-			action->state = INPUT_ACTION_PRESSED;
+			action->state = INPUT_PRESSED;
 
 		if(IsKeyReleased(key))
-			action->state = INPUT_ACTION_RELEASED;
+			action->state = INPUT_RELEASED;
 	}
 }

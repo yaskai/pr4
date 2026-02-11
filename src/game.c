@@ -11,7 +11,7 @@
 #include "../include/log_message.h"
 #include "map.h"
 
-void VirtCameraControls(Camera3D *cam, float dt);
+void VirtCameraControls(Camera3D *cam, float dt, Vector3 target_point);
 
 float *plr_accel;
 
@@ -65,7 +65,7 @@ void GameRenderSetup(Game *game) {
 		.position = (Vector3) { -1500, 1000, -1500 },
 		.target = (Vector3) { 0, 0, 0 },
 		.up = (Vector3) {0, 1, 0},
-		.fovy = 10,
+		.fovy = 90,
 		.projection = CAMERA_PERSPECTIVE
 	};
 
@@ -107,13 +107,18 @@ void GameUpdate(Game *game, float dt) {
 	if(IsKeyPressed(KEY_ESCAPE))
 		game->flags |= FLAG_EXIT_REQUEST;
 
-	VirtCameraControls(&game->camera_debug, dt);
+	VirtCameraControls(&game->camera_debug, dt, game->ent_handler.ents[0].comp_transform.position);
 
 	PollInput(&game->input_handler);
 	PlayerGunUpdate(&game->player_gun, dt);
 
 	UpdateEntities(&game->ent_handler, dt);
 }
+
+#define DEBUG_DRAW_HULLS 		0x01
+#define DEBUG_DRAW_BIG	 		0x02
+#define DEBUG_DRAW_FULL_MODEL	0x04
+u8 debug_draw_flags = 0;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main
@@ -160,7 +165,8 @@ void GameDraw(Game *game) {
 	BeginTextureMode(game->render_target_debug);
 	ClearBackground(ColorAlpha(BLACK, 0.95f));
 		BeginMode3D(game->camera_debug);
-			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 0.1f));
+			if(IsKeyPressed(KEY_U)) debug_draw_flags ^= DEBUG_DRAW_FULL_MODEL;
+			if(debug_draw_flags & DEBUG_DRAW_FULL_MODEL) DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 1.0f));
 			DrawModelWires(game->test_section.model, Vector3Zero(), 1, RAYWHITE);
 			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
@@ -169,9 +175,21 @@ void GameDraw(Game *game) {
 			//BrushTestView(&brush_pool, SKYBLUE);
 			//BrushTestView(&brush_pool_exp, RED);
 
+			/*
 			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {1, 0, 0} }, RED);
 			DrawRay((Ray){.position = Vector3Zero(), .direction = UP}, GREEN);
 			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, BLUE);
+			*/
+
+			if(IsKeyPressed(KEY_H)) debug_draw_flags ^= DEBUG_DRAW_HULLS;
+			if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
+				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
+					//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+					Color color = colors[j % 6];
+					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.95f));
+				}
+			}
 
 		EndMode3D();
 
@@ -193,9 +211,16 @@ void GameDraw(Game *game) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
+	if(IsKeyPressed(KEY_T))
+		debug_draw_flags ^= DEBUG_DRAW_BIG;
+
+	Vector2 debug_wh = (debug_draw_flags & DEBUG_DRAW_BIG) 
+		? (Vector2) { 1920, 1080 } 
+		: (Vector2) {game->render_target_debug.texture.width, game->render_target_debug.texture.height };
+
 	// Debug
 	rt_src = (Rectangle) { 0, 0, game->render_target_debug.texture.width, -game->render_target_debug.texture.height };
-	rt_dst = (Rectangle) { 0, 0, game->render_target_debug.texture.width,  game->render_target_debug.texture.height };
+	rt_dst = (Rectangle) { 0, 0, debug_wh.x, debug_wh.y };
 	DrawTexturePro(game->render_target_debug.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
 	int fps = GetFPS();
@@ -204,7 +229,7 @@ void GameDraw(Game *game) {
 	EndDrawing();
 }
 
-void VirtCameraControls(Camera3D *cam, float dt) {
+void VirtCameraControls(Camera3D *cam, float dt, Vector3 target_point) {
 	Vector3 forward = Vector3Normalize(Vector3Subtract(cam->target, cam->position)); 
 	Vector3 right = Vector3CrossProduct(forward, cam->up);
 	
@@ -219,7 +244,24 @@ void VirtCameraControls(Camera3D *cam, float dt) {
 
 	movement = Vector3Scale(movement, 300 * dt);
 	
+	if(IsKeyDown(KEY_Q)) {
+		movement = Vector3Scale(right, -300 * dt);
+		cam->position = Vector3Add(cam->position, movement);
+		//cam->target = Vector3Subtract(cam->target, Vector3Scale(movement, 1.0f));
+		return;
+	}
+
+	if(IsKeyDown(KEY_E)) {
+		movement = Vector3Scale(right,  300 * dt);
+		cam->position = Vector3Add(cam->position, movement);
+		//cam->target = Vector3Subtract(cam->target, Vector3Scale(movement, 1.0f));
+		return;
+	}
+
 	cam->position = Vector3Add(cam->position, movement);
 	cam->target = Vector3Add(cam->target, movement);
+	
+	if(IsKeyDown(KEY_M))
+		cam->target = target_point;
 }
 

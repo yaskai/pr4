@@ -14,6 +14,8 @@ typedef struct  {
 	
 	Vector3 forward;
 
+	Vector3 ground_normal;
+
 	float radius;
 
 	float pitch, yaw, roll;

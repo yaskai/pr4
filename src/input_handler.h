@@ -5,24 +5,27 @@
 #define INPUT_HANDLER_H_
 
 enum INPUT_METHODS : u8 {
-	INPUT_DEVICE_KEYBOARD,
-	INPUT_DEVICE_CONTROLLER
+	INPUT_DEVICE_KEYBOARD  		= 0,
+	INPUT_DEVICE_CONTROLLER		= 1		// * not implemented!
 };
 
-#define INPUT_ACTION_UP			0
-#define INPUT_ACTION_DOWN		1
-#define INPUT_ACTION_PRESSED	2
-#define INPUT_ACTION_RELEASED	3
+// Possible input states
+#define INPUT_UP			0
+#define INPUT_DOWN			1
+#define INPUT_PRESSED		2
+#define INPUT_RELEASED		3
 
 typedef struct {
-	i32 key;
-	short state;
+	int key;		// Keyboard key 		
+	int button;		// Mouse button
+
+	short state;	// up, down, press, release
 	
 } InputAction;
 
 #define INPUT_ACTION_COUNT	16
 
-// Action indices
+// Action indices, keyboard 
 #define ACTION_MOVE_U		0
 #define ACTION_MOVE_L		1
 #define ACTION_MOVE_D		2
@@ -45,3 +48,4 @@ void InputInit(InputHandler *handler);
 void PollInput(InputHandler *handler);
 
 #endif
+

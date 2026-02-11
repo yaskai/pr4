@@ -162,7 +162,7 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
-#define BODY_VOLUME_MEDIUM (Vector3) { 18, 22, 18 }
+#define BODY_VOLUME_MEDIUM (Vector3) { 12, 16, 12 }
 
 enum BVH_SHAPES : u8 {
 	BVH_POINT		= 0,	

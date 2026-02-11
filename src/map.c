@@ -381,6 +381,11 @@ Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count) {
 			tris = realloc(tris, sizeof(Tri) * tri_cap);
 		}
 
+		for(u16 j = 0; j < temp_count; j++) {
+			Tri *tri = &brush_tris[j];
+			tri->hull_id = i;
+		}
+
 		memcpy(tris + tri_count, brush_tris, sizeof(Tri) * temp_count);
 		tri_count += temp_count;
 

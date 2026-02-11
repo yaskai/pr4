@@ -20,8 +20,9 @@ Color colors[] = {
 	BLUE,
 	GREEN,
 	SKYBLUE,
-	GRAY,
-	MAGENTA
+	PURPLE,
+	ORANGE,
+	RED
 };
 
 PlayerDebugData player_data = {0};
@@ -118,6 +119,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_HULLS 		0x01
 #define DEBUG_DRAW_BIG	 		0x02
 #define DEBUG_DRAW_FULL_MODEL	0x04
+#define DEBUG_DRAW_BVH			0x08
 u8 debug_draw_flags = 0;
 
 void GameDraw(Game *game) {
@@ -186,8 +188,21 @@ void GameDraw(Game *game) {
 				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
 					//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-					Color color = colors[j % 6];
+					Color color = colors[tri->hull_id % 7];
 					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.95f));
+				}
+			}
+
+			if(IsKeyPressed(KEY_B)) debug_draw_flags ^= DEBUG_DRAW_BVH;
+			if(debug_draw_flags & DEBUG_DRAW_BVH) { 
+				for(u16 j = 0; j < game->test_section.bvh[0].count; j++) {
+					BvhNode *node = &game->test_section.bvh->nodes[j];
+
+					Color color = colors[j % 7];
+					bool leaf = (node->tri_count > 0);
+					if(!leaf) color = ColorAlpha(GRAY, 0.5f);
+
+					DrawBoundingBox(node->bounds, color);
 				}
 			}
 

@@ -26,6 +26,8 @@ float y_vel_prev;
 
 #define PLAYER_BASE_JUMP_FORCE 420
 
+Vector2 FlatVec2(Vector3 vec3) { return (Vector2) { vec3.x, vec3.z }; }
+
 Vector3 clipY(Vector3 vec) { return Vector3Normalize((Vector3) { vec.x, 0, vec.z }); }
 
 Camera3D *ptr_cam;
@@ -94,12 +96,16 @@ void pm_GroundFriction(comp_Transform *ct, float dt);
 
 void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt);
 
+#define PM_STEP_Y 16.0f
+
 #define BLOCK_GROUND 	0x01
 #define BLOCK_STEP	 	0x02
 u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce);
 
 #define BASE_JUMP_FORCE 180.0f
 void pm_Jump(comp_Transform *ct, InputHandler *input);
+
+//void pm_NudgePosition(comp_Transform *ct, );
 
 Vector3 debug_vel_full;
 Vector3 debug_vel_clipped;
@@ -356,6 +362,36 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	pmTraceData pm;
 	pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
 
+	// Step trace
+	if(ct->on_ground) {
+		float xz_dist_base = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm.end_pos));
+
+		Vector3 step_up = ct->position;
+		step_up.y += PM_STEP_Y;
+
+		pmTraceData pm_step;
+		pm_TraceMove(ct, step_up, ct->velocity, &pm_step, dt);
+
+		pmTraceData pm_step_down;
+		pm_TraceMove(ct, (Vector3) { pm_step.end_pos.x, pm_step.end_pos.y - PM_STEP_Y, pm_step.end_pos.z } , pm_step.end_vel, &pm_step_down, dt);
+
+		float xz_dist_step = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm_step.end_pos));
+
+		if(xz_dist_step >= xz_dist_base) {
+			Ray step_ray = (Ray) { .position =  pm_step.end_pos, .direction = DOWN };	
+			BvhTraceData step_tr = TraceDataEmpty();
+			BvhBoxSweep(step_ray, ptr_sect, &ptr_sect->bvh[1], 0, ct->bounds, &step_tr);
+
+			if(step_tr.normal.y >= 1) {
+				if(fabsf(ct->position.y - pm_step_down.end_pos.y) <= PM_STEP_Y) {
+					pm.end_vel = pm_step_down.end_vel;
+					pm.end_pos = pm_step.end_pos;
+					pm.end_pos.y = step_tr.contact.y;
+				}
+			}
+		}
+	}
+
 	debug_vel_full = ct->velocity;
 	debug_vel_clipped = pm.end_vel;
 
@@ -570,9 +606,11 @@ u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce) {
 void pm_Jump(comp_Transform *ct, InputHandler *input) {
 	if(!ct->on_ground) return;
 
+	Vector3 horizontal_velocity = (Vector3) { ct->velocity.x, 0, ct->velocity.y };
+
 	if(input->actions[ACTION_JUMP].state == 2) {
 		ct->on_ground = false;
-		ct->velocity.y += BASE_JUMP_FORCE;
+		ct->velocity.y += (BASE_JUMP_FORCE) + (Vector3Length(horizontal_velocity) * 0.25f);
 	}
 }
 

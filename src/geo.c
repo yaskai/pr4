@@ -487,15 +487,12 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	u16 i = node->first_tri;
 	u16 j = i + node->tri_count - 1;
 	while(i <= j) {
-		//Tri tri = sect->tris[bvh->tri_ids[i]];
-		//Tri tri = bvh->tris.arr[bvh->tris.ids[i]];
 		Tri tri = bvh->tris.arr[bvh->tris.ids[i]];
 
 		float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
 		if(centroid.v[split_axis] < split_pos) i++;
 		else SwapTriIds(&bvh->tris.ids[i], &bvh->tris.ids[j--]);
-		//else SwapTriIds(&bvh->tri_ids[i], &bvh->tri_ids[j--]);
 	}
 
 	u16 count_lft = i - node->first_tri;
@@ -660,7 +657,6 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 	BvhNode *node = &bvh->nodes[node_id];
 
 	RayCollision coll;
-	Vector3 h = Vector3Scale(bvh->shape, 0.5f);
 
 	if(node_id == 0) {
 		coll = GetRayCollisionBox(ray, node->bounds);
@@ -673,23 +669,19 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 	};
 
 	for(u16 i = 0; i < node->tri_count; i++) {
-		//u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		//Tri tri = sect->tris[tri_id];
 		u16 tri_id = bvh->tris.ids[node->first_tri + i];
 		Tri tri = bvh->tris.arr[tri_id];
 
-		float diff = MinkowskiDiff(tri.normal, h);
-
+		if(Vector3DotProduct(ray.direction, tri.normal) >= 0) continue;
+		//if(Vector3DotProduct(ray.direction, tri.normal) >= 0) Vector3Negate(tri.normal);
+		
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
 		if(!coll.hit) continue;
-
-		//coll.point = Vector3Add(ray.position, Vector3Scale(ray.direction, coll.distance - diff));
-		//coll.distance -= diff;
 		
 		if(coll.distance > data->distance) return;
 
 		data->point = coll.point;
-		data->normal = tri.normal;
+		data->normal = coll.normal;
 		data->distance = coll.distance;
 		data->tri_id = tri_id;
 		data->node_id = node_id;
@@ -697,9 +689,6 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 
 		data->contact_dist = coll.distance;
 		data->contact = coll.point;
-
-		//data->contact_dist = coll.distance - diff;
-		//data->contact = Vector3Add(ray.position, Vector3Scale(ray.direction, data->contact_dist));
 	}
 
 	bool leaf = (node->tri_count > 0);
@@ -708,7 +697,7 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 	RayCollision hit_l = GetRayCollisionBox(ray, bvh->nodes[node->child_lft].bounds);	
 	RayCollision hit_r = GetRayCollisionBox(ray, bvh->nodes[node->child_rgt].bounds);
 
-	if(!(hit_l.hit + hit_r.hit)) return;
+	if(!(hit_l.hit || hit_r.hit)) return;
 
 	float dl = (hit_l.hit) ? hit_l.distance : FLT_MAX;
 	float dr = (hit_r.hit) ? hit_r.distance : FLT_MAX;
@@ -743,7 +732,8 @@ void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingB
 		u16 tri_id = bvh->tris.ids[node->first_tri + i];
 		Tri tri = bvh->tris.arr[tri_id];
 
-		if(Vector3DotProduct(tri.normal, ray.direction) > 0) tri.normal = Vector3Negate(tri.normal);
+		//if(Vector3DotProduct(tri.normal, ray.direction) > 0) tri.normal = Vector3Negate(tri.normal);
+		if(Vector3DotProduct(tri.normal, ray.direction) > 0) continue;
 
 		float diff = MinkowskiDiff(tri.normal, h);
 

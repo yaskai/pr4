@@ -5,8 +5,8 @@ void InputInit(InputHandler *handler) {
 	handler->input_method = INPUT_DEVICE_KEYBOARD;	
 
 	//handler->mouse_sensitivity = 0.475f;
-	//handler->mouse_sensitivity = 0.0045f;
-	handler->mouse_sensitivity = 0.0195f;
+	handler->mouse_sensitivity = 0.0045f;
+	//handler->mouse_sensitivity = 0.0195f;
 
 	handler->actions[ACTION_MOVE_L].key 	= KEY_A;
 	handler->actions[ACTION_MOVE_R].key 	= KEY_D;

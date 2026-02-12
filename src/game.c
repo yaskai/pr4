@@ -95,8 +95,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 		.behavior_id = 0,
 		.flags = (ENT_ACTIVE)
 	};
-	player.comp_transform.bounds.max = BODY_VOLUME_MEDIUM;
-	player.comp_transform.bounds.min = Vector3Scale(player.comp_transform.bounds.max, -1);
+	player.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
+	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
 	player.comp_transform.position.y = 70;
 	player.comp_transform.on_ground = true;
@@ -154,6 +154,14 @@ void GameDraw(Game *game) {
 			}
 			*/
 			
+			if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
+				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
+					//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+					Color color = colors[tri->hull_id % 7];
+					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.95f));
+				}
+			}
 		EndMode3D();
 
 	EndTextureMode();
@@ -165,7 +173,10 @@ void GameDraw(Game *game) {
 	
 	// 3D Rendering, debug
 	BeginTextureMode(game->render_target_debug);
-	ClearBackground(ColorAlpha(BLACK, 0.95f));
+
+	float clear_alpha = (debug_draw_flags & DEBUG_DRAW_BIG) ? 1 : 0.95f;
+	ClearBackground(ColorAlpha(BLACK, clear_alpha));
+
 		BeginMode3D(game->camera_debug);
 			if(IsKeyPressed(KEY_U)) debug_draw_flags ^= DEBUG_DRAW_FULL_MODEL;
 			if(debug_draw_flags & DEBUG_DRAW_FULL_MODEL) DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 1.0f));

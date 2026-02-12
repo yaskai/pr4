@@ -10,7 +10,7 @@
 
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
 #define PLAYER_SPEED 230.0f
-#define PLAYER_MAX_SPEED 300.0f
+#define PLAYER_MAX_SPEED 250.0f
 #define PLAYER_MAX_VEL 200.5f
 
 #define PLAYER_MAX_ACCEL 15.5f
@@ -23,8 +23,8 @@ float cam_input_forward, cam_input_side;
 bool land_frame = false;
 float y_vel_prev;
 
-#define PLAYER_FRICTION 11.25f 
-#define PLAYER_AIR_FRICTION 9.05f
+#define PLAYER_FRICTION 15.25f 
+#define PLAYER_AIR_FRICTION 13.05f
 
 #define PLAYER_BASE_JUMP_FORCE 420
 
@@ -73,8 +73,8 @@ void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float
 // Player movement trace data struct
 // Needed for tracking certain values persistently 
 //
-#define MAX_CLIPS 4
-#define MAX_BUMPS 4
+#define MAX_CLIPS 6
+#define MAX_BUMPS 12
 #define STOP_EPS  0.001f
 typedef struct {
 	Vector3 clips[MAX_CLIPS];	// Clip planes hit 
@@ -98,7 +98,11 @@ void pm_GroundFriction(comp_Transform *ct, float dt);
 
 void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt);
 
-#define PM_STEP_Y 16.0f
+void pm_Groundmove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt);
+
+void pm_NudgePosition();
+
+#define PM_STEP_Y 14.0f
 
 #define BLOCK_GROUND 	0x01
 #define BLOCK_STEP	 	0x02
@@ -289,6 +293,9 @@ void PlayerDie(Entity *player) {
 
 void PlayerDisplayDebugInfo(Entity *player) {
 	DrawBoundingBox(player->comp_transform.bounds, RED);
+	DrawSphere(player->comp_transform.position, 1, RED);
+
+	//DrawCubeV(player->comp_transform.position, Vector3Scale(BODY_VOLUME_MEDIUM, 1), LIGHTGRAY);
 
 	Ray view_ray = (Ray) { .position = ptr_cam->position, .direction = player->comp_transform.forward };	
 	player_debug_data->view_dest = Vector3Add(view_ray.position, Vector3Scale(view_ray.direction, FLT_MAX * 0.25f));	
@@ -303,11 +310,13 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	} else 
 		DrawRay(view_ray, SKYBLUE);
 
+	/*
 	if(tr.hit) {
 		Tri *tri = &ptr_sect->bvh[0].tris.arr[tr.tri_id];
 		DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(SKYBLUE, 0.25f));
 		DrawTriangle3D(tri->vertices[2], tri->vertices[1], tri->vertices[0], ColorAlpha(SKYBLUE, 0.25f));
 	}
+	*/
 
 	// Draw box points
 	for(short i = 0; i < 8; i++) {
@@ -354,8 +363,8 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	float accel = (ct->on_ground) ? PLAYER_ACCEL_GROUND : PLAYER_ACCEL_AIR;
 	pm_Accelerate(ct, wish_dir, wish_speed, accel, dt);
 
-	if(ct->on_ground && Vector3DotProduct(ct->velocity, ct->ground_normal) < 0) {	
-		pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0001f);
+	if(ct->on_ground) {	
+		pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.005f);
 	}
 	
 	// Check jump
@@ -369,36 +378,23 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
 
 	// Step trace
-	if(ct->on_ground) {
+	if(ct->on_ground && fabsf(ct->velocity.y) < EPSILON) {
 		float xz_dist_base = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm.end_pos));
 
 		// Step up
-		Vector3 step_up = ct->position;
-		step_up.y += PM_STEP_Y;
+		Vector3 step_up_start = ct->position;
+		step_up_start.y += PM_STEP_Y;
 
-		pmTraceData pm_step;
-		Vector3 step_vel = ct->velocity;
-		step_vel.y = 0;
-		pm_TraceMove(ct, step_up, step_vel, &pm_step, dt);
+		// Trace up
+		pmTraceData pm_step_up;	
+		pm_TraceMove(ct, step_up_start, ct->velocity, &pm_step_up, dt);
 
-		// Step down
-		pmTraceData pm_step_down;
-		pm_TraceMove(ct, (Vector3) { pm_step.end_pos.x, pm_step.end_pos.y - PM_STEP_Y, pm_step.end_pos.z } , pm_step.end_vel, &pm_step_down, dt);
+		// Measure distance up
+		float xz_dist_up = Vector2Distance(FlatVec2(step_up_start), FlatVec2(pm_step_up.end_pos));	
 
-		float xz_dist_step = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm_step.end_pos));
-
-		if(xz_dist_step >= xz_dist_base) {
-			Ray step_ray = (Ray) { .position =  pm_step.end_pos, .direction = DOWN };	
-			BvhTraceData step_tr = TraceDataEmpty();
-			BvhBoxSweep(step_ray, ptr_sect, &ptr_sect->bvh[1], 0, ct->bounds, &step_tr);
-
-			if(step_tr.normal.y >= 1 - EPSILON) {
-				if(fabsf(ct->position.y - pm_step_down.end_pos.y) <= PM_STEP_Y) {
-					pm.end_vel = pm_step_down.end_vel;
-					pm.end_pos = pm_step.end_pos;
-					pm.end_pos.y = step_tr.contact.y;
-				}
-			}
+		// Use step up trace position if further than base trace
+		if(xz_dist_up > xz_dist_base) {
+			//pm = pm_step_up;
 		}
 	}
 
@@ -471,25 +467,18 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 
 #define GROUND_EPS 0.001f
 void pm_CheckGround(comp_Transform *ct) {
-	if(ct->velocity.y >= 100.0f) {
-		ct->on_ground = false;
-		ct->ground_normal = Vector3Zero();
-		return;
-	}
-
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 
 	BvhTraceData tr = TraceDataEmpty();	
-	BvhBoxSweep(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, ct->bounds, &tr);
+	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr);
 	
-	if(!tr.hit || tr.normal.y < FLOOR_NORMAL_Y || tr.contact_dist > EPSILON) {
+	if(!tr.hit || tr.distance > 1 + GROUND_EPS) {
 		ct->on_ground = false;
 		return;
 	}
 
-	ct->on_ground = true;
 	ct->ground_normal = tr.normal;
-	
+	ct->on_ground = true;
 }
 
 void pm_GroundFriction(comp_Transform *ct, float dt) {
@@ -534,7 +523,10 @@ void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float
 
 #define PLAYER_GRAV 680.0f
 void pm_ApplyGravity(comp_Transform *ct, float dt) {
-	if(ct->on_ground) return;
+	if(ct->on_ground) {
+		//ct->velocity.y = 0;
+		return;
+	}
 	ct->velocity.y -= (PLAYER_GRAV * dt); 
 }
 
@@ -563,10 +555,10 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 		// Trace geometry 
 		BvhTraceData tr = TraceDataEmpty();
-		BvhBoxSweep(ray, ptr_sect, &ptr_sect->bvh[1], 0, ct->bounds, &tr);
+		BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr);
 
 		// Determine how much of movement was obstructed
-		float fraction = (tr.contact_dist / Vector3Length(move));
+		float fraction = (tr.distance / Vector3Length(move));
 		fraction = Clamp(fraction, 0.0f, 1.0f);
 
 		// Update destination
@@ -577,19 +569,21 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 			break;
 
 		// Add clip plane
-		if(num_clips + 1 < MAX_CLIPS)
+		if(num_clips + 1 < MAX_CLIPS) {
 			clips[num_clips++] = tr.normal;
-		else 
+
+			// Update velocity by each clip plane
+			for(short j = 0; j < num_clips; j++) {
+				float into = Vector3DotProduct(vel, tr.normal);
+
+				if(into < 0)
+					pm_ClipVelocity(vel, clips[j], &vel, 1.0000f);
+			}
+
+		} else 
 			break;
 
-		// Update velocity by each clip plane
-		for(short j = 0; j < num_clips; j++) {
-			float into = Vector3DotProduct(vel, clips[j]);
-
-			if(into < 0) {
-				pm_ClipVelocity(vel, clips[j], &vel, 1.0001f);
-			}
-		}
+		dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.001f));
 
 		// Update remaining time
 		t_remain *= (1 - fraction);
@@ -598,6 +592,15 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 	pm->move_dist = Vector3Distance(start, dest);
 	pm->end_vel = vel;
 	pm->end_pos = dest;
+}
+
+void pm_Groundmove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt) {
+	pm->end_vel.y = 0;
+
+	if(Vector3Length(pm->end_vel) < STOP_EPS) 
+		return;
+
+
 }
 
 u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce) {
@@ -641,13 +644,15 @@ void cam_Adjust(comp_Transform *ct, float dt) {
 	// * NOTE:
 	// okay for now...
 	float bob_input = (cam_input_forward + (cam_input_side * 0.5f));
-	float bob_targ = (3 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
-	cam_bob = Lerp(cam_bob, bob_targ, dt * 5);
+	float bob_targ = (5 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
+	cam_bob = Lerp(cam_bob, bob_targ, dt * 10);
 	
-	float tilt_input = cam_input_side;
+	float tilt_input = cam_input_side * 0.1f;
+	tilt_input = Clamp(tilt_input, -0.025f, 0.025f);
 	Vector3 tilt_targ = UP;
 
-	//if(fabs(tilt_input) > EPSILON) ptr_cam->up = Vector3RotateByAxisAngle(UP, ct->forward, tilt_input);
+	if(tilt_input != 0.0f) tilt_targ = Vector3RotateByAxisAngle(UP, ct->forward, tilt_input);
+	ptr_cam->up = Vector3Lerp(ptr_cam->up, tilt_targ, dt * 10);
 
 	if(!ct->on_ground) cam_bob = 0;
 	ptr_cam->position.y += cam_bob;

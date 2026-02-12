@@ -10,10 +10,7 @@
 #include "../include/sort.h"
 #include "../include/log_message.h"
 
-int point_total = 0;
-Model *brush_point_meshes;
-
-#define PLANE_EPS 0.02f
+#define PLANE_EPS 0.001f
 
 Plane BuildPlane(Vector3 v0, Vector3 v1, Vector3 v2) {
 	Vector3 edge_0 = Vector3Subtract(v1, v0);
@@ -116,7 +113,7 @@ void BrushGetVertices(Brush *brush) {
 					if(in) {
 						bool unique = true;
 						for(u8 t = 0; t < count; t++) {
-							if(Vector3Distance(vertices[t], v) < 0.01f) {
+							if(Vector3Distance(vertices[t], v) < 0.1f) {
 								unique = false;
 								break;
 							}
@@ -131,6 +128,7 @@ void BrushGetVertices(Brush *brush) {
 
 	for(u8 i = 0; i < count; i++) {
 		Vector3 v = vertices[i];
+		
 		brush->bounds.min = Vector3Min(brush->bounds.min, v);
 		brush->bounds.max = Vector3Max(brush->bounds.max, v);
 	}
@@ -225,11 +223,6 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model) {
 
 	fclose(pF);
 
-	brush_point_meshes = malloc(sizeof(Model) * 1);
-	Mesh mesh = GenMeshSphere(1, 8, 12);
-	Model model = LoadModelFromMesh(mesh);
-	brush_point_meshes[0] = model;
-
 	for(u16 i = 0; i < brush_pool->count; i++) {
 		Brush *brush = &brush_pool->brushes[i];
 		// Change coordinates to x, y, z 
@@ -283,7 +276,7 @@ BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents) {
 	return exp;
 }
 
-Tri *BrushToTris(Brush *brush, u16 *count) {
+Tri *BrushToTris(Brush *brush, u16 *count, u16 brush_id) {
 	Tri *tris = calloc(32, sizeof(Tri));
 	u16 tri_count = 0;
 
@@ -296,7 +289,7 @@ Tri *BrushToTris(Brush *brush, u16 *count) {
 		for(u8 j = 0; j < brush->vert_count; j++) {
 			Vector3 v = brush->verts[j];
 
-			bool in = (fabsf(Vector3DotProduct(plane->normal, v) - plane->d) <= 0.02f);
+			bool in = (fabsf(Vector3DotProduct(plane->normal, v) - plane->d) <= 0.01f);
 			if(!in) continue;
 
 			face_verts[fv_count++].p = v;
@@ -338,7 +331,8 @@ Tri *BrushToTris(Brush *brush, u16 *count) {
 				.vertices[0] = face_verts[0].p,
 				.vertices[1] = face_verts[j].p,
 				.vertices[2] = face_verts[j+1].p,
-				.normal = plane->normal
+				.normal = plane->normal,
+				.hull_id = brush_id
 			};
 		}
 	}
@@ -374,16 +368,11 @@ Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count) {
 		Brush *brush = &brush_pool->brushes[i];
 
 		u16 temp_count = 0;
-		Tri *brush_tris = BrushToTris(brush, &temp_count);
+		Tri *brush_tris = BrushToTris(brush, &temp_count, i);
 
 		if(tri_count + temp_count > tri_cap) {
 			tri_cap = (tri_cap << 1);
 			tris = realloc(tris, sizeof(Tri) * tri_cap);
-		}
-
-		for(u16 j = 0; j < temp_count; j++) {
-			Tri *tri = &brush_tris[j];
-			tri->hull_id = i;
 		}
 
 		memcpy(tris + tri_count, brush_tris, sizeof(Tri) * temp_count);
@@ -408,16 +397,8 @@ void BrushTestView(BrushPool *brush_pool, Color color) {
 			//DrawSphere( (Vector3) { brush->verts[j].x, brush->verts[j].y, brush->verts[j].z }, 5, SKYBLUE);
 			//Vector3 v = Vector3Negate(brush->verts[j]);
 			Vector3 v = brush->verts[j];
-			DrawModel(brush_point_meshes[0], v, 3, color);
 		}
 	}
-
-	/*
-	for(int i = 0; i < point_total; i++) {
-		//DrawModel(brush_point_meshes[i], Vector3Zero(), 10, SKYBLUE);
-		//DrawSphere(, float radius, Color color)
-	}
-	*/
 }
 
 MapSection BuildMapSect(char *path) {
@@ -474,7 +455,6 @@ MapSection BuildMapSect(char *path) {
 
 		// Expand brush planes/vertices
 		BrushPool exp = ExpandBrushes(&brush_pools[i], BODY_VOLUME_MEDIUM);
-		//brush_pools[i] = ExpandBrushes(&brush_pools[i], BODY_VOLUME_MEDIUM);
 
 		// Extract tris
 		sect._tris[i].arr = TrisFromBrushPool(&exp, &sect._tris[i].count);

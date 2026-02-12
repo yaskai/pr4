@@ -36,7 +36,7 @@ typedef struct {
 
 } FaceVert;
 
-Tri *BrushToTris(Brush *brush, u16 *count);
+Tri *BrushToTris(Brush *brush, u16 *count, u16 brush_id);
 Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count);
 
 void BrushTestView(BrushPool *brush_pool, Color color);

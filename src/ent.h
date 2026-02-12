@@ -126,6 +126,7 @@ void PlayerDamage(Entity *player, short amount);
 void PlayerDie(Entity *player);
 
 void PlayerDisplayDebugInfo(Entity *player);
+void PlayerDebugText(Entity *player);
 
 void PlayerMove(Entity *player, float dt);
 // ***

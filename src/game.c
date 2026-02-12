@@ -213,7 +213,6 @@ void GameDraw(Game *game) {
 		//DrawEntsDebugInfo();
 
 	EndTextureMode();
-
 	// 2D Rendering
 
 	// Draw to buffers:
@@ -225,6 +224,8 @@ void GameDraw(Game *game) {
 	rt_src = (Rectangle) { 0, 0, game->render_target2D.texture.width, -game->render_target2D.texture.height };
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
+
+	PlayerDebugText(&game->ent_handler.ents[0]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;

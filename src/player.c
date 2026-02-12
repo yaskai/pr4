@@ -18,6 +18,8 @@ float player_accel;
 float player_accel_forward;
 float player_accel_side;
 
+float cam_input_forward, cam_input_side;
+
 bool land_frame = false;
 float y_vel_prev;
 
@@ -42,7 +44,7 @@ BoxPoints box_points;
 
 PlayerDebugData *player_debug_data = { 0 };
 
-void cam_Adjust(comp_Transform *ct);
+void cam_Adjust(comp_Transform *ct, float dt);
 
 // -----------------------------------------------------------------------------
 // ** 
@@ -147,7 +149,6 @@ void PlayerUpdate(Entity *player, float dt) {
 	Vector3 horizontal_velocity = (Vector3) { player->comp_transform.velocity.x, 0, player->comp_transform.velocity.z };
 	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
 
-
 	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
 	if(player->comp_transform.velocity.y == 0 && y_vel_prev <= -335.0f) {
 		land_frame = true;
@@ -161,14 +162,22 @@ void PlayerUpdate(Entity *player, float dt) {
 	player->comp_transform.position = Vector3Add(player->comp_transform.position, Vector3Scale(player->comp_transform.velocity, 100 * dt));
 	*/
 	
+	
+	// Track previous y velocity,
+	// needed to check if player landed on groun this frame
+	y_vel_prev = player->comp_transform.velocity.y;
+
+	// Update position + velocity
 	pm_Move(&player->comp_transform, ptr_input, dt);
 
+	/*
 	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 0.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
 
 	if(!player->comp_transform.on_ground) cam_bob = 0;
 	ptr_cam->position.y += cam_bob;
 	ptr_cam->target.y += cam_bob;
+	*/
 
 	box_points = BoxGetPoints(player->comp_transform.bounds);
 
@@ -269,12 +278,6 @@ void PlayerInput(Entity *player, InputHandler *input, float dt) {
 			player->comp_transform.velocity.y = PLAYER_BASE_JUMP_FORCE + player_accel_forward * 2.5f;
 		}
 	}
-
-	if(IsKeyPressed(KEY_R)) {
-		player->comp_transform.position = (Vector3) { 0, 40, 0 };
-		player->comp_transform.velocity = Vector3Zero();
-		player->comp_transform.on_ground = true;
-	} 
 }
 */
 
@@ -340,6 +343,9 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 		wish_speed = PLAYER_MAX_SPEED;
 	} 
 	Vector3 wish_vel = Vector3Scale(wish_dir, wish_speed);
+	
+	// Update camera
+	cam_Adjust(ct, dt);
 
 	// 3. Apply friction (if grounded)
 	pm_GroundFriction(ct, dt);
@@ -366,12 +372,16 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	if(ct->on_ground) {
 		float xz_dist_base = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm.end_pos));
 
+		// Step up
 		Vector3 step_up = ct->position;
 		step_up.y += PM_STEP_Y;
 
 		pmTraceData pm_step;
-		pm_TraceMove(ct, step_up, ct->velocity, &pm_step, dt);
+		Vector3 step_vel = ct->velocity;
+		step_vel.y = 0;
+		pm_TraceMove(ct, step_up, step_vel, &pm_step, dt);
 
+		// Step down
 		pmTraceData pm_step_down;
 		pm_TraceMove(ct, (Vector3) { pm_step.end_pos.x, pm_step.end_pos.y - PM_STEP_Y, pm_step.end_pos.z } , pm_step.end_vel, &pm_step_down, dt);
 
@@ -382,7 +392,7 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 			BvhTraceData step_tr = TraceDataEmpty();
 			BvhBoxSweep(step_ray, ptr_sect, &ptr_sect->bvh[1], 0, ct->bounds, &step_tr);
 
-			if(step_tr.normal.y >= 1) {
+			if(step_tr.normal.y >= 1 - EPSILON) {
 				if(fabsf(ct->position.y - pm_step_down.end_pos.y) <= PM_STEP_Y) {
 					pm.end_vel = pm_step_down.end_vel;
 					pm.end_pos = pm_step.end_pos;
@@ -422,6 +432,7 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 
 	// Copy forward to player transform for camera to use
 	ct->forward = forward;			
+	ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
 
 	// Get move input from keys
 	// index 0 = towards, index 1 = away
@@ -448,6 +459,11 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 	wish_side.y = 0;
 	wish_side = Vector3Normalize(wish_side);
 
+	// ** NOTE:
+	// Change names of these vars, it's confusing...
+	cam_input_forward = Vector3Length(wish_forw) * (input_forw[0] - input_forw[1]);
+	cam_input_side = Vector3Length(wish_side) * (input_side[0] - input_side[1]);
+
 	// Add both vectors and renormalize to get direction
 	Vector3 wish_dir = Vector3Add(wish_forw, wish_side);
 	return Vector3Normalize(wish_dir);
@@ -464,7 +480,7 @@ void pm_CheckGround(comp_Transform *ct) {
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 
 	BvhTraceData tr = TraceDataEmpty();	
-	BvhBoxSweep(ray, ptr_sect, &ptr_sect->bvh[1], 0, ct->bounds, &tr);
+	BvhBoxSweep(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, ct->bounds, &tr);
 	
 	if(!tr.hit || tr.normal.y < FLOOR_NORMAL_Y || tr.contact_dist > EPSILON) {
 		ct->on_ground = false;
@@ -612,5 +628,44 @@ void pm_Jump(comp_Transform *ct, InputHandler *input) {
 		ct->on_ground = false;
 		ct->velocity.y += (BASE_JUMP_FORCE) + (Vector3Length(horizontal_velocity) * 0.25f);
 	}
+}
+
+#define TILT_MAX 0.1f
+void cam_Adjust(comp_Transform *ct, float dt) {
+	ptr_cam->position = Vector3Add(ct->position, Vector3Scale(UP, 0.0f));
+	ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
+
+	// Apply camera motion effects (bob, tilt) 
+	float t = GetTime();
+
+	// * NOTE:
+	// okay for now...
+	float bob_input = (cam_input_forward + (cam_input_side * 0.5f));
+	float bob_targ = (3 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
+	cam_bob = Lerp(cam_bob, bob_targ, dt * 5);
+	
+	float tilt_input = cam_input_side;
+	Vector3 tilt_targ = UP;
+
+	//if(fabs(tilt_input) > EPSILON) ptr_cam->up = Vector3RotateByAxisAngle(UP, ct->forward, tilt_input);
+
+	if(!ct->on_ground) cam_bob = 0;
+	ptr_cam->position.y += cam_bob;
+	ptr_cam->target.y += cam_bob;
+}
+
+void PlayerDebugText(Entity *player) {
+	comp_Transform *ct = &player->comp_transform;
+
+	Rectangle rect = (Rectangle) { 
+		.x = 0,
+		.y = 850,
+		.width = 800,
+		.height = 1080 - 850
+	};
+	DrawRectangleRec(rect, ColorAlpha(BLACK, 0.5f));
+
+	DrawText(TextFormat("on_ground: %d", ct->on_ground), 16, 900, 24, RAYWHITE);
+	DrawText(TextFormat("ground_norm: { %f, %f, %f }", ct->ground_normal.x, ct->ground_normal.y, ct->ground_normal.z), 16, 930, 24, RAYWHITE);
 }
 

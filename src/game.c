@@ -98,8 +98,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 	player.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
-	player.comp_transform.position.y = 70;
-	player.comp_transform.on_ground = true;
+	player.comp_transform.position.y = 120;
+	player.comp_transform.on_ground = false;
 	player.comp_transform.air_time = 0;
 	game->ent_handler.ents[game->ent_handler.count++] = player;
 }
@@ -155,11 +155,23 @@ void GameDraw(Game *game) {
 			*/
 			
 			if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
+				/*
 				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
-					//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 					Color color = colors[tri->hull_id % 7];
 					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.95f));
+				}
+				*/
+
+				for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
+					Hull *hull = &game->test_section._hulls[1].arr[j];
+					DrawBoundingBox(hull->aabb, colors[j % 7]);
+
+					for(short k = 0; k < hull->plane_count; k++) {
+						Plane *pl = &hull->planes[k];
+
+						DrawLine3D(hull->center, Vector3Add(hull->center, Vector3Scale(pl->normal, 35)), SKYBLUE);
+					}
 				}
 			}
 		EndMode3D();
@@ -180,6 +192,7 @@ void GameDraw(Game *game) {
 		BeginMode3D(game->camera_debug);
 			if(IsKeyPressed(KEY_U)) debug_draw_flags ^= DEBUG_DRAW_FULL_MODEL;
 			if(debug_draw_flags & DEBUG_DRAW_FULL_MODEL) DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 1.0f));
+
 			DrawModelWires(game->test_section.model, Vector3Zero(), 1, RAYWHITE);
 			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
@@ -200,7 +213,11 @@ void GameDraw(Game *game) {
 					//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 					Color color = colors[tri->hull_id % 7];
-					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.95f));
+					//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorTint(color, BROWN));
+				}
+				for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
+					Hull *hull = &game->test_section._hulls[1].arr[j];
+					DrawBoundingBox(hull->aabb, colors[j % 7]);
 				}
 			}
 

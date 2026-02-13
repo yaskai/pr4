@@ -142,12 +142,33 @@ typedef struct {
 
 } BvhTree;
 
+#define HULL_MAX_PLANES 18
+#define HULL_MAX_VERTS	24	
+typedef struct {
+	Plane planes[HULL_MAX_PLANES];
+	Vector3 verts[HULL_MAX_VERTS];
+
+	BoundingBox aabb;
+
+	Vector3 center;
+
+	u16 plane_count;
+	u16 vert_count;
+
+} Hull;
+
+typedef struct {
+	Hull *arr;	
+	u16 count;
+
+} HullPool;
+
 #define MAP_SECT_LOADED	0x01
 #define MAP_SECT_QUEUED	0x02
-
 typedef struct {
 	BvhTree bvh[3];
 	TriPool _tris[3];
+	HullPool _hulls[3];
 
 	Model model;
 
@@ -162,7 +183,7 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
-#define BODY_VOLUME_MEDIUM (Vector3) { 32, 48, 32 }
+#define BODY_VOLUME_MEDIUM (Vector3) { 28, 64, 28 }
 
 enum BVH_SHAPES : u8 {
 	BVH_POINT		= 0,	
@@ -203,6 +224,8 @@ typedef struct {
 
 	u16 node_id;
 	u16 tri_id;
+
+	u16 hull_id;
 	
 	bool hit;
 
@@ -215,7 +238,7 @@ void BvhTraceNodes(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float s
 // Trace a point through world space
 void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *smallest_dist, Vector3 *point, bool skip_root);
 
-void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data);
+void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data, float max_dist);
 
 void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox box, BvhTraceData *data);
 void BvhBoxSweepNoInvert(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data);

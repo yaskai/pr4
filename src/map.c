@@ -23,11 +23,30 @@ Plane BuildPlane(Vector3 v0, Vector3 v1, Vector3 v2) {
 }
 
 Vector3 BrushCenter(Brush *brush) {
-	Vector3 center = Vector3Zero();
-	for(u8 i = 0; i < brush->plane_count; i++) 
-		center = Vector3Add(center, Vector3Scale(brush->planes[i].normal, brush->planes[i].d));	
+	float3 min = Vector3ToFloatV(Vector3Scale(Vector3One(),  FLT_MAX));
+	float3 max = Vector3ToFloatV(Vector3Scale(Vector3One(), -FLT_MAX));
+	
+	for(u16 i = 0; i < brush->vert_count; i++) {
+		float3 point = Vector3ToFloatV(brush->verts[i]);
 
-	return center;
+		for(short a = 0; a < 3; a++) {
+			if(point.v[a] < min.v[a])	
+				min.v[a] = point.v[a];
+
+			if(point.v[a] > max.v[a])	
+				max.v[a] = point.v[a];
+		}
+	}
+
+	float3 out = {0};
+	for(short a = 0; a < 3; a++)
+		out.v[a] = (min.v[a] + max.v[a]) * 0.5f;
+
+	return (Vector3) {
+		.x = out.v[0],
+		.y = out.v[1],
+		.z = out.v[2]
+	};
 }
 
 short ThreePlaneIntersect(Plane a, Plane b, Plane c, Vector3 *v) {
@@ -133,8 +152,11 @@ void BrushGetVertices(Brush *brush) {
 		brush->bounds.max = Vector3Max(brush->bounds.max, v);
 	}
 
+	brush->center = BoxCenter(brush->bounds);
+
 	brush->vert_count = count;
 	memcpy(brush->verts, vertices, sizeof(Vector3) * count);
+
 	free(vertices);
 }
 
@@ -476,6 +498,34 @@ MapSection BuildMapSect(char *path) {
 
 		BvhConstruct(&sect, &sect.bvh[i], Vector3Zero(), &sect._tris[i]);
 		if(GetLogState()) printf("bvh[%d] node count: %d\n", i, sect.bvh->count);
+	}
+	
+	// 4. Copy/convert brushes to hulls
+	for(short i = 0; i < 3; i++) {
+		BrushPool *bp = &brush_pools[i];
+
+		sect._hulls[i] = (HullPool) {
+			.arr = malloc(sizeof(Brush) * bp->count),
+			.count = bp->count
+		};
+
+		for(u16 j = 0; j < bp->count; j++) {
+			Brush *brush = &bp->brushes[j];
+
+			Hull hull = (Hull) {
+				.aabb = brush->bounds,
+				.center = brush->center,
+				.plane_count = brush->plane_count,
+				.vert_count = brush->vert_count
+			};
+
+			memcpy(hull.planes, brush->planes, sizeof(Plane) * brush->plane_count);
+			memcpy(hull.verts, brush->verts, sizeof(Vector3) * brush->vert_count);
+
+			sect._hulls[i].arr[j] = hull;
+		}
+
+		free(bp->brushes);
 	}
 
 	return sect;

@@ -115,7 +115,7 @@ int pm_CheckHull(Vector3 point, u16 hull_id);
 
 short pm_NudgePosition(comp_Transform *ct, u16 hull_id);
 
-#define PM_STEP_Y 16.0f
+#define PM_STEP_Y 20.0f
 
 #define BLOCK_GROUND 	0x01
 #define BLOCK_STEP	 	0x02
@@ -686,28 +686,25 @@ void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt,
 
 	pmTraceData pm_step;
 	Vector3 vel_temp = ct->velocity;
-	//vel_temp.y = 0;
+	vel_temp.y = 0;
 	pm_TraceMove(ct, step_start, wish_vel, &pm_step, dt);
 
 	Ray down_ray = (Ray) { .position = pm_step.end_pos, .direction = DOWN };
 	tr = TraceDataEmpty();
 	BvhTracePointEx(down_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr, PM_STEP_Y);
 
-	// ** NOTE: 
-	// FIX THIS LATER!
-	// * Do three traces for [up ^], [horizontal ->], [down V] !! * 
 	float step_dist_xz = Vector2Distance(FlatVec2(step_start), FlatVec2(pm_step.end_pos));
 	if(step_dist_xz > base_dist_xz && tr.hit) {
-		//pm->end_pos = pm_step.end_pos;
+		pm->end_pos = pm_step.end_pos;
 
-		//pm_step.end_vel.x = wish_vel.x + (wish_vel.x * pm_step.fraction * dt); 
-		//pm_step.end_vel.z = wish_vel.z + (wish_vel.z * pm_step.fraction * dt);
+		float dx = wish_vel.x * pm->fraction;
+		float dz = wish_vel.z * pm->fraction;
 
-		Vector3 step_down = Vector3Subtract((Vector3){pm_step.end_pos.x, pm->end_pos.y, pm_step.end_pos.z}, pm_step.end_pos);
-		step_down = Vector3Scale(step_down, Vector3Length(wish_vel) - (1.0f - pm_step.fraction));
+		pm_step.end_vel.x = wish_vel.x; 
+		pm_step.end_vel.z = wish_vel.z;
 
 		pm->end_vel = pm_step.end_vel;
-		pm_TraceMove(ct, pm_step.end_pos, Vector3Add(pm_step.end_vel, step_down), pm, dt);
+		pm->end_vel.y = 0;
 	}
 }
 

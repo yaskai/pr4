@@ -115,7 +115,7 @@ int pm_CheckHull(Vector3 point, u16 hull_id);
 
 short pm_NudgePosition(comp_Transform *ct, u16 hull_id);
 
-#define PM_STEP_Y 16.0f
+#define PM_STEP_Y 4.0f
 
 #define BLOCK_GROUND 	0x01
 #define BLOCK_STEP	 	0x02
@@ -410,8 +410,8 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
 
 	// Step trace
-	if(ct->on_ground)
-		pm_GroundMove(ct, (Vector3) {pm.end_pos.x, pm.origin.y, pm.end_pos.z}, &pm, dt, wish_vel);
+	//if(ct->on_ground)
+		//pm_GroundMove(ct, (Vector3) {pm.end_pos.x, pm.origin.y, pm.end_pos.z}, &pm, dt, wish_vel);
 	/*
 	if(ct->on_ground && fabsf(ct->velocity.y) < EPSILON) {
 		float xz_dist_base = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm.end_pos));
@@ -456,7 +456,6 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 		return;
 	}
 	*/
-
 
 	last_pm = pm;
 }
@@ -664,6 +663,7 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 }
 
 void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel) {
+	/*
 	if(pm->fraction == 1.0f) {
 		return;
 	}
@@ -709,6 +709,63 @@ void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt,
 		pm->end_vel = pm_step.end_vel;
 		pm_TraceMove(ct, pm_step.end_pos, Vector3Add(pm_step.end_vel, step_down), pm, dt);
 	}
+	*/
+
+	if(ct->ground_normal.y < 1.0f) return;
+
+	pmTraceData base = *pm;
+
+	// Base trace moved full distance, no stepping needed
+	if(base.fraction >= 1.0f) {
+		return;
+	}
+
+	wish_vel.y = 0;
+
+	// Check for wall block
+	Ray wall_ray = (Ray) { .position = start, .direction = Vector3Normalize(wish_vel) }; 
+	BvhTraceData tr = TraceDataEmpty();
+	BvhTracePointEx(wall_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, Vector3Length(wish_vel));
+	// No wall, step invalid, exit...
+	if(!tr.hit || tr.normal.y > 0) {
+		return;
+	}
+
+	// Store base movement
+	Vector3 base_pos = pm->end_pos;
+	Vector3 base_vel = pm->end_vel;
+
+	// Step up
+	Vector3 step_start = start;
+	step_start.y += PM_STEP_Y;
+	
+	pmTraceData step_up;
+	pm_TraceMove(ct, step_start, wish_vel, &step_up, dt);
+
+	// Check for ground
+	Ray ground_ray = (Ray) { .position = step_up.end_pos, .direction = DOWN };
+	tr = TraceDataEmpty();
+	BvhTracePointEx(ground_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, PM_STEP_Y + GROUND_EPS);
+	// No ground below trace, exit
+	if(!tr.hit || tr.normal.y < 1.0f) {
+		return;
+	}
+
+	Vector3 step_pos = step_up.end_pos;
+	//step_pos.y += tr.distance;
+
+	float base_xz = 
+		Vector2Distance(FlatVec2(start), FlatVec2(base_pos));
+
+	float step_xz = Vector2Distance(FlatVec2(start), FlatVec2(step_pos));
+
+	if(step_xz <= base_xz)
+		return;
+
+	base.end_pos = step_pos;
+	base.end_vel = step_up.end_vel;
+
+	*pm = base;
 }
 
 u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce, u8 blocked) {

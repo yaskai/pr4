@@ -163,7 +163,7 @@ void BrushGetVertices(Brush *brush) {
 #define PARSE_NONE -1
 #define PARSE_BRUSH 0
 #define PARSE_ENT 	1
-void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model) {
+void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList *spawn_list) {
 	FILE *pF = fopen(path, "r");
 
 	if(!pF) {
@@ -186,6 +186,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model) {
 	char line[256];
 	while(fgets(line, sizeof(line), pF)) {
 		Brush *brush = &brush_pool->brushes[curr_brush];
+		EntSpawn *curr_entspawn = &spawn_list->arr[curr_ent];
 
 		// Set mode & id of brush or entity 
 		if(line[0] == '/') {
@@ -214,7 +215,6 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model) {
 			continue;
 
 		if(parse_mode == PARSE_BRUSH && line[0] == '(') {
-
 			char *points_str = line;
 			char *last_par = strrchr(line, ')') + 1;
 			*last_par = '\0';
@@ -238,8 +238,34 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model) {
 		}
 
 		if(parse_mode == PARSE_ENT) {
+			if(line[0] == '{' || line[0] == '}' || line[0] == '/') continue;
 			// * TODO
 			// *
+			char *tok = strtok(line, "\"");
+
+			if(strcmp(tok, "origin") == 0) {
+				//printf("%s, ", tok);			
+				char *end = line + sizeof(tok) + 2;
+				tok = strtok(end, "\"");
+				//printf("%s\n", tok);
+				sscanf(tok, "%f %f %f", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
+			}
+
+			if(strcmp(tok, "enum_id") == 0) {
+				//printf("%s, ", tok);			
+				char *end = line + sizeof(tok) + 2;
+				tok = strtok(end, "\"");
+				//printf("%s\n", tok);
+				sscanf(tok, "%d", &curr_entspawn->ent_type);
+			}
+
+			if(strcmp(tok, "angle") == 0) {
+				//printf("%s, ", tok);			
+				char *end = line + sizeof(tok) + 2;
+				tok = strtok(end, "\"");
+				//printf("%s\n", tok);
+				sscanf(tok, "%d", &curr_entspawn->angle);
+			}
 		}
 	}
 
@@ -262,6 +288,13 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model) {
 			brush->bounds.min = Vector3Min(brush->bounds.min, brush->verts[j]);
 			brush->bounds.max = Vector3Max(brush->bounds.max, brush->verts[j]);
 		}
+	}
+
+	for(int i = 0; i < ent_count; i++) {
+		printf("-----------------------\n");
+		printf("type: %d\n", spawn_list->arr[i].ent_type);
+		printf("pos: { %f %f %f }\n", spawn_list->arr[i].position.x, spawn_list->arr[i].position.y, spawn_list->arr[i].position.z);
+		printf("angle: %d\n", spawn_list->arr[i].angle);
 	}
 }
 
@@ -423,7 +456,7 @@ void BrushTestView(BrushPool *brush_pool, Color color) {
 	}
 }
 
-MapSection BuildMapSect(char *path) {
+MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	MessageDiag("Constructing map section", path, ANSI_BLUE);
 
 	MapSection sect = (MapSection) {0};
@@ -466,8 +499,14 @@ MapSection BuildMapSect(char *path) {
 		return sect;
 	}
 
+	*spawn_list = (SpawnList) {
+		.count = 0,
+		.capacity = 128,
+	};
+	spawn_list->arr = calloc(spawn_list->capacity, sizeof(EntSpawn));
+
 	BrushPool brush_pools[3] = {0};
-	LoadMapFile(&brush_pools[0], path_list.paths[mpf_id], &model);
+	LoadMapFile(&brush_pools[0], path_list.paths[mpf_id], &model, spawn_list);
 
 	// 3. Build expanded geometry for character to world collsions 
 	for(short i = 1; i < 3; i++) {

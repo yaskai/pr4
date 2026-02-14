@@ -85,21 +85,22 @@ void GameRenderSetup(Game *game) {
 }
 
 void GameLoadTestScene1(Game *game, char *path) {
-	game->test_section = BuildMapSect(path);
+	SpawnList spawn_list = (SpawnList) {0}; 
+	game->test_section = BuildMapSect(path, &spawn_list);
 
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data);
 	Entity player = (Entity) {
 		.comp_transform = (comp_Transform) {0},
 		.comp_health = (comp_Health) {0},
 		.comp_weapon = (comp_Weapon) {0},
-		.behavior_id = 0,
+		.type = 0,
 		.flags = (ENT_ACTIVE)
 	};
 	player.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
-	player.comp_transform.position.y = 120;
-	player.comp_transform.on_ground = false;
+	player.comp_transform.position.y = 60;
+	player.comp_transform.on_ground = true;
 	player.comp_transform.air_time = 0;
 	game->ent_handler.ents[game->ent_handler.count++] = player;
 }
@@ -155,14 +156,22 @@ void GameDraw(Game *game) {
 			*/
 			
 			if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
-				/*
 				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
 					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-					Color color = colors[tri->hull_id % 7];
-					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.95f));
-				}
-				*/
+					//Color color = colors[tri->hull_id % 7];
+					Color color = {
+						.r = tri->normal.x * 255,
+						.g = tri->normal.y * 255,
+						.b = tri->normal.z * 255,
+						255
+					};
+					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.25f));
 
+					Vector3 c = TriCentroid(*tri);
+					DrawLine3D(Vector3Subtract(c, Vector3Scale(tri->normal, 10)), Vector3Add(c, Vector3Scale(tri->normal, 10)), color);
+				}
+
+				/*
 				for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
 					Hull *hull = &game->test_section._hulls[1].arr[j];
 					DrawBoundingBox(hull->aabb, colors[j % 7]);
@@ -173,6 +182,7 @@ void GameDraw(Game *game) {
 						DrawLine3D(hull->center, Vector3Add(hull->center, Vector3Scale(pl->normal, 35)), SKYBLUE);
 					}
 				}
+				*/
 			}
 		EndMode3D();
 

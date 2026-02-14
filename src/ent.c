@@ -253,8 +253,8 @@ void UpdateEntities(EntityHandler *handler, float dt) {
 		if(!(ent->flags & ENT_ACTIVE))
 			continue;
 
-		if(update_fn[ent->behavior_id])	
-			update_fn[ent->behavior_id](ent, dt);
+		if(update_fn[ent->type])	
+			update_fn[ent->type](ent, dt);
 	}
 }
 
@@ -265,13 +265,28 @@ void RenderEntities(EntityHandler *handler) {
 		if(!(ent->flags & ENT_ACTIVE))
 			continue;
 
-		if(draw_fn[ent->behavior_id])	
-			draw_fn[ent->behavior_id](ent);
+		if(draw_fn[ent->type])	
+			draw_fn[ent->type](ent);
 	}
 }
 
 void DrawEntsDebugInfo() {
 	DrawText(TextFormat("diff: %.2f", ground_diff), 0, 340, 32, DARKPURPLE);
 	DrawText(TextFormat("proj: %.2f", proj_y), 256, 340, 32, DARKPURPLE);
+}
+
+Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
+	Entity ent = (Entity) {0};
+
+	ent.comp_transform.position = spawn_point->position;
+	ent.comp_transform.forward = Vector3RotateByAxisAngle(ent.comp_transform.forward, UP, spawn_point->angle);
+
+	ent.type = spawn_point->ent_type;
+
+	switch(ent.type) {
+		
+	}
+
+	return ent;
 }
 

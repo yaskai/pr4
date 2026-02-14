@@ -27,7 +27,25 @@ typedef struct {
 
 } BrushPool;
 
-void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model);
+typedef struct {
+	Vector3 position;
+	
+	int angle;
+	int ent_type;
+
+	u16 id;
+	
+} EntSpawn; 
+
+typedef struct {
+	EntSpawn *arr;	
+
+	u16 count;
+	u16 capacity;
+
+} SpawnList;
+
+void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList *spawn_list);
 BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents);
 
 typedef struct {
@@ -41,7 +59,7 @@ Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count);
 
 void BrushTestView(BrushPool *brush_pool, Color color);
 
-MapSection BuildMapSect(char *file_path);
+MapSection BuildMapSect(char *file_path, SpawnList *spawn_list);
 
 #endif
 

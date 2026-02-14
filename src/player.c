@@ -49,6 +49,9 @@ PlayerDebugData *player_debug_data = { 0 };
 
 void cam_Adjust(comp_Transform *ct, float dt);
 
+Vector3 dbg_hull_norm;
+float dbg_hull_pen;
+
 // -----------------------------------------------------------------------------
 // ** 
 // Player movement functions 
@@ -69,16 +72,16 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position);
 void pm_ApplyGravity(comp_Transform *ct, float dt);
 
 #define PLAYER_ACCEL_GROUND	20.0f
-#define PLAYER_ACCEL_AIR	10.0f
+#define PLAYER_ACCEL_AIR	6.51f
 void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float accel, float dt);
 
 // -*
 // Player movement trace data struct
 // Needed for tracking certain values persistently 
 //
-#define MAX_CLIPS 4
-#define MAX_BUMPS 3
-#define STOP_EPS  0.001f
+#define MAX_CLIPS 8
+#define MAX_BUMPS 12
+#define STOP_EPS  0.1f
 typedef struct {
 	Vector3 clips[MAX_CLIPS];	// Clip planes hit 
 	
@@ -114,6 +117,9 @@ void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt,
 int pm_CheckHull(Vector3 point, u16 hull_id);
 
 short pm_NudgePosition(comp_Transform *ct, u16 hull_id);
+
+int pm_CheckHullEx(Vector3 point, u16 node_id);
+int pm_NudgePositionEx(comp_Transform *ct, u16 node_id);
 
 #define PM_STEP_Y 4.0f
 
@@ -322,9 +328,9 @@ void PlayerDisplayDebugInfo(Entity *player) {
 		
 		BvhNode *node = &ptr_sect->bvh[1].nodes[tr.node_id];
 		//u16 hull_id = ptr_sect->bvh[1].tris.arr[tr.tri_id].hull_id;
-		u16 hull_id = tr.hull_id;
+		//u16 hull_id = tr.hull_id;
 
-		DrawBoundingBox(ptr_sect->_hulls[1].arr[hull_id].aabb, SKYBLUE);
+		//DrawBoundingBox(ptr_sect->_hulls[1].arr[hull_id].aabb, SKYBLUE);
 
 	} else {
 		DrawRay(view_ray, SKYBLUE);
@@ -362,18 +368,6 @@ void PlayerDisplayDebugInfo(Entity *player) {
 }
 
 void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
-	/*
-	if(last_pm.start_in_solid > -1 && last_pm.start_in_solid < ptr_sect->_hulls[1].count) {
-		//int check = -1;
-		int check = pm_CheckHull(ct->position, last_pm.start_in_solid);
-		if(check > -1) { 
-			pm_NudgePosition(ct, last_pm.start_in_solid);
-			nudged_this_frame = 1;
-			printf("nudge request\n");
-		}
-	}
-	*/
-
 	// 1. Categorize position
 	ct->on_ground = pm_CheckGround(ct, ct->position);
 	
@@ -441,21 +435,6 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	ct->position = pm.end_pos;	
 
 	nudged_this_frame = 0;
-	/*
-	if(pm.end_in_solid > -1 && pm.end_in_solid < ptr_sect->_hulls->count) {
-		int check = -1;
-		check = pm_CheckHull(ct->position, pm.end_in_solid);
-
-		if(check > -1 && check < ptr_sect->_hulls[1].count)
-			pm_NudgePosition(ct, check);
-
-		nudged_this_frame = check;
-
-		printf("nudge request\n");
-
-		return;
-	}
-	*/
 
 	last_pm = pm;
 }
@@ -520,18 +499,20 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 	return Vector3Normalize(wish_dir);
 } 
 
-#define GROUND_EPS 0.001f
+#define GROUND_EPS 0.1f
 u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 
 	BvhTraceData tr = TraceDataEmpty();	
-	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, FLT_MAX);
+	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 1 + GROUND_EPS);
 	
-	if(!tr.hit || tr.distance > 1 + GROUND_EPS) {
+	if(!tr.hit) {
 		return 0;
 	}
 
 	ct->ground_normal = tr.normal;
+	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
+
 	return 1;
 }
 
@@ -651,7 +632,7 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 			break;
 
 		// Add small offset to prevent tunneling through surfaces
-		dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.1f));
+		dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.01f));
 
 		// Update remaining time
 		t_remain *= (1 - fraction);
@@ -799,22 +780,31 @@ void pm_Jump(comp_Transform *ct, InputHandler *input) {
 
 int pm_CheckHull(Vector3 point, u16 hull_id) {
 	Hull *hull = &ptr_sect->_hulls[BVH_BOX_MED].arr[hull_id];
+	short in = 0;
+	float worst_dist = FLT_MAX;
+	Vector3 worst_norm = Vector3Zero();
 
 	for(short i = 0; i < hull->plane_count; i++) {
 		Plane *pl = &hull->planes[i];
 
 		float dist = Vector3DotProduct(pl->normal, point) - pl->d;
 
-		if(dist > EPSILON)
+		if(dist < worst_dist) {
+			worst_norm = pl->normal;
+			worst_dist = dist;	
+		}
+
+		if(dist >= 0)
 			return -1;
 	}
 
-	printf("inside hull\n");
+	dbg_hull_pen = worst_dist;
+	dbg_hull_norm = worst_norm;
 
 	return hull_id;
 }
 
-#define CORRECTION_STEPS 3
+#define CORRECTION_STEPS 32
 #define NUDGE_EPS 0.001f
 #define MAX_NUDGE 0.1f
 short pm_NudgePosition(comp_Transform *ct, u16 hull_id) {
@@ -853,6 +843,33 @@ short pm_NudgePosition(comp_Transform *ct, u16 hull_id) {
 	}
 
 	return moved;
+}
+
+int pm_CheckHullEx(Vector3 point, u16 node_id) {
+	float worst_dist = 0;
+	Vector3 worst_norm = Vector3Zero();
+
+	BvhNode *node = &ptr_sect->bvh[1].nodes[node_id];
+	for(u16 i = 0; i < node->tri_count; i++) {
+		u16 tri_id = ptr_sect->bvh->tris.ids[node->first_tri + i];
+		Tri tri = ptr_sect->bvh[1].tris.arr[tri_id];
+
+		Plane pl = TriToPlane(tri);
+		float dist = Vector3DotProduct(pl.normal, point) - pl.d;
+
+		if(dist < worst_dist) {
+			worst_dist = dist;
+			worst_norm = pl.normal;
+		}
+
+		if(dist > 0)
+			return -1;
+
+		dbg_hull_pen = worst_dist;
+		dbg_hull_norm = worst_norm;
+	}
+
+	return node_id;
 }
 
 #define TILT_MAX 0.1f
@@ -895,5 +912,7 @@ void PlayerDebugText(Entity *player) {
 	DrawText(TextFormat("on_ground: %d", ct->on_ground), 16, 900, 24, RAYWHITE);
 	DrawText(TextFormat("ground_norm: { %f, %f, %f }", ct->ground_normal.x, ct->ground_normal.y, ct->ground_normal.z), 16, 930, 24, RAYWHITE);
 	DrawText(TextFormat("nudge: %d", nudged_this_frame), 16, 960, 24, RAYWHITE);
+	DrawText(TextFormat("in hull dist: %f", dbg_hull_pen), 16, 990, 24, RAYWHITE);
+	DrawText(TextFormat("in hull norm: { %f, %f, %f }", dbg_hull_norm.x, dbg_hull_norm.y, dbg_hull_norm.z), 16, 1020, 24, RAYWHITE);
 }
 

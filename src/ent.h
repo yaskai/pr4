@@ -2,6 +2,7 @@
 #include "../include/num_redefs.h"
 #include "input_handler.h"
 #include "geo.h"
+#include "map.h"
 
 #ifndef ENT_H_
 #define ENT_H_
@@ -74,12 +75,21 @@ enum ENT_BEHAVIORS : i8 {
 	ENT_BEHAVIOR_PLAYER		=  0,
 };
 
+#define ENT_PLAYER 			0
+#define ENT_TURRET 			1
+#define ENT_MAINTAINER 		2
+#define ENT_REGULATOR		3
+#define ENT_DRONE 			4
+#define ENT_HEALTHPACK		5
+#define ENT_AMMO_PISTOL		6
+#define ENT_AMMO_SHOTGUN	7
+#define ENT_AMMO_REVOLVER	8
 typedef struct {
 	comp_Transform comp_transform;
 	comp_Health comp_health;
 	comp_Weapon comp_weapon;
 
-	i8 behavior_id;
+	i8 type;
 
 	u8 flags;
 
@@ -130,5 +140,7 @@ void PlayerDebugText(Entity *player);
 
 void PlayerMove(Entity *player, float dt);
 // ***
+
+Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
 #endif

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <float.h>
 #include "raylib.h"
 #include "raymath.h"
@@ -12,6 +13,9 @@
 #include "map.h"
 
 void VirtCameraControls(Camera3D *cam, float dt, Vector3 target_point);
+
+#define VIRT_W (1920)
+#define VIRT_H (1080)
 
 float *plr_accel;
 
@@ -71,9 +75,12 @@ void GameRenderSetup(Game *game) {
 	};
 
 	// Load render textures
-	game->render_target3D = LoadRenderTexture(game->conf->window_width, game->conf->window_height);
-	game->render_target2D = LoadRenderTexture(game->conf->window_width, game->conf->window_height);
-	//game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.35f, game->conf->window_height * 0.35f);
+	//game->render_target3D = LoadRenderTexture(game->conf->window_width, game->conf->window_height);
+	//game->render_target2D = LoadRenderTexture(game->conf->window_width, game->conf->window_height);
+	//game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
+
+	game->render_target3D = LoadRenderTexture(VIRT_W, VIRT_H);
+	game->render_target2D = LoadRenderTexture(VIRT_W, VIRT_H);
 	game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
 
 	game->player_gun = (PlayerGun) {0};
@@ -131,7 +138,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 1;
+u8 debug_draw_flags = 0;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main
@@ -276,7 +283,7 @@ void GameDraw(Game *game) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
-	PlayerDebugText(&game->ent_handler.ents[0]);
+	//PlayerDebugText(&game->ent_handler.ents[0]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;
@@ -293,7 +300,7 @@ void GameDraw(Game *game) {
 	int fps = GetFPS();
 	DrawText(TextFormat("fps: %d", fps), 4, 4, 32, RAYWHITE);
 
-	EntDebugText();
+	//EntDebugText();
 
 	EndDrawing();
 }

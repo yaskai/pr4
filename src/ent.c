@@ -271,9 +271,10 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			BvhTraceData tr = TraceDataEmpty();
 			BvhTracePointEx(ray, sect, &sect->bvh[0], 0, &tr, dist);
 
-			if(Vector3DistanceSqr(ray.position, tr.point) < (dist + MIN_VIEW_RADIUS))
+			if(Vector3DistanceSqr(ray.position, tr.point) < (dist + (MIN_VIEW_RADIUS*0.25f)))
 				visible--;
 		}
+
 		if(visible <= 0)
 			continue;
 
@@ -283,33 +284,12 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 
 void RenderEntities(EntityHandler *handler) {
-	/*
-	for(u16 i = 0; i < handler->count; i++) {
-		Entity *ent = &handler->ents[i];
-
-		if(!ent->type)
-			continue;
-
-		if(!(ent->flags & ENT_ACTIVE))
-			continue;
-
-		switch(ent->type) {
-			case ENT_TURRET:
-				TurretDraw(ent);
-				break;
-
-			case ENT_MAINTAINER:
-				MaintainerDraw(ent);
-				break;
-		}
-
-		//DrawCubeV(ent->comp_transform.position, Vector3Scale(Vector3One(), 100), RED);
-	}
-	*/
-
 	for(u16 i = 0; i < render_list.count; i++) {
 		Entity *ent = &handler->ents[render_list.ids[i]];
 
+		if(!(ent->flags & ENT_ACTIVE)) 
+			continue;
+
 		switch(ent->type) {
 			case ENT_TURRET:
 				TurretDraw(ent);
@@ -320,8 +300,6 @@ void RenderEntities(EntityHandler *handler) {
 				break;
 		}
 	}
-
-	//DrawLine3D(handler->ents[0].comp_transform.position, handler->ents[2].comp_transform.position, PURPLE);
 }
 
 void DrawEntsDebugInfo() {
@@ -389,7 +367,7 @@ void TurretUpdate(Entity *ent, float dt) {
 }
 
 void TurretDraw(Entity *ent) {
-	DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
+	//DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
 	DrawModel(ent->model, ent->comp_transform.position, 1.0f, LIGHTGRAY);
 
 	/*
@@ -423,7 +401,7 @@ void MaintainerDraw(Entity *ent) {
 	//float angle = atan2f(ent->comp_transform.forward.x, ent->comp_transform.forward.z);
 	//ent->model.transform = MatrixMultiply(ent->model.transform, MatrixRotateY(angle * DEG2RAD));
 
-	DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
+	//DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
 	DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
 	//DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
 

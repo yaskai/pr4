@@ -963,3 +963,17 @@
 "enum_id" "1"
 "angle" "0"
 }
+// entity 3
+{
+"classname" "info_maintainer_spawn"
+"origin" "102 -528 40"
+"enum_id" "2"
+"angle" "0"
+}
+// entity 4
+{
+"classname" "info_maintainer_spawn"
+"origin" "-82 -602 40"
+"enum_id" "2"
+"angle" "-90"
+}

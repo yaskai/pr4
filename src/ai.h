@@ -4,6 +4,20 @@
 #ifndef AI_H_
 #define AI_H_
 
+typedef struct NavNode {
+	struct NavNode *prev;
+	struct NavNode *next;
+
+	Vector3 position;
+
+} NavNode;
+
+typedef struct {
+	NavNode *nodes;
+	u16 count;
+
+} NavGraph;
+
 // ** Input mask definitions ** //
 //
 #define AI_INPUT_SEE_PLAYER		0x01

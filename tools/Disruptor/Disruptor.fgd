@@ -1,0 +1,59 @@
+@SolidClass = worldspawn : "World entity" []
+
+// Player
+@baseclass size(-16 -16 -24, 16 16 32) color(0 255 0) = PlayerClass []
+@PointClass base(PlayerClass) = info_player_start : "Player start" [
+	enum_id(integer) : "enum_id" : 0 
+	angle(integer) : "Forward" : 0
+]
+//
+
+// Turret
+@baseclass 
+	size(-12 -12 -24, 12 12 18)
+	color(255 0 0) 
+	model({ "path": "models/turret_00.obj" })
+= TurretClass []
+
+@PointClass base(TurretClass) = info_turret_spawn : "Turret spawn" [
+	enum_id(integer) : "enum_id" : 1 
+	angle(integer) : "Forward" : 0
+]
+//
+
+// Maintainer
+@baseclass 
+	size(-16 -16 -24, 16 16 32)
+	color(128 0 128)
+	model({ "path": "models/maintainer.obj" })
+= MaintainerClass []
+
+@PointClass base(MaintainerClass) = info_maintainer_spawn : "Maintainer spawn" [
+	enum_id(integer) : "enum_id" : 2 
+	angle(integer) : "Forward" : 0
+]
+//
+
+// Regulator
+@baseclass size(-16 -16 -24, 16 16 32) color(255 0 0) = RegulatorClass []
+@PointClass base(RegulatorClass) = info_regulator_spawn : "Regulator spawn" [
+	enum_id(integer) : "enum_id" : 3 
+	angle(integer) : "Forward" : 0
+]
+// 
+
+
+// Drone 
+
+
+// Pickup, health 
+
+
+// Pickup, ammo, pistol
+
+
+// Pickup, ammo, shotgun
+
+
+// Pickup, ammo, revolver
+

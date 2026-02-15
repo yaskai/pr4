@@ -25,7 +25,7 @@ void PlayerGunInit(PlayerGun *player_gun) {
 		.projection = CAMERA_PERSPECTIVE
 	};
 
-	player_gun->model = LoadModel("resources/rev_00.glb");
+	player_gun->model = LoadModel("resources/models/weapons/rev_00.glb");
 	mat = player_gun->model.transform;
 
 	gun_pos = REVOLVER_REST;
@@ -48,7 +48,7 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && recoil <= 1.0f) {
 		recoil_add = false;
-		recoil += 100 + (GetRandomValue(10, 30) * 0.1f);
+		recoil += 130 + (GetRandomValue(10, 30) * 0.1f);
 	}
 
 	//gun_pos.z = REVOLVER_REST.z - (recoil * 0.0485f);

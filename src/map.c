@@ -179,7 +179,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 	}
 
 	int curr_brush = 0;
-	int curr_ent = 0, ent_count = 0;
+	int curr_ent = 0;
 
 	short parse_mode = -1;
 
@@ -207,7 +207,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 					sscanf(tok, "%d", &curr_ent);
 					tok = strtok(NULL, " ");
 				}
-				ent_count++;
+				spawn_list->count++;
 			}
 		}
 
@@ -244,26 +244,21 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			char *tok = strtok(line, "\"");
 
 			if(strcmp(tok, "origin") == 0) {
-				//printf("%s, ", tok);			
 				char *end = line + sizeof(tok) + 2;
 				tok = strtok(end, "\"");
-				//printf("%s\n", tok);
 				sscanf(tok, "%f %f %f", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
+				curr_entspawn->position.z *= -1;
 			}
 
 			if(strcmp(tok, "enum_id") == 0) {
-				//printf("%s, ", tok);			
 				char *end = line + sizeof(tok) + 2;
 				tok = strtok(end, "\"");
-				//printf("%s\n", tok);
 				sscanf(tok, "%d", &curr_entspawn->ent_type);
 			}
 
 			if(strcmp(tok, "angle") == 0) {
-				//printf("%s, ", tok);			
 				char *end = line + sizeof(tok) + 2;
 				tok = strtok(end, "\"");
-				//printf("%s\n", tok);
 				sscanf(tok, "%d", &curr_entspawn->angle);
 			}
 		}
@@ -290,11 +285,15 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		}
 	}
 
-	for(int i = 0; i < ent_count; i++) {
-		printf("-----------------------\n");
-		printf("type: %d\n", spawn_list->arr[i].ent_type);
-		printf("pos: { %f %f %f }\n", spawn_list->arr[i].position.x, spawn_list->arr[i].position.y, spawn_list->arr[i].position.z);
-		printf("angle: %d\n", spawn_list->arr[i].angle);
+	if(GetLogState()) {
+		Message("--------------- [ ENTITIES ] -----------------", ANSI_GREEN);
+		for(int i = 0; i < spawn_list->count; i++) {
+			printf("-----------------------\n");
+			printf("type: %d\n", spawn_list->arr[i].ent_type);
+			printf("pos: { %f %f %f }\n", spawn_list->arr[i].position.x, spawn_list->arr[i].position.y, spawn_list->arr[i].position.z);
+			printf("angle: %d\n", spawn_list->arr[i].angle);
+		}
+		Message("----------------------------------------------", ANSI_GREEN);
 	}
 }
 
@@ -456,6 +455,10 @@ void BrushTestView(BrushPool *brush_pool, Color color) {
 	}
 }
 
+// * NOTE:
+// The plane math for expanding the hulls is completely unsusable and fucked for use in in-game tracing. 
+// However, the tris do build correctly it's just the end planes (terrible coordinate coversion from id format /:)
+// A hacky solution could be to reconstruct the planes *post* tri construction and remove the duplicates...  2 tris = 1 plane
 MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	MessageDiag("Constructing map section", path, ANSI_BLUE);
 

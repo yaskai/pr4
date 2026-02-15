@@ -1,3 +1,5 @@
+#include <alloca.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
@@ -5,38 +7,6 @@
 #include "raymath.h"
 #include "ent.h"
 #include "geo.h"
-
-typedef void(*DamageFunc)(Entity *ent, short amount);
-DamageFunc damage_fn[4] = {
-	&PlayerDamage,
-	NULL,
-	NULL,
-	NULL
-};
-
-typedef void(*DieFunc)(Entity *ent);
-DieFunc die_fn[4] = {
-	&PlayerDie,
-	NULL,
-	NULL,
-	NULL
-};
-
-typedef void(*UpdateFunc)(Entity *ent, float dt);
-UpdateFunc update_fn[4] = {
-	&PlayerUpdate,
-	NULL,
-	NULL,
-	NULL
-};
-
-typedef void(*DrawFunc)(Entity *ent);
-DrawFunc draw_fn[4] = {
-	&PlayerDraw,
-	NULL,
-	NULL,
-	NULL
-};
 
 #define MAX_CLIPS 6
 #define SLIDE_STEPS 4
@@ -46,6 +16,11 @@ DrawFunc draw_fn[4] = {
 // *
 float ground_diff = 0;
 float proj_y;
+
+Model base_ent_models[16];
+void LoadEntityBaseModels() {
+	base_ent_models[ENT_MAINTAINER] = LoadModel("resources/models/enemies/maintainer.glb");
+}
 
 Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce) {
 	float3 out = Vector3ToFloatV(in), in3 = out;
@@ -240,6 +215,8 @@ void EntHandlerInit(EntityHandler *handler) {
 	handler->count = 0;
 	handler->capacity = 128;
 	handler->ents = calloc(handler->capacity, sizeof(Entity));
+
+	LoadEntityBaseModels();
 }
 
 void EntHandlerClose(EntityHandler *handler) {
@@ -247,14 +224,16 @@ void EntHandlerClose(EntityHandler *handler) {
 }
 
 void UpdateEntities(EntityHandler *handler, float dt) {
+	PlayerUpdate(&handler->ents[0], dt);
+
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
 
-		if(!(ent->flags & ENT_ACTIVE))
+		if(!ent->type)
 			continue;
 
-		if(update_fn[ent->type])	
-			update_fn[ent->type](ent, dt);
+		if(!(ent->flags & ENT_ACTIVE))
+			continue;
 	}
 }
 
@@ -262,11 +241,19 @@ void RenderEntities(EntityHandler *handler) {
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
 
+		if(!ent->type)
+			continue;
+
 		if(!(ent->flags & ENT_ACTIVE))
 			continue;
 
-		if(draw_fn[ent->type])	
-			draw_fn[ent->type](ent);
+		switch(ent->type) {
+			case ENT_MAINTAINER:
+				MaintainerDraw(ent);
+				break;
+		}
+
+		//DrawCubeV(ent->comp_transform.position, Vector3Scale(Vector3One(), 100), RED);
 	}
 }
 
@@ -279,14 +266,60 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	Entity ent = (Entity) {0};
 
 	ent.comp_transform.position = spawn_point->position;
-	ent.comp_transform.forward = Vector3RotateByAxisAngle(ent.comp_transform.forward, UP, spawn_point->angle);
 
+	ent.comp_transform.forward.x = cosf(spawn_point->angle);
+	ent.comp_transform.forward.y = 0;
+	ent.comp_transform.forward.z = sinf(spawn_point->angle);
+	ent.comp_transform.forward = Vector3Normalize(Vector3Negate(ent.comp_transform.forward));
+
+	// * TODO:
+	// Entity type specific stuff
 	ent.type = spawn_point->ent_type;
-
 	switch(ent.type) {
-		
+		case ENT_MAINTAINER: {
+			ent.model = base_ent_models[ENT_MAINTAINER];
+
+			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
+			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
+			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
+			
+			//float angle = ((spawn_point->angle + 180) * DEG2RAD);
+			float angle = atan2f(ent.comp_transform.forward.z, ent.comp_transform.forward.x);
+			//ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 180 * DEG2RAD));
+			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle));
+
+			/*
+			ent.model.transform = MatrixMultiply(
+				ent.model.transform,
+				MatrixRotateY((spawn_point->angle + 90) * DEG2RAD)
+			);
+			*/
+
+			//ent.comp_transform.position.y += BoxExtent(ent.comp_transform.bounds).y * 0.05f;
+
+		} break;
 	}
 
+	ent.flags |= ENT_ACTIVE;
+
 	return ent;
+}
+
+void MaintainerUpdate(Entity *ent, float dt) {
+
+}
+
+void MaintainerDraw(Entity *ent) {
+	//float angle = atan2f(ent->comp_transform.forward.x, ent->comp_transform.forward.z);
+	//ent->model.transform = MatrixMultiply(ent->model.transform, MatrixRotateY(angle * DEG2RAD));
+
+	DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
+	DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
+
+	Vector3 center = BoxCenter(ent->comp_transform.bounds);
+	center.y += 10;
+	Vector3 forward = ent->comp_transform.forward;
+
+	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), PURPLE);
 }
 

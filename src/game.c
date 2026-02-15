@@ -99,10 +99,18 @@ void GameLoadTestScene1(Game *game, char *path) {
 	player.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
-	player.comp_transform.position.y = 60;
-	player.comp_transform.on_ground = true;
+	player.comp_transform.position.y = 80;
+	player.comp_transform.on_ground = false;
 	player.comp_transform.air_time = 0;
-	game->ent_handler.ents[game->ent_handler.count++] = player;
+
+	game->ent_handler.count = spawn_list.count + 1;
+	for(int i = 0; i < spawn_list.count; i++) {
+		if(!spawn_list.arr[i].ent_type) continue;
+
+		game->ent_handler.ents[i] = SpawnEntity(&spawn_list.arr[i], &game->ent_handler);
+	}
+
+	game->ent_handler.ents[0] = player;
 }
 
 void GameUpdate(Game *game, float dt) {
@@ -135,7 +143,7 @@ void GameDraw(Game *game) {
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, GREEN);
 
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
-			//RenderEntities(&game->ent_handler);
+			RenderEntities(&game->ent_handler);
 
 			/*
 			for(u16 i = 0; i < tri_count; i++) {
@@ -184,6 +192,7 @@ void GameDraw(Game *game) {
 				}
 				*/
 			}
+			RenderEntities(&game->ent_handler);
 		EndMode3D();
 
 	EndTextureMode();

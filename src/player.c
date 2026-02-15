@@ -203,7 +203,7 @@ void PlayerUpdate(Entity *player, float dt) {
 	box_points = BoxGetPoints(player->comp_transform.bounds);
 
 	if(IsKeyPressed(KEY_R)) {
-		player->comp_transform.position = (Vector3) { 0, 40, 0 };
+		player->comp_transform.position = (Vector3) { 0, 60, 0 };
 		player->comp_transform.velocity = Vector3Zero();
 		player->comp_transform.on_ground = true;
 	} 
@@ -464,6 +464,10 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 	ct->forward = forward;			
 	ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
 
+	forward = clipY(forward);
+	forward = Vector3Normalize(forward);
+	right = Vector3CrossProduct(forward, UP);
+
 	// Get move input from keys
 	// index 0 = towards, index 1 = away
 	// Forward:
@@ -481,22 +485,19 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 	// Y component must be removed and vector normalized
 	// Forward:
 	Vector3 wish_forw = Vector3Scale(forward, input_forw[0] - input_forw[1]);
-	wish_forw.y = 0;
-	wish_forw = Vector3Normalize(wish_forw);
 
 	// Side: 
 	Vector3 wish_side = Vector3Scale(right, input_side[0] - input_side[1]);
-	wish_side.y = 0;
-	wish_side = Vector3Normalize(wish_side);
 
 	// ** NOTE:
 	// Change names of these vars, it's confusing...
-	cam_input_forward = Vector3Length(wish_forw) * (input_forw[0] - input_forw[1]);
-	cam_input_side = Vector3Length(wish_side) * (input_side[0] - input_side[1]);
+	cam_input_forward = Vector3Length(Vector3Normalize(wish_forw)) * (input_forw[0] - input_forw[1]);
+	cam_input_side = Vector3Length(Vector3Normalize(wish_side)) * (input_side[0] - input_side[1]);
 
 	// Add both vectors and renormalize to get direction
-	Vector3 wish_dir = Vector3Add(wish_forw, wish_side);
-	return Vector3Normalize(wish_dir);
+	Vector3 sum = clipY(Vector3Add(wish_forw, wish_side));
+
+	return Vector3Normalize(sum);
 } 
 
 #define GROUND_EPS 0.1f
@@ -507,11 +508,13 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 1 + GROUND_EPS);
 	
 	if(!tr.hit) {
+		ct->ground_normal = Vector3Zero();
 		return 0;
 	}
 
 	ct->ground_normal = tr.normal;
-	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
+	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
+	if(fabsf(ct->velocity.y) < 0.01f) ct->velocity.y = 0;
 
 	return 1;
 }
@@ -909,6 +912,7 @@ void PlayerDebugText(Entity *player) {
 	};
 	DrawRectangleRec(rect, ColorAlpha(BLACK, 0.5f));
 
+	DrawText(TextFormat("pos: { %f, %f, %f }", ct->position.x, ct->position.y, ct->position.z), 16, 870, 24, RAYWHITE);
 	DrawText(TextFormat("on_ground: %d", ct->on_ground), 16, 900, 24, RAYWHITE);
 	DrawText(TextFormat("ground_norm: { %f, %f, %f }", ct->ground_normal.x, ct->ground_normal.y, ct->ground_normal.z), 16, 930, 24, RAYWHITE);
 	DrawText(TextFormat("nudge: %d", nudged_this_frame), 16, 960, 24, RAYWHITE);

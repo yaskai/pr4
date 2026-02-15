@@ -7,6 +7,8 @@
 #ifndef ENT_H_
 #define ENT_H_
 
+void LoadEntityBaseModels();
+
 typedef struct  {
 	BoundingBox bounds;
 
@@ -85,6 +87,8 @@ enum ENT_BEHAVIORS : i8 {
 #define ENT_AMMO_SHOTGUN	7
 #define ENT_AMMO_REVOLVER	8
 typedef struct {
+	Model model;
+
 	comp_Transform comp_transform;
 	comp_Health comp_health;
 	comp_Weapon comp_weapon;
@@ -142,5 +146,12 @@ void PlayerMove(Entity *player, float dt);
 // ***
 
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
+
+// ** Enemies ** 
+
+void MaintainerUpdate(Entity *ent, float dt);
+void MaintainerDraw(Entity *ent);
+
+// ***
 
 #endif

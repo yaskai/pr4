@@ -320,6 +320,9 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	ent.comp_ai = (comp_Ai) {0};
 	ent.comp_ai.component_valid = true;
 
+	ent.comp_health = (comp_Health) {0};
+	ent.comp_health.amount = 100;
+
 	// * TODO:
 	// Entity type specific stuff
 	ent.type = spawn_point->ent_type;
@@ -354,6 +357,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
 
 			ent.comp_ai.sight_cone = 0.25f;
+
 
 		} break;
 	}

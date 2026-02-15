@@ -186,10 +186,19 @@ void PlayerUpdate(Entity *player, float dt) {
 	
 	// Track previous y velocity,
 	// needed to check if player landed on groun this frame
-	y_vel_prev = player->comp_transform.velocity.y;
+	//y_vel_prev = player->comp_transform.velocity.y;
+	land_frame = false;
 
 	// Update position + velocity
 	pm_Move(&player->comp_transform, ptr_input, dt);
+	if(land_frame) {
+		//printf("land frame!\n");
+		//if(y_vel_prev < -600) player->comp_health.amount--;
+		if(y_vel_prev < -600) player->comp_health.amount -= (short)(y_vel_prev * -0.025f);
+	}
+
+	// Update camera
+	cam_Adjust(&player->comp_transform, dt);
 
 	/*
 	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 0.0f));
@@ -379,8 +388,6 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	} 
 	Vector3 wish_vel = Vector3Scale(wish_dir, wish_speed);
 	
-	// Update camera
-	cam_Adjust(ct, dt);
 
 	// 3. Apply friction (if grounded)
 	pm_GroundFriction(ct, dt);
@@ -436,7 +443,11 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 
 	nudged_this_frame = 0;
 
+	land_frame = (ct->on_ground == 1 && last_pm.start_vel.y <= -300);
+	y_vel_prev = last_pm.start_vel.y;
 	last_pm = pm;
+
+	ct->on_ground = pm_CheckGround(ct, ct->position);
 }
 
 Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
@@ -892,6 +903,11 @@ void cam_Adjust(comp_Transform *ct, float dt) {
 	float tilt_input = cam_input_side * 0.1f;
 	tilt_input = Clamp(tilt_input, -0.025f, 0.025f);
 	Vector3 tilt_targ = UP;
+
+	if(land_frame) {
+		cam_bob += (18.5f * y_vel_prev * 0.00125f);
+		tilt_input += 0.5f;
+	}
 
 	if(tilt_input != 0.0f) tilt_targ = Vector3RotateByAxisAngle(UP, ct->forward, tilt_input);
 	ptr_cam->up = Vector3Lerp(ptr_cam->up, tilt_targ, dt * 10);

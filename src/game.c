@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <float.h>
 #include "raylib.h"
 #include "raymath.h"
@@ -83,8 +82,6 @@ void GameRenderSetup(Game *game) {
 	game->render_target2D = LoadRenderTexture(VIRT_W, VIRT_H);
 	game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
 
-	game->player_gun = (PlayerGun) {0};
-	PlayerGunInit(&game->player_gun);
 
 	EntHandlerInit(&game->ent_handler);
 
@@ -111,6 +108,9 @@ void GameLoadTestScene1(Game *game, char *path) {
 	player.comp_transform.on_ground = true;
 	player.comp_transform.air_time = 0;
 
+	player.comp_health = (comp_Health) {0};
+	player.comp_health.amount = 100;
+
 	game->ent_handler.count = spawn_list.count;
 	for(int i = 0; i < spawn_list.count; i++) {
 		if(!spawn_list.arr[i].ent_type) continue;
@@ -119,6 +119,9 @@ void GameLoadTestScene1(Game *game, char *path) {
 	}
 
 	game->ent_handler.ents[0] = player;
+
+	game->player_gun = (PlayerGun) {0};
+	PlayerGunInit(&game->player_gun, &game->ent_handler.ents[0]);
 }
 
 void GameUpdate(Game *game, float dt) {

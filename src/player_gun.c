@@ -2,6 +2,7 @@
 #include "raymath.h"
 #include "player_gun.h"
 #include "geo.h"
+#include "ent.h"
 
 Vector3 gun_pos = {0};
 float gun_rot = 0;
@@ -16,7 +17,9 @@ bool recoil_add = false;
 
 float friction = 0;
 
-void PlayerGunInit(PlayerGun *player_gun) {
+Entity *ptr_player;
+
+void PlayerGunInit(PlayerGun *player_gun, Entity *player) {
 	player_gun->cam = (Camera3D) {
 		.position = (Vector3) { 0, 0, -1 },
 		.target = (Vector3) { 0, 0, 1 },
@@ -30,6 +33,8 @@ void PlayerGunInit(PlayerGun *player_gun) {
 
 	gun_pos = REVOLVER_REST;
 	gun_rot = REVOLVER_ANGLE_REST;
+
+	ptr_player = player;
 }
 
 void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
@@ -63,5 +68,7 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 	//DrawModelEx(player_gun->model, gun_pos, UP, gun_rot, Vector3Scale(Vector3One(), 1.0f), WHITE);
 
 	EndMode3D();
+
+	DrawText(TextFormat("H-%d", ptr_player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.85f));	
 }
 

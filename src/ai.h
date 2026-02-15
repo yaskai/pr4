@@ -4,15 +4,6 @@
 #ifndef AI_H_
 #define AI_H_
 
-typedef struct {
-	Vector3 target_point;	
-
-	float timer;
-
-	bool complete;
-
-} Ai_Action;
-
 // ** Input mask definitions ** //
 //
 #define AI_INPUT_SEE_PLAYER		0x01
@@ -29,8 +20,6 @@ enum anim_states : u8 {
 };
 
 typedef struct {
-	Ai_Action action_curr, action_prev, action_next;
-
 	float sight_cone;
 
 	u32 input_mask;

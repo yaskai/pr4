@@ -963,3 +963,10 @@
 "angle" "90"
 "enum_id" "2"
 }
+// entity 3
+{
+"classname" "info_maintainer_spawn"
+"origin" "-448 -496 104"
+"angle" "90"
+"enum_id" "2"
+}

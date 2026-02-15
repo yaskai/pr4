@@ -3,6 +3,7 @@
 #include "input_handler.h"
 #include "geo.h"
 #include "map.h"
+#include "ai.h"
 
 #ifndef ENT_H_
 #define ENT_H_
@@ -89,6 +90,7 @@ enum ENT_BEHAVIORS : i8 {
 typedef struct {
 	Model model;
 
+	comp_Ai comp_ai;
 	comp_Transform comp_transform;
 	comp_Health comp_health;
 	comp_Weapon comp_weapon;
@@ -112,7 +114,7 @@ typedef struct {
 void EntHandlerInit(EntityHandler *handler);
 void EntHandlerClose(EntityHandler *handler);
 
-void UpdateEntities(EntityHandler *handler, float dt);
+void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt);
 void RenderEntities(EntityHandler *handler);
 
 void DrawEntsDebugInfo();
@@ -151,7 +153,11 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
 void MaintainerUpdate(Entity *ent, float dt);
 void MaintainerDraw(Entity *ent);
+// ***
 
+// ** AI **
+
+void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect);
 // ***
 
 #endif

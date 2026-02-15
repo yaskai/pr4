@@ -1,4 +1,3 @@
-#include <alloca.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +6,7 @@
 #include "raymath.h"
 #include "ent.h"
 #include "geo.h"
+#include "ai.h"
 
 #define MAX_CLIPS 6
 #define SLIDE_STEPS 4
@@ -215,6 +215,7 @@ void EntHandlerInit(EntityHandler *handler) {
 	handler->count = 0;
 	handler->capacity = 128;
 	handler->ents = calloc(handler->capacity, sizeof(Entity));
+	handler->player_id = 0;
 
 	LoadEntityBaseModels();
 }
@@ -223,8 +224,8 @@ void EntHandlerClose(EntityHandler *handler) {
 	if(handler->ents) free(handler->ents);
 }
 
-void UpdateEntities(EntityHandler *handler, float dt) {
-	PlayerUpdate(&handler->ents[0], dt);
+void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
+	PlayerUpdate(&handler->ents[handler->player_id], dt);
 
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
@@ -234,6 +235,13 @@ void UpdateEntities(EntityHandler *handler, float dt) {
 
 		if(!(ent->flags & ENT_ACTIVE))
 			continue;
+
+		switch(ent->type) {
+			case ENT_MAINTAINER: {
+				AiCheckInputs(ent, handler, sect);
+
+			} break;
+		}
 	}
 }
 
@@ -272,6 +280,9 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	ent.comp_transform.forward.z = sinf(spawn_point->angle);
 	ent.comp_transform.forward = Vector3Normalize(Vector3Negate(ent.comp_transform.forward));
 
+	ent.comp_ai = (comp_Ai) {0};
+	ent.comp_ai.component_valid = true;
+
 	// * TODO:
 	// Entity type specific stuff
 	ent.type = spawn_point->ent_type;
@@ -283,19 +294,10 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 			
-			//float angle = ((spawn_point->angle + 180) * DEG2RAD);
 			float angle = atan2f(ent.comp_transform.forward.z, ent.comp_transform.forward.x);
-			//ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 180 * DEG2RAD));
 			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle));
 
-			/*
-			ent.model.transform = MatrixMultiply(
-				ent.model.transform,
-				MatrixRotateY((spawn_point->angle + 90) * DEG2RAD)
-			);
-			*/
-
-			//ent.comp_transform.position.y += BoxExtent(ent.comp_transform.bounds).y * 0.05f;
+			ent.comp_ai.sight_cone = 0.25f;
 
 		} break;
 	}
@@ -321,5 +323,47 @@ void MaintainerDraw(Entity *ent) {
 	Vector3 forward = ent->comp_transform.forward;
 
 	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), PURPLE);
+
+	if(ent->comp_ai.input_mask & AI_INPUT_SEE_PLAYER) {
+		DrawBoundingBox(ent->comp_transform.bounds, GREEN);
+		DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), GREEN);
+	}
+}
+
+// Update senses inputs for an entitie's AI component,
+// executed once per frame for every entity with a valid component.
+void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
+	comp_Ai *ai = &ent->comp_ai;
+
+	// Do not check inputs on non-valid ai components 
+	if(!ai->component_valid) 
+		return;
+
+	// Clear inputs
+	ai->input_mask = 0;
+
+	comp_Transform *ct = &ent->comp_transform;
+
+	BvhTree *bvh = &sect->bvh[0];
+
+	// ** Check if player is visible **	
+	//
+	Entity *player_ent = &handler->ents[handler->player_id];
+	Vector3 to_player = Vector3Normalize(Vector3Subtract(player_ent->comp_transform.position, ct->position));
+
+	// Player is in ai's sight cone
+	if(Vector3DotProduct(ct->forward, to_player) > ai->sight_cone) { 
+		// Check for obstructions
+		Ray ray = (Ray) { .position = ct->position, .direction = to_player };
+		RayCollision player_coll = GetRayCollisionBox(ray, player_ent->comp_transform.bounds);
+
+		BvhTraceData tr = TraceDataEmpty();
+		BvhTracePointEx(ray, sect, bvh, 0, &tr, player_coll.distance + 32);
+
+		if(player_coll.distance < tr.distance)
+			ai->input_mask |= AI_INPUT_SEE_PLAYER;
+	}
+	
+	// ***
 }
 

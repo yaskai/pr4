@@ -122,7 +122,7 @@ void GameUpdate(Game *game, float dt) {
 	PollInput(&game->input_handler);
 	PlayerGunUpdate(&game->player_gun, dt);
 
-	UpdateEntities(&game->ent_handler, dt);
+	UpdateEntities(&game->ent_handler, &game->test_section, dt);
 }
 
 #define DEBUG_DRAW_HULLS 		0x01

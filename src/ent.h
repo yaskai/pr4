@@ -8,6 +8,8 @@
 #ifndef ENT_H_
 #define ENT_H_
 
+void EntDebugText();
+
 void LoadEntityBaseModels();
 
 typedef struct  {
@@ -89,11 +91,15 @@ enum ENT_BEHAVIORS : i8 {
 #define ENT_AMMO_REVOLVER	8
 typedef struct {
 	Model model;
+	ModelAnimation *animations;
 
 	comp_Ai comp_ai;
 	comp_Transform comp_transform;
 	comp_Health comp_health;
 	comp_Weapon comp_weapon;
+	
+	int anim_count, curr_anim,  anim_frame;
+	float anim_timer;
 
 	i8 type;
 
@@ -151,8 +157,12 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
 // ** Enemies ** 
 
+void TurretUpdate(Entity *ent, float dt);
+void TurretDraw(Entity *ent);
+
 void MaintainerUpdate(Entity *ent, float dt);
 void MaintainerDraw(Entity *ent);
+
 // ***
 
 // ** AI **

@@ -320,8 +320,8 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	player_debug_data->view_length = FLT_MAX;
 
 	BvhTraceData tr = TraceDataEmpty();
-	//BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[0], 0, &tr, FLT_MAX);
-	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr, FLT_MAX);
+	BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[0], 0, &tr, FLT_MAX);
+	//BvhTracePointEx(view_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr, FLT_MAX);
 
 	if(tr.hit) {
 		DrawLine3D(player->comp_transform.position, tr.point, SKYBLUE);
@@ -513,8 +513,8 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	}
 
 	ct->ground_normal = tr.normal;
-	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
-	//if(fabsf(ct->velocity.y) < 0.01f) ct->velocity.y = 0;
+	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
+	if(fabsf(ct->velocity.y) < 0.0001f) ct->velocity.y = 0;
 
 	return 1;
 }

@@ -242,10 +242,12 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			// * TODO
 			// *
 			char *tok = strtok(line, "\"");
+			printf("%s, ", tok);
 
 			if(strcmp(tok, "origin") == 0) {
 				char *end = line + sizeof(tok) + 2;
 				tok = strtok(end, "\"");
+				printf("%s\n", tok);
 				sscanf(tok, "%f %f %f", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
 				curr_entspawn->position.z *= -1;
 			}
@@ -253,12 +255,14 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			if(strcmp(tok, "enum_id") == 0) {
 				char *end = line + sizeof(tok) + 2;
 				tok = strtok(end, "\"");
+				printf("%s\n", tok);
 				sscanf(tok, "%d", &curr_entspawn->ent_type);
 			}
 
 			if(strcmp(tok, "angle") == 0) {
-				char *end = line + sizeof(tok) + 2;
+				char *end = line + 8;
 				tok = strtok(end, "\"");
+				printf("%s\n", tok);
 				sscanf(tok, "%d", &curr_entspawn->angle);
 			}
 		}

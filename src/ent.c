@@ -17,9 +17,18 @@
 float ground_diff = 0;
 float proj_y;
 
-Model base_ent_models[16];
+Model base_ent_models[16] = {0};
 void LoadEntityBaseModels() {
-	base_ent_models[ENT_MAINTAINER] = LoadModel("resources/models/enemies/maintainer.glb");
+	char *prefix = "resources/models";
+	base_ent_models[ENT_TURRET] = LoadModel(TextFormat("%s/enemies/turret.glb", prefix));	 
+	base_ent_models[ENT_MAINTAINER] = LoadModel(TextFormat("%s/enemies/maintainer.glb", prefix));	 
+}
+
+int base_ent_anims_count[16] = {0};
+ModelAnimation *base_ent_anims[16] = {0};
+void LoadEntityBaseAnims() {
+	char *prefix = "resources/models";
+	base_ent_anims[ENT_MAINTAINER] = LoadModelAnimations(TextFormat("%s/enemies/maintainer.glb", prefix), &base_ent_anims_count[ENT_MAINTAINER]);	 
 }
 
 Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce) {
@@ -151,46 +160,6 @@ short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect,
 	return 1;
 }
 
-/*
-short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt) {
-	if(comp_transform->velocity.y > 0.1f) return 0;
-
-	Vector3 h_vel = (Vector3) { comp_transform->velocity.x, 0, comp_transform->velocity.z };
-	Vector3 offset = Vector3Scale(h_vel, dt);
-
-	float ent_height = BoxExtent(comp_transform->bounds).y;
-	float feet = (ent_height * 0.5f) - 1;
-
-	Ray ray = (Ray) { .position = pos, .direction = DOWN };
-	ray.position = Vector3Add(ray.position, offset);
-
-	BvhTraceData tr = TraceDataEmpty();
-	BvhBoxSweep(ray, sect, &sect->bvh[0], 0, comp_transform->bounds, &tr);
-
-	if(tr.contact_dist >= 1.0f) {
-		return 0;
-	}
-
-	if(tr.normal.y == 0) return 0;
-
-	float into_slope = Vector3DotProduct(h_vel, tr.normal);
-	float slope_y = (into_slope) / tr.normal.y;
-
-	if(fabsf(tr.normal.y) == 1.0f) slope_y = 0;
-
-	comp_transform->on_ground = 1;
-	comp_transform->velocity.y = 0;
-
-	float change = (tr.contact.y - slope_y) - (comp_transform->position.y);
-	comp_transform->position.y = (tr.contact.y - slope_y);
-
-	//comp_transform->last_ground_surface = tr.tri_id; 
-	//comp_transform->position.y += change;
-
-	return 1;
-}
-*/
-
 short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh) {
 	if(comp_transform->velocity.y < 0) return 0;
 
@@ -218,14 +187,36 @@ void EntHandlerInit(EntityHandler *handler) {
 	handler->player_id = 0;
 
 	LoadEntityBaseModels();
+	LoadEntityBaseAnims();
 }
 
 void EntHandlerClose(EntityHandler *handler) {
 	if(handler->ents) free(handler->ents);
+
+	for(int i = 0; i < 16; i++) {
+		UnloadModel(base_ent_models[i]);
+		UnloadModelAnimations(base_ent_anims[i], base_ent_anims[i]->frameCount);
+	}
 }
 
+// **
+// This struct stores IDs of entities to draw
+#define MAX_RENDERED_ENTS	128
+#define MIN_VIEW_RADIUS		(40.0*40.0)
+#define MAX_VIEW_DOT		(-0.707*DEG2RAD)
+typedef struct {
+	u16 ids[MAX_RENDERED_ENTS];
+	u16 count;	
+
+} RenderList;
+RenderList render_list = {0};
+
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
-	PlayerUpdate(&handler->ents[handler->player_id], dt);
+	Entity *player_ent = &handler->ents[handler->player_id];
+	PlayerUpdate(player_ent, dt);
+
+	render_list.count = 0;
+	Vector3 view_dir = player_ent->comp_transform.forward;
 
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
@@ -238,14 +229,61 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 		switch(ent->type) {
 			case ENT_MAINTAINER: {
-				AiCheckInputs(ent, handler, sect);
-
+				MaintainerUpdate(ent, dt);
 			} break;
 		}
+
+		AiCheckInputs(ent, handler, sect);
+
+		// *** Render visibility checking ***
+
+		Vector3 view_pos = player_ent->comp_transform.position;
+		Vector3 to_player = Vector3Subtract(view_pos, ent->comp_transform.position);
+
+		float dist = Vector3LengthSqr(to_player);
+		to_player = Vector3Normalize(to_player);
+
+		// Entities that are very close will always be rendered
+		/*
+		if(dist <= MIN_VIEW_RADIUS) {
+			render_list.ids[render_list.count++] = i;
+			continue;
+		}
+		*/
+
+		float vis_dot = Vector3DotProduct(to_player, view_dir);
+		if(vis_dot > MAX_VIEW_DOT) 
+			continue;
+
+		Vector3 right = Vector3CrossProduct(view_dir, UP);
+
+		short visible = 2;
+		for(short j = 0; j < 2; j++) {
+			short offset = (j & 0x01) ? -1 : 1;
+
+			Vector3 test_point = Vector3Subtract(ent->comp_transform.position, Vector3Scale(right, 72 * offset));
+			if(view_pos.y > ent->comp_transform.position.y) test_point.y = ent->comp_transform.bounds.max.y;
+
+			to_player = Vector3Normalize(Vector3Subtract(view_pos, test_point));
+				
+			Ray ray = (Ray) { .position = view_pos, .direction = Vector3Negate(to_player) };
+
+			BvhTraceData tr = TraceDataEmpty();
+			BvhTracePointEx(ray, sect, &sect->bvh[0], 0, &tr, dist);
+
+			if(Vector3DistanceSqr(ray.position, tr.point) < (dist + MIN_VIEW_RADIUS))
+				visible--;
+		}
+		if(visible <= 0)
+			continue;
+
+		render_list.ids[render_list.count++] = i;
 	}
 }
 
+
 void RenderEntities(EntityHandler *handler) {
+	/*
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
 
@@ -256,6 +294,10 @@ void RenderEntities(EntityHandler *handler) {
 			continue;
 
 		switch(ent->type) {
+			case ENT_TURRET:
+				TurretDraw(ent);
+				break;
+
 			case ENT_MAINTAINER:
 				MaintainerDraw(ent);
 				break;
@@ -263,6 +305,23 @@ void RenderEntities(EntityHandler *handler) {
 
 		//DrawCubeV(ent->comp_transform.position, Vector3Scale(Vector3One(), 100), RED);
 	}
+	*/
+
+	for(u16 i = 0; i < render_list.count; i++) {
+		Entity *ent = &handler->ents[render_list.ids[i]];
+
+		switch(ent->type) {
+			case ENT_TURRET:
+				TurretDraw(ent);
+				break;
+
+			case ENT_MAINTAINER:
+				MaintainerDraw(ent);
+				break;
+		}
+	}
+
+	//DrawLine3D(handler->ents[0].comp_transform.position, handler->ents[2].comp_transform.position, PURPLE);
 }
 
 void DrawEntsDebugInfo() {
@@ -275,10 +334,10 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 
 	ent.comp_transform.position = spawn_point->position;
 
-	ent.comp_transform.forward.x = cosf(spawn_point->angle);
+	ent.comp_transform.forward.x = sinf(-spawn_point->angle * DEG2RAD);
 	ent.comp_transform.forward.y = 0;
-	ent.comp_transform.forward.z = sinf(spawn_point->angle);
-	ent.comp_transform.forward = Vector3Normalize(Vector3Negate(ent.comp_transform.forward));
+	ent.comp_transform.forward.z = -cosf(-spawn_point->angle * DEG2RAD);
+	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
 
 	ent.comp_ai = (comp_Ai) {0};
 	ent.comp_ai.component_valid = true;
@@ -287,15 +346,34 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	// Entity type specific stuff
 	ent.type = spawn_point->ent_type;
 	switch(ent.type) {
-		case ENT_MAINTAINER: {
-			ent.model = base_ent_models[ENT_MAINTAINER];
+		case ENT_TURRET: {
+			ent.model = base_ent_models[ENT_TURRET];
 
 			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 			
-			float angle = atan2f(ent.comp_transform.forward.z, ent.comp_transform.forward.x);
-			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle));
+			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
+			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
+
+			ent.comp_ai.sight_cone = 0.25f;
+
+		} break;
+
+		case ENT_MAINTAINER: {
+			ent.model = base_ent_models[ENT_MAINTAINER];
+			ent.animations = base_ent_anims[ENT_MAINTAINER];
+
+			ent.curr_anim = 0;
+
+			ent.comp_transform.position.y -= 4;
+
+			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
+			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
+			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
+			
+			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
+			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
 
 			ent.comp_ai.sight_cone = 0.25f;
 
@@ -307,8 +385,38 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	return ent;
 }
 
-void MaintainerUpdate(Entity *ent, float dt) {
+void TurretUpdate(Entity *ent, float dt) {
+}
 
+void TurretDraw(Entity *ent) {
+	DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
+	DrawModel(ent->model, ent->comp_transform.position, 1.0f, LIGHTGRAY);
+
+	/*
+	Vector3 center = BoxCenter(ent->comp_transform.bounds);
+	center.y += 10;
+	Vector3 forward = ent->comp_transform.forward;
+
+	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 60)), PURPLE);
+	*/
+}
+
+void MaintainerUpdate(Entity *ent, float dt) {
+	/*
+	ent->anim_timer -= dt;
+
+	if(ent->anim_timer <= 0) {
+		ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
+		UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
+		ent->anim_timer = (0.01f);
+	}
+	*/
+
+	/*
+	ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
+	ent->model.transform = MatrixTranslate(ent->comp_transform.position.x, ent->comp_transform.position.y, ent->comp_transform.position.z);
+	UpdateModelAnimationBones(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
+	*/
 }
 
 void MaintainerDraw(Entity *ent) {
@@ -317,16 +425,17 @@ void MaintainerDraw(Entity *ent) {
 
 	DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
 	DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
+	//DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
 
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	center.y += 10;
 	Vector3 forward = ent->comp_transform.forward;
 
-	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), PURPLE);
+	//DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), PURPLE);
 
 	if(ent->comp_ai.input_mask & AI_INPUT_SEE_PLAYER) {
-		DrawBoundingBox(ent->comp_transform.bounds, GREEN);
-		DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), GREEN);
+		//DrawBoundingBox(ent->comp_transform.bounds, GREEN);
+		//DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), GREEN);
 	}
 }
 
@@ -357,13 +466,20 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 		Ray ray = (Ray) { .position = ct->position, .direction = to_player };
 		RayCollision player_coll = GetRayCollisionBox(ray, player_ent->comp_transform.bounds);
 
+		// Trace map geometry
+		// Small affordance to account for spatial partition structure (+32)
 		BvhTraceData tr = TraceDataEmpty();
 		BvhTracePointEx(ray, sect, bvh, 0, &tr, player_coll.distance + 32);
 
+		// Player hitbox collision closer than possible surface collision.
+		// No obstruction, player is visible 
 		if(player_coll.distance < tr.distance)
 			ai->input_mask |= AI_INPUT_SEE_PLAYER;
 	}
 	
 	// ***
+}
+
+void EntDebugText() {
 }
 

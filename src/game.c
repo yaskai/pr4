@@ -73,7 +73,8 @@ void GameRenderSetup(Game *game) {
 	// Load render textures
 	game->render_target3D = LoadRenderTexture(game->conf->window_width, game->conf->window_height);
 	game->render_target2D = LoadRenderTexture(game->conf->window_width, game->conf->window_height);
-	game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.35f, game->conf->window_height * 0.35f);
+	//game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.35f, game->conf->window_height * 0.35f);
+	game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
 
 	game->player_gun = (PlayerGun) {0};
 	PlayerGunInit(&game->player_gun);
@@ -100,10 +101,10 @@ void GameLoadTestScene1(Game *game, char *path) {
 	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
 	player.comp_transform.position.y = 80;
-	player.comp_transform.on_ground = false;
+	player.comp_transform.on_ground = true;
 	player.comp_transform.air_time = 0;
 
-	game->ent_handler.count = spawn_list.count + 1;
+	game->ent_handler.count = spawn_list.count;
 	for(int i = 0; i < spawn_list.count; i++) {
 		if(!spawn_list.arr[i].ent_type) continue;
 
@@ -125,11 +126,12 @@ void GameUpdate(Game *game, float dt) {
 	UpdateEntities(&game->ent_handler, &game->test_section, dt);
 }
 
-#define DEBUG_DRAW_HULLS 		0x01
-#define DEBUG_DRAW_BIG	 		0x02
-#define DEBUG_DRAW_FULL_MODEL	0x04
-#define DEBUG_DRAW_BVH			0x08
-u8 debug_draw_flags = 0;
+#define DEBUG_ENABLE			0x01
+#define DEBUG_DRAW_HULLS 		0x02
+#define DEBUG_DRAW_BIG	 		0x04
+#define DEBUG_DRAW_FULL_MODEL	0x08
+#define DEBUG_DRAW_BVH			0x10
+u8 debug_draw_flags = 1;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main
@@ -201,65 +203,67 @@ void GameDraw(Game *game) {
 	ClearBackground(BLANK);
 		PlayerGunDraw(&game->player_gun);
 	EndTextureMode();
-	
-	// 3D Rendering, debug
-	BeginTextureMode(game->render_target_debug);
 
-	float clear_alpha = (debug_draw_flags & DEBUG_DRAW_BIG) ? 1 : 0.95f;
-	ClearBackground(ColorAlpha(BLACK, clear_alpha));
+	if(debug_draw_flags & DEBUG_ENABLE) {
+		// 3D Rendering, debug
+		BeginTextureMode(game->render_target_debug);
 
-		BeginMode3D(game->camera_debug);
-			if(IsKeyPressed(KEY_U)) debug_draw_flags ^= DEBUG_DRAW_FULL_MODEL;
-			if(debug_draw_flags & DEBUG_DRAW_FULL_MODEL) DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 1.0f));
+		float clear_alpha = (debug_draw_flags & DEBUG_DRAW_BIG) ? 1 : 0.95f;
+		ClearBackground(ColorAlpha(BLACK, clear_alpha));
 
-			DrawModelWires(game->test_section.model, Vector3Zero(), 1, RAYWHITE);
-			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
+			BeginMode3D(game->camera_debug);
+				if(IsKeyPressed(KEY_U)) debug_draw_flags ^= DEBUG_DRAW_FULL_MODEL;
+				if(debug_draw_flags & DEBUG_DRAW_FULL_MODEL) DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(DARKGRAY, 1.0f));
 
-			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
-			RenderEntities(&game->ent_handler);
-			//BrushTestView(&brush_pool, SKYBLUE);
-			//BrushTestView(&brush_pool_exp, RED);
+				//DrawModelWires(game->test_section.model, Vector3Zero(), 1, RAYWHITE);
+				//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
-			/*
-			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {1, 0, 0} }, RED);
-			DrawRay((Ray){.position = Vector3Zero(), .direction = UP}, GREEN);
-			DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, BLUE);
-			*/
+				PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
+				RenderEntities(&game->ent_handler);
+				//BrushTestView(&brush_pool, SKYBLUE);
+				//BrushTestView(&brush_pool_exp, RED);
 
-			if(IsKeyPressed(KEY_H)) debug_draw_flags ^= DEBUG_DRAW_HULLS;
-			if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
-				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
-					//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-					Color color = colors[tri->hull_id % 7];
-					//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorTint(color, BROWN));
+				/*
+				DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {1, 0, 0} }, RED);
+				DrawRay((Ray){.position = Vector3Zero(), .direction = UP}, GREEN);
+				DrawRay((Ray){.position = Vector3Zero(), .direction = (Vector3) {0, 0, 1} }, BLUE);
+				*/
+
+				if(IsKeyPressed(KEY_H)) debug_draw_flags ^= DEBUG_DRAW_HULLS;
+				if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
+					for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
+						//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+						Tri *tri = &game->test_section.bvh[1].tris.arr[j];
+						Color color = colors[tri->hull_id % 7];
+						//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorTint(color, BROWN));
+					}
+					for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
+						Hull *hull = &game->test_section._hulls[1].arr[j];
+						DrawBoundingBox(hull->aabb, colors[j % 7]);
+					}
 				}
-				for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
-					Hull *hull = &game->test_section._hulls[1].arr[j];
-					DrawBoundingBox(hull->aabb, colors[j % 7]);
+
+				if(IsKeyPressed(KEY_B)) debug_draw_flags ^= DEBUG_DRAW_BVH;
+				if(debug_draw_flags & DEBUG_DRAW_BVH) { 
+					for(u16 j = 0; j < game->test_section.bvh[0].count; j++) {
+						BvhNode *node = &game->test_section.bvh->nodes[j];
+
+						Color color = colors[j % 7];
+						bool leaf = (node->tri_count > 0);
+						if(!leaf) color = ColorAlpha(GRAY, 0.5f);
+
+						DrawBoundingBox(node->bounds, color);
+					}
 				}
-			}
 
-			if(IsKeyPressed(KEY_B)) debug_draw_flags ^= DEBUG_DRAW_BVH;
-			if(debug_draw_flags & DEBUG_DRAW_BVH) { 
-				for(u16 j = 0; j < game->test_section.bvh[0].count; j++) {
-					BvhNode *node = &game->test_section.bvh->nodes[j];
+			EndMode3D();
+	}
 
-					Color color = colors[j % 7];
-					bool leaf = (node->tri_count > 0);
-					if(!leaf) color = ColorAlpha(GRAY, 0.5f);
+			// 2D
+			//DrawText(TextFormat("accel: %.02f", player_data.accel), 0, 40, 32, RAYWHITE);
+			//DrawEntsDebugInfo();
 
-					DrawBoundingBox(node->bounds, color);
-				}
-			}
-
-		EndMode3D();
-
-		// 2D
-		//DrawText(TextFormat("accel: %.02f", player_data.accel), 0, 40, 32, RAYWHITE);
-		//DrawEntsDebugInfo();
-
-	EndTextureMode();
+		EndTextureMode();
 	// 2D Rendering
 
 	// Draw to buffers:
@@ -288,6 +292,8 @@ void GameDraw(Game *game) {
 
 	int fps = GetFPS();
 	DrawText(TextFormat("fps: %d", fps), 4, 4, 32, RAYWHITE);
+
+	EntDebugText();
 
 	EndDrawing();
 }

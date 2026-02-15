@@ -958,15 +958,8 @@
 }
 // entity 2
 {
-"classname" "info_maintainer_spawn"
-"origin" "-608 0 40"
-"angle" "90"
-"enum_id" "2"
-}
-// entity 3
-{
-"classname" "info_maintainer_spawn"
-"origin" "-448 -496 104"
-"angle" "90"
-"enum_id" "2"
+"classname" "info_turret_spawn"
+"origin" "-6 -418 46"
+"enum_id" "1"
+"angle" "0"
 }

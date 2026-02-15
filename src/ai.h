@@ -13,7 +13,7 @@ typedef struct {
 
 } Ai_Action;
 
-// ** Input mask definitions **
+// ** Input mask definitions ** //
 //
 #define AI_INPUT_SEE_PLAYER		0x01
 #define AI_INPUT_SEE_PET		0x02	
@@ -21,12 +21,21 @@ typedef struct {
 #define AI_INPUT_SELF_GLITCHED	0x08
 // *** 
 
+enum anim_states : u8 {
+	STATE_IDLE,
+	STATE_MOVE,	
+	STATE_ATTACK,
+	STATE_DIE
+};
+
 typedef struct {
 	Ai_Action action_curr, action_prev, action_next;
 
 	float sight_cone;
 
 	u32 input_mask;
+
+	u8 anim_state;
 
 	bool component_valid;
 

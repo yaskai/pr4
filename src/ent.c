@@ -244,13 +244,12 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 		to_player = Vector3Normalize(to_player);
 
 		// Entities that are very close will always be rendered
-		/*
 		if(dist <= MIN_VIEW_RADIUS) {
 			render_list.ids[render_list.count++] = i;
 			continue;
 		}
-		*/
 
+		// Cull behind camera
 		float vis_dot = Vector3DotProduct(to_player, view_dir);
 		if(vis_dot > MAX_VIEW_DOT) 
 			continue;
@@ -283,7 +282,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 }
 
 
-void RenderEntities(EntityHandler *handler) {
+void RenderEntities(EntityHandler *handler, float dt) {
 	for(u16 i = 0; i < render_list.count; i++) {
 		Entity *ent = &handler->ents[render_list.ids[i]];
 
@@ -296,7 +295,7 @@ void RenderEntities(EntityHandler *handler) {
 				break;
 
 			case ENT_MAINTAINER:
-				MaintainerDraw(ent);
+				MaintainerDraw(ent, dt);
 				break;
 		}
 	}
@@ -346,6 +345,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.animations = base_ent_anims[ENT_MAINTAINER];
 
 			ent.curr_anim = 0;
+			//ent.anim_frame = GetRandomValue(0, 200);
 
 			ent.comp_transform.position.y -= 4;
 
@@ -384,30 +384,22 @@ void TurretDraw(Entity *ent) {
 }
 
 void MaintainerUpdate(Entity *ent, float dt) {
-	/*
-	ent->anim_timer -= dt;
-
-	if(ent->anim_timer <= 0) {
-		ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
-		UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
-		ent->anim_timer = (0.01f);
-	}
-	*/
-
-	/*
 	ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
-	ent->model.transform = MatrixTranslate(ent->comp_transform.position.x, ent->comp_transform.position.y, ent->comp_transform.position.z);
-	UpdateModelAnimationBones(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
-	*/
 }
 
-void MaintainerDraw(Entity *ent) {
+void MaintainerDraw(Entity *ent, float dt) {
 	//float angle = atan2f(ent->comp_transform.forward.x, ent->comp_transform.forward.z);
 	//ent->model.transform = MatrixMultiply(ent->model.transform, MatrixRotateY(angle * DEG2RAD));
 
 	//DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
-	DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
-	//DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
+	//DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
+	ent->anim_timer -= dt;
+	if(ent->anim_timer <= 0) {
+		UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
+		ent->anim_timer = (0.125f);
+	}
+	//UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
+	DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
 
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	center.y += 10;

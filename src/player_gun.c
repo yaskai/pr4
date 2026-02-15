@@ -69,6 +69,6 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 
 	EndMode3D();
 
-	DrawText(TextFormat("H-%d", ptr_player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.85f));	
+	DrawText(TextFormat("H-%d", ptr_player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.95f));	
 }
 

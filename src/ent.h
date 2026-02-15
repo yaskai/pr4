@@ -121,7 +121,7 @@ void EntHandlerInit(EntityHandler *handler);
 void EntHandlerClose(EntityHandler *handler);
 
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt);
-void RenderEntities(EntityHandler *handler);
+void RenderEntities(EntityHandler *handler, float dt);
 
 void DrawEntsDebugInfo();
 
@@ -161,7 +161,7 @@ void TurretUpdate(Entity *ent, float dt);
 void TurretDraw(Entity *ent);
 
 void MaintainerUpdate(Entity *ent, float dt);
-void MaintainerDraw(Entity *ent);
+void MaintainerDraw(Entity *ent, float dt);
 
 // ***
 

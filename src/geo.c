@@ -379,7 +379,15 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_p
 
 // Unload BVH tree
 void BvhClose(BvhTree *bvh) {
-	if(bvh->nodes) free(bvh->nodes);
+	if(bvh->nodes)
+		free(bvh->nodes);
+
+	if(bvh->tris.arr) 
+		free(bvh->tris.arr);
+
+	if(bvh->tris.ids)
+		free(bvh->tris.ids);
+
 	bvh->count = 0;
 }
 
@@ -562,9 +570,12 @@ void MapSectionClose(MapSection *sect) {
 	if(sect->tri_ids)
 		free(sect->tri_ids);
 
+	*/
+
 	BvhClose(&sect->bvh[0]);	
 	BvhClose(&sect->bvh[1]);	
-	*/
+	BvhClose(&sect->bvh[2]);	
+
 	UnloadModel(sect->model);
 }
 

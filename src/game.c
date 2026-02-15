@@ -155,7 +155,7 @@ void GameDraw(Game *game) {
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, GREEN);
 
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
-			RenderEntities(&game->ent_handler);
+			RenderEntities(&game->ent_handler, GetFrameTime());
 
 			/*
 			for(u16 i = 0; i < tri_count; i++) {
@@ -204,7 +204,7 @@ void GameDraw(Game *game) {
 				}
 				*/
 			}
-			RenderEntities(&game->ent_handler);
+			RenderEntities(&game->ent_handler, GetFrameTime());
 		EndMode3D();
 
 	EndTextureMode();
@@ -229,7 +229,7 @@ void GameDraw(Game *game) {
 				//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
 				PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
-				RenderEntities(&game->ent_handler);
+				RenderEntities(&game->ent_handler, GetFrameTime());
 				//BrushTestView(&brush_pool, SKYBLUE);
 				//BrushTestView(&brush_pool_exp, RED);
 

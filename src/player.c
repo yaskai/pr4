@@ -24,6 +24,8 @@ float cam_input_forward, cam_input_side;
 bool land_frame = false;
 float y_vel_prev;
 
+#define FALLDAMAGE_THRESHOLD 500.0f
+
 short nudged_this_frame = 0;
 
 #define PLAYER_FRICTION 15.25f 
@@ -32,7 +34,6 @@ short nudged_this_frame = 0;
 #define PLAYER_BASE_JUMP_FORCE 420
 
 Vector2 FlatVec2(Vector3 vec3) { return (Vector2) { vec3.x, vec3.z }; }
-
 Vector3 clipY(Vector3 vec) { return Vector3Normalize((Vector3) { vec.x, 0, vec.z }); }
 
 Camera3D *ptr_cam;
@@ -194,7 +195,7 @@ void PlayerUpdate(Entity *player, float dt) {
 	if(land_frame) {
 		//printf("land frame!\n");
 		//if(y_vel_prev < -600) player->comp_health.amount--;
-		if(y_vel_prev < -600) player->comp_health.amount -= (short)(y_vel_prev * -0.025f);
+		if(y_vel_prev < -FALLDAMAGE_THRESHOLD) player->comp_health.amount -= (short)(y_vel_prev * -0.035f);
 	}
 
 	// Update camera

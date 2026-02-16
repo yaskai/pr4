@@ -28,6 +28,8 @@ typedef struct {
 } BrushPool;
 
 typedef struct {
+	char tag[64];
+
 	Vector3 position;
 	
 	int angle;

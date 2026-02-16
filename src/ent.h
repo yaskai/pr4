@@ -153,6 +153,7 @@ void PlayerDebugText(Entity *player);
 void PlayerMove(Entity *player, float dt);
 // ***
 
+void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler);
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
 // ** Enemies ** 

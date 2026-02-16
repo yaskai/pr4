@@ -958,22 +958,30 @@
 }
 // entity 2
 {
-"classname" "info_turret_spawn"
-"origin" "-6 -418 46"
-"enum_id" "1"
+"classname" "maintainer_spawn"
+"origin" "96 -528 40"
+"enum_id" "2"
 "angle" "0"
 }
 // entity 3
 {
-"classname" "info_maintainer_spawn"
-"origin" "102 -528 40"
-"enum_id" "2"
+"classname" "turret_spawn"
+"origin" "-28 -428 44"
+"enum_id" "1"
 "angle" "0"
 }
 // entity 4
 {
-"classname" "info_maintainer_spawn"
-"origin" "-82 -602 40"
-"enum_id" "2"
-"angle" "-90"
+"classname" "nav_node"
+"origin" "56 -518 32"
+}
+// entity 5
+{
+"classname" "nav_node"
+"origin" "36 -518 32"
+}
+// entity 6
+{
+"classname" "nav_node"
+"origin" "20 -518 32"
 }

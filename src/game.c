@@ -113,9 +113,9 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	game->ent_handler.count = spawn_list.count;
 	for(int i = 0; i < spawn_list.count; i++) {
-		if(!spawn_list.arr[i].ent_type) continue;
-
-		game->ent_handler.ents[i] = SpawnEntity(&spawn_list.arr[i], &game->ent_handler);
+		//if(!spawn_list.arr[i].ent_type) continue;
+		//game->ent_handler.ents[i] = SpawnEntity(&spawn_list.arr[i], &game->ent_handler);
+		ProcessEntity(&spawn_list.arr[i], &game->ent_handler);
 	}
 
 	game->ent_handler.ents[0] = player;

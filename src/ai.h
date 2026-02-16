@@ -4,26 +4,40 @@
 #ifndef AI_H_
 #define AI_H_
 
-typedef struct NavNode {
-	struct NavNode *prev;
-	struct NavNode *next;
-
+typedef struct {
 	Vector3 position;
+	u16 id;
 
 } NavNode;
 
 typedef struct {
+	u16 node_A;
+	u16 node_B;
+
+} NavEdge;
+
+typedef struct {
 	NavNode *nodes;
-	u16 count;
+	NavEdge *edges;
+
+	u16 node_count;
+	u16 edge_count;
 
 } NavGraph;
 
+typedef struct {
+	NavNode nodes[64];
+	u16 count;	
+
+} NavPath;
+
 // ** Input mask definitions ** //
 //
-#define AI_INPUT_SEE_PLAYER		0x01
-#define AI_INPUT_SEE_PET		0x02	
-#define AI_INPUT_SEE_GLITCHED	0x04
-#define AI_INPUT_SELF_GLITCHED	0x08
+#define AI_INPUT_SEE_PLAYER		0x0001
+#define AI_INPUT_SEE_PET		0x0002	
+#define AI_INPUT_SEE_GLITCHED	0x0004
+#define AI_INPUT_SELF_GLITCHED	0x0008
+#define AI_INPUT_TAKE_DAMAGE	0x0010
 // *** 
 
 enum anim_states : u8 {

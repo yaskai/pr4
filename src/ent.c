@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+#include <string.h>
 #include "raylib.h"
 #include "raymath.h"
 #include "ent.h"
@@ -304,6 +305,18 @@ void RenderEntities(EntityHandler *handler, float dt) {
 void DrawEntsDebugInfo() {
 	DrawText(TextFormat("diff: %.2f", ground_diff), 0, 340, 32, DARKPURPLE);
 	DrawText(TextFormat("proj: %.2f", proj_y), 256, 340, 32, DARKPURPLE);
+}
+
+void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler) {
+	if(!strcmp(spawn_point->tag, "worldspawn")) {
+		return;
+	}
+
+	if(!strcmp(spawn_point->tag, "nav_node")) {
+		return;
+	}
+
+	handler->ents[handler->count++] = SpawnEntity(spawn_point, handler);
 }
 
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {

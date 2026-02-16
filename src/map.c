@@ -9,6 +9,7 @@
 #include "geo.h"
 #include "../include/sort.h"
 #include "../include/log_message.h"
+#include "config.h"
 
 #define PLANE_EPS 0.001f
 
@@ -238,32 +239,33 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		}
 
 		if(parse_mode == PARSE_ENT) {
-			if(line[0] == '{' || line[0] == '}' || line[0] == '/') continue;
-			// * TODO
-			// *
-			char *tok = strtok(line, "\"");
-			printf("%s, ", tok);
+			if(line[0] != '"') continue;
 
-			if(strcmp(tok, "origin") == 0) {
-				char *end = line + sizeof(tok) + 2;
-				tok = strtok(end, "\"");
-				printf("%s\n", tok);
-				sscanf(tok, "%f %f %f", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
+			// Get key string
+			char *key = strtok(line, "\"");
+
+			// Get value string
+			char *end = &line[strlen(key) + 2];
+			char *val = strchr(end, '"');
+			val = strtok(val, "\"");
+
+			MessageKeyValPair(key, val);
+
+			if(streq(key, "classname")) {
+				memcpy(&curr_entspawn->tag, val, strlen(val));
+			}
+
+			if(streq(key, "origin")) {
+				sscanf(val, "%f %f %f", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
 				curr_entspawn->position.z *= -1;
 			}
 
-			if(strcmp(tok, "enum_id") == 0) {
-				char *end = line + sizeof(tok) + 2;
-				tok = strtok(end, "\"");
-				printf("%s\n", tok);
-				sscanf(tok, "%d", &curr_entspawn->ent_type);
+			if(streq(key, "enum_id")) {
+				sscanf(val, "%d", &curr_entspawn->ent_type);
 			}
 
-			if(strcmp(tok, "angle") == 0) {
-				char *end = line + 8;
-				tok = strtok(end, "\"");
-				printf("%s\n", tok);
-				sscanf(tok, "%d", &curr_entspawn->angle);
+			if(streq(key, "angle")) {
+				sscanf(val, "%d", &curr_entspawn->angle);
 			}
 		}
 	}
@@ -289,6 +291,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		}
 	}
 
+	/*
 	if(GetLogState()) {
 		Message("--------------- [ ENTITIES ] -----------------", ANSI_GREEN);
 		for(int i = 0; i < spawn_list->count; i++) {
@@ -299,6 +302,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		}
 		Message("----------------------------------------------", ANSI_GREEN);
 	}
+	*/
 }
 
 // Expand brushes to use as fitting collision volumes 

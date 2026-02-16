@@ -378,6 +378,20 @@ void PlayerDisplayDebugInfo(Entity *player) {
 
 	Ray clip_ray = (Ray) { .position = player->comp_transform.position, .direction = Vector3Normalize(debug_vel_clipped) };
 	DrawRay(clip_ray, GREEN);
+
+	for(u16 i = 0; i < ptr_sect->nav_graph.node_count; i++) {
+		DrawSphere(ptr_sect->nav_graph.nodes[i].position, 1, BLUE);
+	}
+
+	for(u16 i = 0; i < ptr_sect->nav_graph.edge_count; i++) {
+		NavEdge *edge = &ptr_sect->nav_graph.edges[i];
+
+		NavNode *node_A = &ptr_sect->nav_graph.nodes[edge->node_A];
+		NavNode *node_B = &ptr_sect->nav_graph.nodes[edge->node_B];
+
+		DrawLine3D(node_A->position, node_B->position, MAGENTA);
+	}
+
 }
 
 void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {

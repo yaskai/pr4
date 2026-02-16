@@ -581,3 +581,55 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	return sect;
 }
 
+// This function basically just constructs edges between nodes that already exist
+#define MAX_EDGE_LENGTH 20.0f
+void BuildNavGraph(MapSection *sect) {
+	NavGraph *nav_graph = &sect->nav_graph;
+	nav_graph->edge_count = 0;
+	
+	for(u16 i = 0; i < nav_graph->node_count; i++) {
+		NavNode *node_A = &nav_graph->nodes[i];
+
+		for(u16 j = 0; j < nav_graph->node_count; j++) {
+			// Don't create edges between a node and itself, that makes no sense
+			if(j == i)
+				continue;
+
+			NavNode *node_B = &nav_graph->nodes[j];
+
+			// Using vector subtraction to get distance,
+			// doing this in case I want to integrate actual level geometry later 
+			Vector3 v = Vector3Subtract(node_A->position, node_B->position);
+			float length = Vector3Length(v);	
+		
+			// Don't build edges if nodes are too far apart
+			if(length > MAX_EDGE_LENGTH)
+				continue;
+
+			// All checks passed, create edge
+			NavEdge edge = (NavEdge) { .node_A = i, .node_B = j };
+
+			// Resize edge array if needed
+			if(nav_graph->edge_count + 1 >= nav_graph->edge_cap) {
+				nav_graph->edge_cap = nav_graph->edge_cap << 1;
+				nav_graph->edges = realloc(nav_graph->edges, sizeof(NavEdge) * nav_graph->edge_cap);	
+			}
+
+			// Skip creating edge if the reverse of it already exists 
+			bool duplicate = false;
+			for(u16 k = 0; k < nav_graph->edge_count; k++) {
+				NavEdge *edge = &nav_graph->edges[k];
+				if((edge->node_A == i && edge->node_B == j) || (edge->node_B == i && edge->node_A == j)) {
+					duplicate = true;
+					break;
+				}
+			}
+			if(duplicate)
+				continue;
+
+			// Copy to array	
+			nav_graph->edges[nav_graph->edge_count++] = edge;
+		}
+	}
+}
+

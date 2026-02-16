@@ -121,6 +121,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 	for(int i = 0; i < spawn_list.count; i++) 
 		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.nav_graph);
 
+	BuildNavGraph(&game->test_section);
+
 	player.comp_transform.position = game->ent_handler.player_start;
 	game->ent_handler.ents[0] = player;
 
@@ -145,7 +147,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 0;
+u8 debug_draw_flags = 1;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main
@@ -290,7 +292,7 @@ void GameDraw(Game *game) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
-	//PlayerDebugText(&game->ent_handler.ents[0]);
+	PlayerDebugText(&game->ent_handler.ents[0]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;

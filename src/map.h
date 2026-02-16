@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "../include/num_redefs.h"
 #include "geo.h"
+#include "ai.h"
 
 #ifndef MAP_H_
 #define MAP_H_
@@ -62,6 +63,8 @@ Tri *TrisFromBrushPool(BrushPool *brush_pool, u16 *count);
 void BrushTestView(BrushPool *brush_pool, Color color);
 
 MapSection BuildMapSect(char *file_path, SpawnList *spawn_list);
+
+void BuildNavGraph(MapSection *sect);
 
 #endif
 

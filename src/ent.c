@@ -8,6 +8,7 @@
 #include "ent.h"
 #include "geo.h"
 #include "ai.h"
+#include "../include/log_message.h"
 
 #define MAX_CLIPS 6
 #define SLIDE_STEPS 4
@@ -318,8 +319,11 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 			nav_graph->nodes = realloc(nav_graph->nodes, sizeof(NavNode) * nav_graph->node_cap);
 		}
 
-		NavNode node = (NavNode) { .position = spawn_point->position, nav_graph->node_count++ };
-		nav_graph->nodes[nav_graph->node_count - 1] = node;
+		NavNode node = (NavNode) { .position = spawn_point->position, .id = nav_graph->node_count };
+		nav_graph->nodes[nav_graph->node_count++] = node;
+
+		Message("adding nav node...", ANSI_BLUE);
+		printf("%f %f %f\n", node.position.x, node.position.y, node.position.z);
 
 		return;
 	}

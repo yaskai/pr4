@@ -973,15 +973,15 @@
 // entity 4
 {
 "classname" "nav_node"
-"origin" "56 -518 32"
+"origin" "56 -518 64"
 }
 // entity 5
 {
 "classname" "nav_node"
-"origin" "36 -518 32"
+"origin" "36 -518 64"
 }
 // entity 6
 {
 "classname" "nav_node"
-"origin" "20 -518 32"
+"origin" "16 -518 64"
 }

@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "../include/num_redefs.h"
+#include "ai.h"
 
 #ifndef GEO_H_
 #define GEO_H_
@@ -169,6 +170,8 @@ typedef struct {
 	BvhTree bvh[3];
 	TriPool _tris[3];
 	HullPool _hulls[3];
+
+	NavGraph nav_graph;
 
 	Model model;
 

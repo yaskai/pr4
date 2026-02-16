@@ -563,18 +563,18 @@ void MapSectionInit(MapSection *sect, Model model) {
 
 // Unload map section data
 void MapSectionClose(MapSection *sect) {
-	/*
-	if(sect->tris) 
-		free(sect->tris);	
+	for(short i = 0; i < 3; i++) {
+		BvhClose(&sect->bvh[i]);
 
-	if(sect->tri_ids)
-		free(sect->tri_ids);
+		if(sect->_hulls[i].arr)
+			free(sect->_hulls[i].arr);
+	}
 
-	*/
-
-	BvhClose(&sect->bvh[0]);	
-	BvhClose(&sect->bvh[1]);	
-	BvhClose(&sect->bvh[2]);	
+	if(sect->nav_graph.nodes)
+		free(sect->nav_graph.nodes);
+	
+	if(sect->nav_graph.edges)
+		free(sect->nav_graph.edges);
 
 	UnloadModel(sect->model);
 }
@@ -628,9 +628,6 @@ void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *
 	};
 
 	for(u16 i = 0; i < node->tri_count; i++) {
-		//u16 tri_id = sect->tri_ids[node->first_tri + i];
-		//u16 tri_id = bvh->tri_ids[node->first_tri + i];
-		//Tri *tri = &sect->tris[tri_id];
 		u16 tri_id = bvh->tris.ids[node->first_tri + i];
 		Tri *tri = &bvh->tris.arr[tri_id];
 

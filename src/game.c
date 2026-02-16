@@ -93,7 +93,16 @@ void GameLoadTestScene1(Game *game, char *path) {
 	SpawnList spawn_list = (SpawnList) {0}; 
 	game->test_section = BuildMapSect(path, &spawn_list);
 
-	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data);
+	game->test_section.nav_graph = (NavGraph) {
+		.node_count = 0,
+		.node_cap = 128,
+		.edge_count = 0,
+		.edge_cap = 256
+	};
+	game->test_section.nav_graph.nodes = calloc(game->test_section.nav_graph.node_cap, sizeof(NavNode));
+	game->test_section.nav_graph.edges = calloc(game->test_section.nav_graph.edge_cap, sizeof(NavEdge));
+
+	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data, &game->ent_handler);
 	Entity player = (Entity) {
 		.comp_transform = (comp_Transform) {0},
 		.comp_health = (comp_Health) {0},
@@ -103,21 +112,16 @@ void GameLoadTestScene1(Game *game, char *path) {
 	};
 	player.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
-	player.comp_transform.radius = BoundsToRadius(player.comp_transform.bounds);
-	player.comp_transform.position.y = 80;
 	player.comp_transform.on_ground = true;
-	player.comp_transform.air_time = 0;
 
 	player.comp_health = (comp_Health) {0};
 	player.comp_health.amount = 100;
 
 	game->ent_handler.count = spawn_list.count;
-	for(int i = 0; i < spawn_list.count; i++) {
-		//if(!spawn_list.arr[i].ent_type) continue;
-		//game->ent_handler.ents[i] = SpawnEntity(&spawn_list.arr[i], &game->ent_handler);
-		ProcessEntity(&spawn_list.arr[i], &game->ent_handler);
-	}
+	for(int i = 0; i < spawn_list.count; i++) 
+		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.nav_graph);
 
+	player.comp_transform.position = game->ent_handler.player_start;
 	game->ent_handler.ents[0] = player;
 
 	game->player_gun = (PlayerGun) {0};

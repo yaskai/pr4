@@ -39,6 +39,7 @@ Vector3 clipY(Vector3 vec) { return Vector3Normalize((Vector3) { vec.x, 0, vec.z
 Camera3D *ptr_cam;
 InputHandler *ptr_input;
 MapSection *ptr_sect;
+EntityHandler *ptr_ent_handler;
 
 void PlayerInput(Entity *player, InputHandler *input, float dt);
 
@@ -137,10 +138,11 @@ Vector3 debug_vel_clipped;
 // **
 // -----------------------------------------------------------------------------
 
-void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data) {
+void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data, EntityHandler *ent_handler) {
 	ptr_cam = camera;
 	ptr_input = input;
 	ptr_sect = test_section;
+	ptr_ent_handler = ent_handler;
 
 	player_debug_data = debug_data;
 }
@@ -213,7 +215,8 @@ void PlayerUpdate(Entity *player, float dt) {
 	box_points = BoxGetPoints(player->comp_transform.bounds);
 
 	if(IsKeyPressed(KEY_R)) {
-		player->comp_transform.position = (Vector3) { 0, 60, 0 };
+		//player->comp_transform.position = (Vector3) { 0, 60, 0 };
+		player->comp_transform.position = ptr_ent_handler->player_start;
 		player->comp_transform.velocity = Vector3Zero();
 		player->comp_transform.on_ground = true;
 	} 

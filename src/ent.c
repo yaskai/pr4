@@ -307,12 +307,26 @@ void DrawEntsDebugInfo() {
 	DrawText(TextFormat("proj: %.2f", proj_y), 256, 340, 32, DARKPURPLE);
 }
 
-void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler) {
+void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_graph) {
 	if(!strcmp(spawn_point->tag, "worldspawn")) {
 		return;
 	}
 
 	if(!strcmp(spawn_point->tag, "nav_node")) {
+		if(nav_graph->node_count + 1 >= nav_graph->node_cap) {
+			nav_graph->node_cap = nav_graph->node_cap << 1;
+			nav_graph->nodes = realloc(nav_graph->nodes, sizeof(NavNode) * nav_graph->node_cap);
+		}
+
+		NavNode node = (NavNode) { .position = spawn_point->position, nav_graph->node_count++ };
+		nav_graph->nodes[nav_graph->node_count - 1] = node;
+
+		return;
+	}
+
+	if(!strcmp(spawn_point->tag, "info_player_start")) {
+		handler->player_start = spawn_point->position;
+		handler->player_start.y += BODY_VOLUME_MEDIUM.y * 0.5f;
 		return;
 	}
 

@@ -110,6 +110,8 @@ typedef struct {
 typedef struct {
 	Entity *ents;
 
+	Vector3 player_start;
+
 	u16 count;
 	u16 capacity;
 
@@ -139,7 +141,7 @@ typedef struct {
 
 } PlayerDebugData;
 
-void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data);
+void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section, PlayerDebugData *debug_data, EntityHandler *ent_handler);
 
 void PlayerUpdate(Entity *player, float dt);
 void PlayerDraw(Entity *player);
@@ -153,7 +155,7 @@ void PlayerDebugText(Entity *player);
 void PlayerMove(Entity *player, float dt);
 // ***
 
-void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler);
+void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_graph);
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
 // ** Enemies ** 

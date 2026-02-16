@@ -582,7 +582,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 }
 
 // This function basically just constructs edges between nodes that already exist
-#define MAX_EDGE_LENGTH 20.0f
+#define MAX_EDGE_LENGTH (64.0f*64.0f)
 void BuildNavGraph(MapSection *sect) {
 	NavGraph *nav_graph = &sect->nav_graph;
 	nav_graph->edge_count = 0;
@@ -600,7 +600,7 @@ void BuildNavGraph(MapSection *sect) {
 			// Using vector subtraction to get distance,
 			// doing this in case I want to integrate actual level geometry later 
 			Vector3 v = Vector3Subtract(node_A->position, node_B->position);
-			float length = Vector3Length(v);	
+			float length = Vector3LengthSqr(v);	
 		
 			// Don't build edges if nodes are too far apart
 			if(length > MAX_EDGE_LENGTH)

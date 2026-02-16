@@ -147,7 +147,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 1;
+u8 debug_draw_flags = 0;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main

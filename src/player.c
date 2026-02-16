@@ -11,7 +11,7 @@
 
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
 #define PLAYER_SPEED 230.0f
-#define PLAYER_MAX_SPEED 250.0f
+#define PLAYER_MAX_SPEED 300.0f
 #define PLAYER_MAX_VEL 200.5f
 
 #define PLAYER_MAX_ACCEL 15.5f
@@ -669,6 +669,17 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 		// Update remaining time
 		t_remain *= (1 - fraction);
 	}
+
+	/*
+	float y_vel = vel.y;
+	float new_speed = Vector3Length(vel);
+	if(new_speed > PLAYER_MAX_SPEED)
+		new_speed = PLAYER_MAX_SPEED;
+
+	vel = Vector3Normalize(vel);
+	vel = Vector3Scale(vel, new_speed);
+	vel.y = y_vel;
+	*/
 
 	pm->move_dist = Vector3Distance(start, dest);
 	pm->end_vel = vel;

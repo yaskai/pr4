@@ -205,7 +205,7 @@ void EntHandlerClose(EntityHandler *handler) {
 // This struct stores IDs of entities to draw
 #define MAX_RENDERED_ENTS	128
 #define MIN_VIEW_RADIUS		(40.0*40.0)
-#define MAX_VIEW_DOT		(-0.707*DEG2RAD)
+#define MAX_VIEW_DOT		(-0.607f * DEG2RAD)
 typedef struct {
 	u16 ids[MAX_RENDERED_ENTS];
 	u16 count;	
@@ -321,9 +321,6 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 
 		NavNode node = (NavNode) { .position = spawn_point->position, .id = nav_graph->node_count };
 		nav_graph->nodes[nav_graph->node_count++] = node;
-
-		Message("adding nav node...", ANSI_BLUE);
-		printf("%f %f %f\n", node.position.x, node.position.y, node.position.z);
 
 		return;
 	}

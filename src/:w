@@ -582,12 +582,27 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 }
 
 // This function basically just constructs edges between nodes that already exist
+#define MAX_EDGE_LENGTH (64.0f*64.0f)
 void BuildNavGraph(MapSection *sect) {
 	NavGraph *navgraph = &sect->base_navgraph;
 	navgraph->edge_count = 0;
 
 	BuildNavEdges(navgraph);
-	SubdivideNavGraph(sect, navgraph);
+
+	NavGraph clone = (NavGraph) {
+		.node_count = navgraph->node_count,
+		.node_cap = navgraph->node_cap,
+		.edge_count = navgraph->edge_count,
+		.edge_cap = navgraph->edge_cap
+	};	
+	clone.nodes = calloc(clone.node_count, sizeof(NavNode));
+	memcpy(clone.nodes, sect->base_navgraph.nodes, sizeof(NavNode) * clone.node_count);
+	clone.edges = calloc(clone.edge_count, sizeof(NavEdge));
+	memcpy(clone.edges, sect->base_navgraph.edges, sizeof(NavEdge) * clone.edge_count);
+
+	sect->navgraphs[sect->navgraph_count++] = clone;
+	
+	u16 walk_count = 0;
 }
 
 #define MAX_EDGE_LENGTH (64.0f*64.0f)
@@ -660,7 +675,19 @@ void GetConnectedNodes(NavNode *node, u16 connected[MAX_EDGES_PER_NODE], u8 *cou
 		NavNode *node_A = &navgraph->nodes[edge->id_A];
 		NavNode *node_B = &navgraph->nodes[edge->id_B];
 
+		bool in_graph = true;
+		for(u16 j = 0; j < navgraph->node_count; j++) {
+			if(navgraph->nodes[j].id != node_A->id || navgraph->nodes[j].id != node_B->id)
+				in_graph = false;
+		}
+		if(!in_graph)
+			continue;
+
 		u16 next_node = (node_A->id == node->id) ? node_B->id : node_A->id;
+
+		if(next_node > navgraph->node_count)
+			continue;
+
 		connected[(*count)++] = next_node; 
 	}	
 }
@@ -676,19 +703,20 @@ void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *wal
 	u8 next_count = 0;
 
 	GetConnectedNodes(node, next_nodes, &next_count, navgraph);
-	
+
 	for(u8 i = 0; i < next_count; i++) {
 		bool duplicate = false;
 		for(u16 j = 0; j < *count; j++) {
 			if(walked[j] == next_nodes[i]) {
 				duplicate = true;
+				continue;
 			}
 		}
 
 		if(duplicate) 
 			continue;
-
-		WalkNavGraph(sect, navgraph, next_nodes[i], walked, count);
+		else
+			WalkNavGraph(sect, navgraph, next_nodes[i], walked, count);
 	}
 }
 
@@ -696,73 +724,80 @@ void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *wal
 // Only having one graph would break pathfinding, 
 // graph/edge construction is distance based
 void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
-	u16 walked_total = 0;
-	bool *traveled = calloc(navgraph->node_count, sizeof(bool));
-
-	u16 splits[128];
 	u16 split_count = 0;
+	u16 total_walked = 0;	
 
+	u16 walk_count = 0; 
+	u16 walked[navgraph->node_count];
 	u16 next = 0;
 
-	while(walked_total < navgraph->node_count) {
-		while(next < navgraph->node_count && traveled[next])
-			next++;
+	u16 *walked_bin = calloc(1024, sizeof(u16)); 
 
-		if(next >= navgraph->node_count)
+	while(1 > 0) {
+		walk_count = 0;
+		WalkNavGraph(sect, navgraph, next, walked, &walk_count);
+		memcpy(walked_bin + total_walked, walked, sizeof(u16) * walk_count);
+
+		total_walked += walk_count;
+		split_count++;
+
+		if(total_walked >= navgraph->node_count)	
 			break;
-
-		u16 walk_count = 0;
-		u16 temp[navgraph->node_count];
-		WalkNavGraph(sect, navgraph, next, temp, &walk_count);
-
-		for(u16 i = 0; i < walk_count; i++) {
-			u16 j = temp[i];
-			if(!traveled[j]) {
-				traveled[j] = true;
-				walked_total++;
-			}
-		}
-
-		splits[split_count++] = next;
-
-		for(u16 i = 0; i < walk_count; i++) printf("[%d]: -> %d\n", i, temp[i]);
 	}
 
-	printf("split count: %d\n", split_count);
-	for(short i = 0; i < split_count; i++) {
-		printf("split[%d] = %d \n", i, splits[i]);
-	}
-
-	for(short i = 0; i < split_count; i++) {
-		u16 split_id = splits[i];
-
-		u16 walk_count = 0;
-		u16 node_ids[navgraph->node_count];
-
-		WalkNavGraph(sect, navgraph, split_id, node_ids, &walk_count);
-
-		NavGraph graph = (NavGraph) {0};
-		graph.node_count = walk_count;
-		graph.nodes = calloc(graph.node_count, sizeof(NavNode));
-		for(u16 j = 0; j < walk_count; j++) {
-			graph.nodes[j] = navgraph->nodes[node_ids[j]];
-		}
-
-		graph.edge_cap = 128;
-		graph.edges = calloc(graph.edge_cap, sizeof(NavEdge));
-		BuildNavEdges(&graph);
-
-		sect->navgraphs[sect->navgraph_count++] = graph;
-	}
-
-	printf("graph count: %d\n", sect->navgraph_count);
-
-	free(traveled);
+	printf("%d\n", split_count);
 }
 
+/*
+// Split navigation graphs so the spatial separation is reflected in data
+// Only having one graph would break pathfinding, 
+// graph/edge construction is distance based
+void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
+	u16 walked[navgraph->node_count];
+	u16 walk_count = 0;
+
+	WalkNavGraph(sect, navgraph, 0, walked, &walk_count);
+
+	puts("-----------");
+	for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
+
+	// Full graph was walked, no need for split
+	if(walk_count == navgraph->node_count) { 
+		return;
+	}
+
+	// Find split node candidate
+	u16 next_id = navgraph->nodes[navgraph->node_count].id;
+
+	// Search through all nodes
+	for(u16 i = 0; i < navgraph->node_count; i++) {
+		NavNode *node_A = &navgraph->nodes[i];
+
+		// Search through walked nodes
+		for(u16 j = 0; j < walk_count; j++) {
+			NavNode *node_B = &navgraph->nodes[walked[j]];
+
+			// Node was walked, 
+			// not a valid split candidate. Skip
+			if(node_A->id == node_B->id) {
+				continue;
+			}
+
+			// Node was NOT walked, split candidate found
+			next_id = node_A->id; 
+			break;
+		}	
+	}
+
+	walk_count = 0;
+	WalkNavGraph(sect, navgraph, next_id, walked, &walk_count);
+
+	puts("-----------");
+	for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
+}
+*/
 
 void DebugDrawNavGraphs(MapSection *sect, Model model) {
-	/*
 	NavGraph *navgraph = &sect->base_navgraph;
 
 	for(u16 e = 0; e < navgraph->edge_count; e++) {
@@ -778,8 +813,8 @@ void DebugDrawNavGraphs(MapSection *sect, Model model) {
 		Color line_color = MAGENTA;
 		DrawLine3D(node_A->position, node_B->position, line_color);
 	}
-	*/
 
+	/*
 	for(u16 i = 0; i < sect->navgraph_count; i++) {
 		NavGraph *navgraph = &sect->navgraphs[i];
 
@@ -799,6 +834,7 @@ void DebugDrawNavGraphs(MapSection *sect, Model model) {
 			DrawLine3D(node_A->position, node_B->position, line_color);
 		}
 	}
+	*/
 }
 
 void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size) {

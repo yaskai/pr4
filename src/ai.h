@@ -16,8 +16,8 @@ typedef struct {
 } NavNode;
 
 typedef struct {
-	u16 node_A;
-	u16 node_B;
+	u16 id_A;
+	u16 id_B;
 
 } NavEdge;
 

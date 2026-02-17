@@ -995,6 +995,31 @@
 }
 // entity 8
 {
+"classname" "nav_node"
+"origin" "-222 14 50"
+}
+// entity 9
+{
+"classname" "nav_node"
+"origin" "-254 14 50"
+}
+// entity 10
+{
+"classname" "nav_node"
+"origin" "34 -114 50"
+}
+// entity 11
+{
+"classname" "nav_node"
+"origin" "82 -114 50"
+}
+// entity 12
+{
+"classname" "nav_node"
+"origin" "82 -162 50"
+}
+// entity 13
+{
 "classname" "func_group"
 "_tb_type" "_tb_layer"
 "_tb_name" "Navigation Layer"

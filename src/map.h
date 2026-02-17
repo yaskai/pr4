@@ -64,10 +64,14 @@ void BrushTestView(BrushPool *brush_pool, Color color);
 
 MapSection BuildMapSect(char *file_path, SpawnList *spawn_list);
 
+void InitNavGraph(MapSection *sect);
 void BuildNavGraph(MapSection *sect);
-void SubdivideNavGraph(MapSection *sect, NavGraph *nav_graph);
+void BuildNavEdges(NavGraph *navgraph);
+void SplitNavGraph(NavGraph *navgraph, MapSection *sect);
+void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph);
 
 void GetConnectedNodes(NavNode *node, u16 connected[MAX_EDGES_PER_NODE], u8 *count, NavGraph *navgraph);
+void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count);
 
 void DebugDrawNavGraphs(MapSection *sect, Model model);
 void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size);

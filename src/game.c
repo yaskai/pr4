@@ -134,19 +134,31 @@ void GameLoadTestScene1(Game *game, char *path) {
 	player.comp_health = (comp_Health) {0};
 	player.comp_health.amount = 100;
 
+	//InitNavGraph(&game->test_section);
+	game->test_section.base_navgraph = (NavGraph) {
+		.nodes = calloc(128, sizeof(NavNode)),
+		.edges = calloc(128, sizeof(NavEdge)),
+		.node_cap = 128, .edge_cap = 128,
+		.node_count = 0, .edge_count = 0
+	};
+
 	game->ent_handler.count = spawn_list.count;
 	for(int i = 0; i < spawn_list.count; i++) 
 		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.base_navgraph);
 
-	BuildNavGraph(&game->test_section);
+	BuildNavEdges(&game->test_section.base_navgraph);
+	
 
-
-	for(u16 i = 0; i < game->test_section.base_navgraph.node_count; i++) {
-		NavNode *node = &game->test_section.base_navgraph.nodes[i];
-
-		//printf("%d\n", node->id);
-		//printf("%d\n", node->edge_count);
-	}
+	game->test_section.navgraphs[0] = (NavGraph) {
+		.node_count = game->test_section.base_navgraph.node_count,
+		.edge_count = game->test_section.base_navgraph.edge_count,
+		.node_cap = game->test_section.base_navgraph.node_cap,
+		.edge_cap = game->test_section.base_navgraph.edge_cap
+	};
+	game->test_section.navgraphs[0].nodes = calloc(game->test_section.navgraphs[0].node_count, sizeof(NavNode));
+	game->test_section.navgraphs[0].edges = calloc(game->test_section.navgraphs[0].edge_count, sizeof(NavEdge));
+	//SplitNavGraph(&game->test_section.navgraphs[0], &game->test_section);
+	SubdivideNavGraph(&game->test_section, &game->test_section.base_navgraph);
 
 	player.comp_transform.position = game->ent_handler.player_start;
 	game->ent_handler.ents[0] = player;
@@ -305,7 +317,7 @@ void GameDraw(Game *game) {
 
 			Vector2 dbg_window_size = (Vector2) { .x = game->render_target_debug.texture.width, .y = game->render_target_debug.texture.height };
 			DebugDrawNavGraphsText(&game->test_section, game->camera_debug, dbg_window_size);
-		}
+			}
 
 			// 2D
 			//DrawText(TextFormat("accel: %.02f", player_data.accel), 0, 40, 32, RAYWHITE);

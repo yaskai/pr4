@@ -43,6 +43,7 @@ typedef struct {
 #define AI_INPUT_SEE_GLITCHED	0x0004
 #define AI_INPUT_SELF_GLITCHED	0x0008
 #define AI_INPUT_TAKE_DAMAGE	0x0010
+#define AI_INPUT_LOST_PLAYER	0x0020
 // *** 
 
 enum anim_states : u8 {
@@ -52,12 +53,19 @@ enum anim_states : u8 {
 	STATE_DIE
 };
 
+enum AI_SCHEDULES : u8 {
+	SCHED_IDLE,
+	SCHED_FIX,
+};
+
 typedef struct {
 	float sight_cone;
 
 	u32 input_mask;
 
 	u8 anim_state;
+
+	u16 navgraph_id;
 
 	bool component_valid;
 

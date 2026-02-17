@@ -581,6 +581,12 @@ void MapSectionClose(MapSection *sect) {
 	if(sect->navgraphs)
 		free(sect->navgraphs);
 
+	if(sect->base_navgraph.nodes)
+		free(sect->base_navgraph.nodes);
+
+	if(sect->base_navgraph.edges)
+		free(sect->base_navgraph.edges);
+
 	UnloadModel(sect->model);
 }
 

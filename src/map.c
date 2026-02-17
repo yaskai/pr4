@@ -13,6 +13,8 @@
 
 #define PLANE_EPS 0.001f
 
+rMeshCollection rmeshes_collection = {0};
+
 Plane BuildPlane(Vector3 v0, Vector3 v1, Vector3 v2) {
 	Vector3 edge_0 = Vector3Subtract(v1, v0);
 	Vector3 edge_1 = Vector3Subtract(v2, v0);
@@ -499,6 +501,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	sect._tris[0].arr = ModelToTris(model, &sect._tris[0].count, &sect._tris[0].ids);
 	if(GetLogState()) printf("model tri_count: %d\n", sect._tris[0].count);
 
+
 	// 2. Load .map file, collision, physics, ai logic, etc. 
 	Message("Loading map file...", ANSI_BLUE);
 	short mpf_id = -1;
@@ -548,6 +551,22 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 
 		BvhConstruct(&sect, &sect.bvh[i], Vector3Zero(), &sect._tris[i]);
 		if(GetLogState()) printf("bvh[%d] node count: %d\n", i, sect.bvh->count);
+	}
+
+	rmeshes_collection.rmeshes = calloc(model.meshCount, sizeof(MapMesh)); 
+	BoundingBox model_bounds = GetModelBoundingBox(model);
+	Vector3 model_center = BoxCenter(model_bounds);
+
+	for(u16 i = 0; i < model.meshCount; i++) {
+		//BoundingBox mesh_bounds = GetMeshBoundingBox(model.meshes[i]);
+
+		rmeshes_collection.rmeshes[rmeshes_collection.count++] = (MapMesh) {
+			.mesh_id = i,
+			.material_id = model.meshMaterial[1],
+			.matrix = model.transform,
+			//.position = BoxCenter(mesh_bounds)
+			.position = brush_pools[0].brushes[i].center
+		};
 	}
 	
 	// 4. Copy/convert brushes to hulls
@@ -836,6 +855,32 @@ void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size)
 		float text_size = (30);
 
 		DrawText(TextFormat("%d -> %d", edge->id_A, edge->id_B), pos.x, pos.y, text_size, GRAY);
+	}
+}
+
+#define MAX_MAP_MESH_RENDERS 128
+typedef struct {
+	u16 ids[MAX_MAP_MESH_RENDERS];
+	u16 count;
+	
+} rMeshList;
+rMeshList rmesh_list = {0};
+
+void UpdateMapMeshList(MapSection *sect, Camera3D cam) {
+	Vector3 view_pos = cam.position;
+	Vector3 view_dir = Vector3Normalize(Vector3Subtract(cam.target, view_pos));
+
+	rmesh_list.count = 0;
+	for(u16 i = 0; i < sect->model.meshCount; i++) {
+		Vector3 to_view = Vector3Subtract(view_pos, rmeshes_collection.rmeshes[i].position);
+
+		rmesh_list.ids[rmesh_list.count++] = i;
+	}
+}
+
+void DrawMap(MapSection *sect) {
+	for(u16 i = 0; i < rmesh_list.count; i++) {
+		DrawMesh(sect->model.meshes[rmesh_list.ids[i]], sect->model.materials[1], sect->model.transform);	
 	}
 }
 

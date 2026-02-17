@@ -148,6 +148,7 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 }
 
 void PlayerUpdate(Entity *player, float dt) {
+	//ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
 	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
 
 	/*
@@ -583,13 +584,19 @@ void pm_ApplyGravity(comp_Transform *ct, float dt) {
 	ct->velocity.y -= (PLAYER_GRAV * dt); 
 }
 
+#define MIN_TRACE_DIST (0.0333f)
+#define MAX_TRACE_DIST (2000.0f)
 void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt) {
 	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0 };
 
 	// Check if inside solid before starting trace
 	Ray start_ray = (Ray) { .position = start, .direction = Vector3Normalize(wish_vel) };
 	BvhTraceData start_tr = TraceDataEmpty();
-	BvhTracePointEx(start_ray, ptr_sect, &ptr_sect->bvh[1], 0, &start_tr, Vector3Length(wish_vel));
+	
+	float trace_max_dist = Vector3LengthSqr(wish_vel);
+	trace_max_dist = Clamp(trace_max_dist, MIN_TRACE_DIST, MAX_TRACE_DIST);
+
+	BvhTracePointEx(start_ray, ptr_sect, &ptr_sect->bvh[1], 0, &start_tr, trace_max_dist);
 	if(start_tr.hit) {
 		pm->start_in_solid = start_tr.hull_id;
 	}
@@ -607,7 +614,7 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 	for(short i = 0; i < MAX_BUMPS; i++) {
 		// End slide trace if velocity too low
-		if(Vector3Length(vel) <= STOP_EPS)
+		if(Vector3LengthSqr(vel) <= STOP_EPS)
 			break;
 		
 		// Scale slide movement by time remaining

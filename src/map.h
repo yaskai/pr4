@@ -6,6 +6,22 @@
 #ifndef MAP_H_
 #define MAP_H_
 
+typedef struct  {
+	Matrix matrix;
+
+	Vector3 position;
+
+	u16 mesh_id;
+	u16 material_id;
+
+} MapMesh;
+
+typedef struct {
+	MapMesh *rmeshes;
+	u16 count;
+	
+} rMeshCollection;
+
 typedef struct {
 	BoundingBox bounds;
 
@@ -75,6 +91,9 @@ void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *wal
 
 void DebugDrawNavGraphs(MapSection *sect, Model model);
 void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size);
+
+void UpdateMapMeshList(MapSection *sect, Camera3D cam);
+void DrawMap(MapSection *sect);
 
 #endif
 

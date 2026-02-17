@@ -84,6 +84,9 @@ void GameRenderSetup(Game *game) {
 	game->render_target2D = LoadRenderTexture(VIRT_W, VIRT_H);
 	//game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
 	game->render_target_debug = LoadRenderTexture(VIRT_W, VIRT_H);
+
+	SetTextureFilter(game->render_target3D.texture, TEXTURE_FILTER_POINT);
+	SetTextureFilter(game->render_target2D.texture, TEXTURE_FILTER_POINT);
 	SetTextureFilter(game->render_target_debug.texture, TEXTURE_FILTER_TRILINEAR);
 
 	EntHandlerInit(&game->ent_handler);
@@ -100,25 +103,6 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	game->test_section.navgraphs = malloc(sizeof(NavGraph) * 16);
 	
-	/*
-	game->test_section.navgraphs[0] = (NavGraph) {
-		.node_count = 0,
-		.node_cap = 128,
-		.edge_count = 0,
-		.edge_cap = 256
-	};
-	game->test_section.navgraphs[0].nodes = calloc(game->test_section.navgraphs[0].node_cap, sizeof(NavNode));
-	game->test_section.navgraphs[0].edges = calloc(game->test_section.navgraphs[0].edge_cap, sizeof(NavEdge));
-	*/
-	game->test_section.base_navgraph = (NavGraph) {
-		.node_count = 0,
-		.node_cap = 128,
-		.edge_count = 0,
-		.edge_cap = 256
-	};
-	game->test_section.base_navgraph.nodes = calloc(game->test_section.base_navgraph.node_cap, sizeof(NavNode));
-	game->test_section.base_navgraph.edges = calloc(game->test_section.base_navgraph.edge_cap, sizeof(NavEdge));
-
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data, &game->ent_handler);
 	Entity player = (Entity) {
 		.comp_transform = (comp_Transform) {0},
@@ -147,7 +131,6 @@ void GameLoadTestScene1(Game *game, char *path) {
 		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.base_navgraph);
 
 	BuildNavEdges(&game->test_section.base_navgraph);
-	
 
 	game->test_section.navgraphs[0] = (NavGraph) {
 		.node_count = game->test_section.base_navgraph.node_count,
@@ -177,6 +160,8 @@ void GameUpdate(Game *game, float dt) {
 	PlayerGunUpdate(&game->player_gun, dt);
 
 	UpdateEntities(&game->ent_handler, &game->test_section, dt);
+
+	UpdateMapMeshList(&game->test_section, game->camera);
 }
 
 #define DEBUG_ENABLE			0x01
@@ -193,12 +178,13 @@ void GameDraw(Game *game) {
 	ClearBackground(BLACK);
 		BeginMode3D(game->camera);
 
-			DrawModel(game->test_section.model, Vector3Zero(), 1, WHITE);
+			//DrawModel(game->test_section.model, Vector3Zero(), 1, WHITE);
 			//DrawModel(game->test_section.model, Vector3Zero(), 1, ColorAlpha(WHITE, 0.95f));
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, GREEN);
 
 			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			RenderEntities(&game->ent_handler, GetFrameTime());
+			DrawMap(&game->test_section);
 
 			/*
 			for(u16 i = 0; i < tri_count; i++) {

@@ -19,6 +19,8 @@ void InputInit(InputHandler *handler) {
 void PollInput(InputHandler *handler) {
 	handler->mouse_position = GetMousePosition();
 
+	float dt = GetFrameTime();
+
 	// Get mouse delta, scale by sensitivity setting
 	handler->mouse_delta = GetMouseDelta();
 	handler->mouse_delta.x *= handler->mouse_sensitivity;

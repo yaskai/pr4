@@ -100,6 +100,7 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	game->test_section.navgraphs = malloc(sizeof(NavGraph) * 16);
 	
+	/*
 	game->test_section.navgraphs[0] = (NavGraph) {
 		.node_count = 0,
 		.node_cap = 128,
@@ -108,6 +109,15 @@ void GameLoadTestScene1(Game *game, char *path) {
 	};
 	game->test_section.navgraphs[0].nodes = calloc(game->test_section.navgraphs[0].node_cap, sizeof(NavNode));
 	game->test_section.navgraphs[0].edges = calloc(game->test_section.navgraphs[0].edge_cap, sizeof(NavEdge));
+	*/
+	game->test_section.base_navgraph = (NavGraph) {
+		.node_count = 0,
+		.node_cap = 128,
+		.edge_count = 0,
+		.edge_cap = 256
+	};
+	game->test_section.base_navgraph.nodes = calloc(game->test_section.base_navgraph.node_cap, sizeof(NavNode));
+	game->test_section.base_navgraph.edges = calloc(game->test_section.base_navgraph.edge_cap, sizeof(NavEdge));
 
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data, &game->ent_handler);
 	Entity player = (Entity) {
@@ -126,17 +136,17 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	game->ent_handler.count = spawn_list.count;
 	for(int i = 0; i < spawn_list.count; i++) 
-		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.navgraphs[0]);
+		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.base_navgraph);
 
 	BuildNavGraph(&game->test_section);
 
-	/*
-	for(u16 i = 0; i < game->test_section.navgraphs[0].node_count; i++) {
-		NavNode *node = &game->test_section.navgraphs[0].nodes[i];
 
+	for(u16 i = 0; i < game->test_section.base_navgraph.node_count; i++) {
+		NavNode *node = &game->test_section.base_navgraph.nodes[i];
+
+		//printf("%d\n", node->id);
 		//printf("%d\n", node->edge_count);
 	}
-	*/
 
 	player.comp_transform.position = game->ent_handler.player_start;
 	game->ent_handler.ents[0] = player;

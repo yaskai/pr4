@@ -171,6 +171,7 @@ typedef struct {
 	TriPool _tris[3];
 	HullPool _hulls[3];
 
+	NavGraph base_navgraph;
 	NavGraph *navgraphs;
 
 	Model model;

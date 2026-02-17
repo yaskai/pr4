@@ -584,7 +584,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 // This function basically just constructs edges between nodes that already exist
 #define MAX_EDGE_LENGTH (64.0f*64.0f)
 void BuildNavGraph(MapSection *sect) {
-	NavGraph *navgraph = &sect->navgraphs[0];
+	NavGraph *navgraph = &sect->base_navgraph;
 	navgraph->edge_count = 0;
 	
 	for(u16 i = 0; i < navgraph->node_count; i++) {
@@ -645,8 +645,18 @@ void BuildNavGraph(MapSection *sect) {
 		node_B->edges[node_B->edge_count++] = i;
 	}
 
-	sect->navgraph_count++;
+	NavGraph clone = (NavGraph) {
+		.node_count = navgraph->node_count,
+		.node_cap = navgraph->node_cap,
+		.edge_count = navgraph->edge_count,
+		.edge_cap = navgraph->edge_cap
+	};	
+	clone.nodes = calloc(clone.node_count, sizeof(NavNode));
+	memcpy(clone.nodes, sect->base_navgraph.nodes, sizeof(NavNode) * clone.node_count);
+	clone.edges = calloc(clone.edge_count, sizeof(NavEdge));
+	memcpy(clone.edges, sect->base_navgraph.edges, sizeof(NavEdge) * clone.edge_count);
 
+	sect->navgraphs[sect->navgraph_count++] = clone;
 	SubdivideNavGraph(sect, &sect->navgraphs[0]);
 }
 
@@ -682,8 +692,8 @@ void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *wal
 
 		if(duplicate) 
 			continue;
-
-		WalkNavGraph(sect, navgraph, next_nodes[i], walked, count);
+		else
+			WalkNavGraph(sect, navgraph, next_nodes[i], walked, count);
 	}
 }
 
@@ -696,8 +706,8 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 
 	WalkNavGraph(sect, navgraph, 0, walked, &walk_count);
 
-	//puts("-----------");
-	//for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
+	puts("-----------");
+	for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
 
 	// Full graph was walked, no need for split
 	if(walk_count == navgraph->node_count) { 
@@ -705,7 +715,7 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 	}
 
 	// Find split node candidate
-	u16 next_id = navgraph->node_count;
+	u16 next_id = navgraph->nodes[navgraph->node_count].id;
 
 	// Search through all nodes
 	for(u16 i = 0; i < navgraph->node_count; i++) {
@@ -717,8 +727,9 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 
 			// Node was walked, 
 			// not a valid split candidate. Skip
-			if(node_A->id == node_B->id)
+			if(node_A->id == node_B->id) {
 				continue;
+			}
 
 			// Node was NOT walked, split candidate found
 			next_id = node_A->id; 
@@ -729,75 +740,71 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 	walk_count = 0;
 	WalkNavGraph(sect, navgraph, next_id, walked, &walk_count);
 
-	//puts("-----------");
-	//for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
+	puts("-----------");
+	for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
 }
 
 void DebugDrawNavGraphs(MapSection *sect, Model model) {
-	for(u16 i = 0; i < sect->navgraph_count; i++) {
-		NavGraph *navgraph = &sect->navgraphs[i];
+	NavGraph *navgraph = &sect->base_navgraph;
 
-		for(u16 e = 0; e < navgraph->edge_count; e++) {
-			NavEdge *edge = &navgraph->edges[e];
+	for(u16 e = 0; e < navgraph->edge_count; e++) {
+		NavEdge *edge = &navgraph->edges[e];
 
-			NavNode *node_A = &navgraph->nodes[edge->node_A];
-			NavNode *node_B = &navgraph->nodes[edge->node_B];
+		NavNode *node_A = &navgraph->nodes[edge->node_A];
+		NavNode *node_B = &navgraph->nodes[edge->node_B];
 
-			DrawModel(model, node_A->position, 1, BLUE);
-			DrawModel(model, node_B->position, 1, BLUE);
+		DrawModel(model, node_A->position, 1, BLUE);
+		DrawModel(model, node_B->position, 1, BLUE);
 
-			//Color line_color = (e % 2 == 0) ? MAGENTA : GREEN; 
-			Color line_color = MAGENTA;
-			DrawLine3D(node_A->position, node_B->position, line_color);
-		}
+		//Color line_color = (e % 2 == 0) ? MAGENTA : GREEN; 
+		Color line_color = MAGENTA;
+		DrawLine3D(node_A->position, node_B->position, line_color);
 	}
 }
 
 void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size) {
 	Vector3 cam_dir = Vector3Normalize(Vector3Subtract(cam.target, cam.position));
 
-	for(u16 i = 0; i < sect->navgraph_count; i++) {
-		NavGraph *navgraph = &sect->navgraphs[0];
+	NavGraph *navgraph = &sect->base_navgraph;
 
-		for(u16 n = 0; n < navgraph->node_count; n++) {
-			NavNode *node = &navgraph->nodes[n];
+	for(u16 n = 0; n < navgraph->node_count; n++) {
+		NavNode *node = &navgraph->nodes[n];
 
-			Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, node->position));
-			if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+		Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, node->position));
+		if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
 
-			float dist = Vector3Distance(node->position, cam.position);
-			float text_size = (30);
+		float dist = Vector3Distance(node->position, cam.position);
+		float text_size = (30);
 
-			Vector2 pos = GetWorldToScreen(node->position, cam);
+		Vector2 pos = GetWorldToScreen(node->position, cam);
 
-			//DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
-			/*
-			for(u8 e = 0; e < node->edge_count; e++) {
-				NavEdge *edge = &navgraph->edges[node->edges[e]];
-				DrawText(TextFormat(" -> %d", edge->node_B), pos.x, pos.y, text_size, YELLOW);
-			}
-			*/
-
-			DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
+		//DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
+		/*
+		for(u8 e = 0; e < node->edge_count; e++) {
+			NavEdge *edge = &navgraph->edges[node->edges[e]];
+			DrawText(TextFormat(" -> %d", edge->node_B), pos.x, pos.y, text_size, YELLOW);
 		}
+		*/
 
-		for(u16 e = 0; e < navgraph->edge_count; e++) {
-			NavEdge *edge = &navgraph->edges[e];
+		DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
+	}
 
-			NavNode *node_A = &navgraph->nodes[edge->node_A];
-			NavNode *node_B = &navgraph->nodes[edge->node_B];
+	for(u16 e = 0; e < navgraph->edge_count; e++) {
+		NavEdge *edge = &navgraph->edges[e];
 
-			Vector3 mid = Vector3Scale(Vector3Add(node_A->position, node_B->position), 0.5f);
+		NavNode *node_A = &navgraph->nodes[edge->node_A];
+		NavNode *node_B = &navgraph->nodes[edge->node_B];
 
-			Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, mid));
-			if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+		Vector3 mid = Vector3Scale(Vector3Add(node_A->position, node_B->position), 0.5f);
 
-			Vector2 pos = GetWorldToScreen(mid, cam);
+		Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, mid));
+		if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
 
-			float text_size = (30);
+		Vector2 pos = GetWorldToScreen(mid, cam);
 
-			DrawText(TextFormat("%d -> %d", edge->node_A, edge->node_B), pos.x, pos.y, text_size, GRAY);
-		}
+		float text_size = (30);
+
+		DrawText(TextFormat("%d -> %d", edge->node_A, edge->node_B), pos.x, pos.y, text_size, GRAY);
 	}
 }
 

@@ -14,6 +14,9 @@
 #define PLAYER_MAX_SPEED 300.0f
 #define PLAYER_MAX_VEL 200.5f
 
+#define PLAYER_GROUND_SPEED 256.0f
+#define PLAYER_AIR_SPEED	200.0f
+
 #define PLAYER_MAX_ACCEL 15.5f
 float player_accel;
 float player_accel_forward;
@@ -25,6 +28,7 @@ bool land_frame = false;
 float y_vel_prev;
 
 #define FALLDAMAGE_THRESHOLD 500.0f
+#define FALLDAMAGE_MULTIPLIER -0.045f
 
 short nudged_this_frame = 0;
 
@@ -198,22 +202,11 @@ void PlayerUpdate(Entity *player, float dt) {
 	if(land_frame) {
 		//printf("land frame!\n");
 		//if(y_vel_prev < -600) player->comp_health.amount--;
-		if(y_vel_prev < -FALLDAMAGE_THRESHOLD) player->comp_health.amount -= (short)(y_vel_prev * -0.035f);
+		if(y_vel_prev < -FALLDAMAGE_THRESHOLD) player->comp_health.amount -= (short)(y_vel_prev * FALLDAMAGE_MULTIPLIER);
 	}
 
 	// Update camera
 	cam_Adjust(&player->comp_transform, dt);
-
-	/*
-	ptr_cam->position = Vector3Add(player->comp_transform.position, Vector3Scale(UP, 0.0f));
-	ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
-
-	if(!player->comp_transform.on_ground) cam_bob = 0;
-	ptr_cam->position.y += cam_bob;
-	ptr_cam->target.y += cam_bob;
-	*/
-
-	box_points = BoxGetPoints(player->comp_transform.bounds);
 
 	if(IsKeyPressed(KEY_R)) {
 		//player->comp_transform.position = (Vector3) { 0, 60, 0 };
@@ -226,95 +219,6 @@ void PlayerUpdate(Entity *player, float dt) {
 void PlayerDraw(Entity *player) {
 	//PlayerDisplayDebugInfo(player);
 }
-
-/*
-void PlayerInput(Entity *player, InputHandler *input, float dt) {
-	// Get look direction
-	player->comp_transform.forward = pm_GetLookDir(&player->comp_transform, input, dt);
-
-	// Update camera target
-	ptr_cam->target = Vector3Add(player->comp_transform.position, player->comp_transform.forward);
-
-	Vector3 right = Vector3CrossProduct(player->comp_transform.forward, UP);
-
-	Vector3 movement = Vector3Zero();
-	Vector3 move_forward = movement, move_side = movement;
-
-	if(input->actions[ACTION_MOVE_UP].state == INPUT_ACTION_DOWN)
-		move_forward = Vector3Add(move_forward, player->comp_transform.forward);
-
-	if(input->actions[ACTION_MOVE_DOWN].state == INPUT_ACTION_DOWN)	
-		move_forward = Vector3Subtract(move_forward, player->comp_transform.forward);
-
-	if(input->actions[ACTION_MOVE_RIGHT].state == INPUT_ACTION_DOWN)
-		move_side = Vector3Add(move_side, Vector3Scale(right, 1));
-
-	if(input->actions[ACTION_MOVE_LEFT].state == INPUT_ACTION_DOWN)	
-		move_side = Vector3Subtract(move_side, Vector3Scale(right, 1));
-	
-	move_forward = Vector3Normalize( (Vector3) { move_forward.x, 0, move_forward.z } );
-	move_side = Vector3Normalize( (Vector3) { move_side.x, 0, move_side.z } );
-	movement = Vector3Normalize(Vector3Add(move_forward, move_side));
-
-	float t = GetTime();
-
-	float len_forward = Vector3Length(move_forward);
-	float len_side = Vector3Length(move_side);
-
-	if(len_forward + len_side > 0) {
-		player_accel_forward = Clamp(player_accel_forward + (PLAYER_SPEED) * dt, 1.0f, PLAYER_MAX_ACCEL);
-		//cam_bob = Lerp(cam_bob, (1.95f + len_forward * 0.75f) * sinf(t * 12 + (len_forward * 0.95f)) + 1.0f, player_accel_forward * dt);
-		float bob_targ = (3 * (len_forward + (len_side * 0.5f))) * sinf(t * 12 + (len_forward) * 5.95f) + 1;
-		cam_bob = Lerp(cam_bob, bob_targ, 10 * dt);
-	} else {
-		player_accel_forward = Clamp(player_accel_forward - (PLAYER_FRICTION) * dt, 1.0f, PLAYER_MAX_ACCEL);
-		cam_bob = Lerp(cam_bob, 0, 10 * dt);
-		if(cam_bob <= EPSILON) cam_bob = 0;
-	}
-
-	if(land_frame && player_accel_forward >= PLAYER_MAX_ACCEL * 0.85f)
-		cam_bob += (18.5f * y_vel_prev * 0.00125f);
-
-	Vector3 cam_roll_targ = UP;
-	if(len_side) {
-		player_accel_side = Clamp(player_accel_side + (PLAYER_SPEED) * dt, 0.9f, PLAYER_MAX_ACCEL);
-
-		float side_vel = Vector3DotProduct(movement, right);
-
-		float tilt_max = Clamp(len_side, 0, 0.05f);
-
-		cam_tilt = (side_vel * len_side * player_accel_side);
-		cam_tilt = Clamp(cam_tilt, -tilt_max, tilt_max);
-
-		if(fabs(cam_tilt) > EPSILON) cam_roll_targ = Vector3RotateByAxisAngle(UP, player->comp_transform.forward, cam_tilt);
-	} else {
-		player_accel_side = Clamp(player_accel_side - (PLAYER_FRICTION) * dt, 0.0f, PLAYER_MAX_ACCEL);
-	}
-
-	// Slight tilt when player lands on ground
-	if(land_frame) 
-		cam_roll_targ = Vector3RotateByAxisAngle(ptr_cam->up, player->comp_transform.forward, 35);
-
-	ptr_cam->up = Vector3Lerp(ptr_cam->up, cam_roll_targ, 0.1f);
-
-
-	Vector3 vel_forward = Vector3Scale(move_forward, (PLAYER_SPEED * player_accel_forward) * dt);
-	Vector3 vel_side = Vector3Scale(move_side, (PLAYER_SPEED * player_accel_side) * dt);
-	Vector3 horizontal_velocity = Vector3Add(vel_forward, vel_side);
-
-	player->comp_transform.velocity.x += horizontal_velocity.x * dt;
-	player->comp_transform.velocity.z += horizontal_velocity.z * dt;
-
-	if(input->actions[ACTION_JUMP].state == INPUT_ACTION_PRESSED) {
-		if(player->comp_transform.on_ground && !CheckCeiling(&player->comp_transform, ptr_sect, &ptr_sect->bvh[0])) {
-			player->comp_transform.position.y += 0.01f;	
-			player->comp_transform.on_ground = 0;
-			player->comp_transform.air_time = 1;
-			player->comp_transform.velocity.y = PLAYER_BASE_JUMP_FORCE + player_accel_forward * 2.5f;
-		}
-	}
-}
-*/
 
 void PlayerDamage(Entity *player, short amount) {
 }
@@ -388,12 +292,12 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	// 2. Get wishdir
 	Vector3 wish_dir = pm_GetWishDir(ct, input);
 	float wish_speed = PLAYER_SPEED;
+	//float wish_speed = (ct->on_ground) ? PLAYER_GROUND_SPEED : PLAYER_AIR_SPEED;
 	if(wish_speed > PLAYER_MAX_SPEED) {
 		wish_speed = PLAYER_MAX_SPEED;
 	} 
 	Vector3 wish_vel = Vector3Scale(wish_dir, wish_speed);
 	
-
 	// 3. Apply friction (if grounded)
 	pm_GroundFriction(ct, dt);
 
@@ -402,7 +306,7 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	pm_Accelerate(ct, wish_dir, wish_speed, accel, dt);
 
 	if(ct->on_ground) {	
-		pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.005f, 0);
+		pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0025f, 0);
 	}
 	
 	// Check jump
@@ -516,7 +420,7 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 	return Vector3Normalize(sum);
 } 
 
-#define GROUND_EPS 0.1f
+#define GROUND_EPS 0.01f
 u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 

@@ -122,13 +122,13 @@ void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 }
 
 short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt) {
-	if(comp_transform->velocity.y > 0.0f) return 0;
+	if(comp_transform->velocity.y >= EPSILON) return 0;
 
 	Vector3 h_vel = (Vector3) { comp_transform->velocity.x, 0, comp_transform->velocity.z };
 	Vector3 offset = Vector3Scale(h_vel, dt);
 
 	float ent_height = BoxExtent(comp_transform->bounds).y;
-	float feet = (ent_height * 0.5f) - 1;
+	float feet = (ent_height * 0.5f) - (1 + 0.001f);
 
 	Ray ray = (Ray) { .position = pos, .direction = DOWN };
 	ray.position = comp_transform->position;
@@ -260,7 +260,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 		short visible = 2;
 		for(short j = 0; j < 2; j++) {
-			short offset = (j & 0x01) ? -1 : 1;
+			short offset = (j & 1) ? -1 : 1;
 
 			Vector3 test_point = Vector3Subtract(ent->comp_transform.position, Vector3Scale(right, 72 * offset));
 			if(view_pos.y > ent->comp_transform.position.y) test_point.y = ent->comp_transform.bounds.max.y;

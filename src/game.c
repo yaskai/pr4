@@ -38,6 +38,8 @@ BrushPool brush_pool_exp = (BrushPool) {0};
 u16 tri_count = 0;
 Tri *tris;
 
+Model sphere_model;
+
 void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
 
@@ -80,27 +82,32 @@ void GameRenderSetup(Game *game) {
 
 	game->render_target3D = LoadRenderTexture(VIRT_W, VIRT_H);
 	game->render_target2D = LoadRenderTexture(VIRT_W, VIRT_H);
-	game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
-
+	//game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
+	game->render_target_debug = LoadRenderTexture(VIRT_W, VIRT_H);
+	SetTextureFilter(game->render_target_debug.texture, TEXTURE_FILTER_TRILINEAR);
 
 	EntHandlerInit(&game->ent_handler);
 
 	mat_default = LoadMaterialDefault();
 	mat_default.maps[MATERIAL_MAP_DIFFUSE].color = ColorAlpha(BLUE, 0.25f);
+
+	sphere_model = LoadModelFromMesh(GenMeshSphere(2, 16, 8));
 }
 
 void GameLoadTestScene1(Game *game, char *path) {
 	SpawnList spawn_list = (SpawnList) {0}; 
 	game->test_section = BuildMapSect(path, &spawn_list);
 
-	game->test_section.nav_graph = (NavGraph) {
+	game->test_section.navgraphs = malloc(sizeof(NavGraph) * 16);
+	
+	game->test_section.navgraphs[0] = (NavGraph) {
 		.node_count = 0,
 		.node_cap = 128,
 		.edge_count = 0,
 		.edge_cap = 256
 	};
-	game->test_section.nav_graph.nodes = calloc(game->test_section.nav_graph.node_cap, sizeof(NavNode));
-	game->test_section.nav_graph.edges = calloc(game->test_section.nav_graph.edge_cap, sizeof(NavEdge));
+	game->test_section.navgraphs[0].nodes = calloc(game->test_section.navgraphs[0].node_cap, sizeof(NavNode));
+	game->test_section.navgraphs[0].edges = calloc(game->test_section.navgraphs[0].edge_cap, sizeof(NavEdge));
 
 	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data, &game->ent_handler);
 	Entity player = (Entity) {
@@ -119,9 +126,17 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	game->ent_handler.count = spawn_list.count;
 	for(int i = 0; i < spawn_list.count; i++) 
-		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.nav_graph);
+		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.navgraphs[0]);
 
 	BuildNavGraph(&game->test_section);
+
+	/*
+	for(u16 i = 0; i < game->test_section.navgraphs[0].node_count; i++) {
+		NavNode *node = &game->test_section.navgraphs[0].nodes[i];
+
+		//printf("%d\n", node->edge_count);
+	}
+	*/
 
 	player.comp_transform.position = game->ent_handler.player_start;
 	game->ent_handler.ents[0] = player;
@@ -147,7 +162,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 0;
+u8 debug_draw_flags = 1;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main
@@ -211,6 +226,8 @@ void GameDraw(Game *game) {
 				*/
 			}
 			RenderEntities(&game->ent_handler, GetFrameTime());
+			//DebugDrawNavGraphs(&game->test_section, sphere_model);
+
 		EndMode3D();
 
 	EndTextureMode();
@@ -272,8 +289,13 @@ void GameDraw(Game *game) {
 					}
 				}
 
+			DebugDrawNavGraphs(&game->test_section, sphere_model);
+
 			EndMode3D();
-	}
+
+			Vector2 dbg_window_size = (Vector2) { .x = game->render_target_debug.texture.width, .y = game->render_target_debug.texture.height };
+			DebugDrawNavGraphsText(&game->test_section, game->camera_debug, dbg_window_size);
+		}
 
 			// 2D
 			//DrawText(TextFormat("accel: %.02f", player_data.accel), 0, 40, 32, RAYWHITE);
@@ -297,9 +319,15 @@ void GameDraw(Game *game) {
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;
 
+	/*
 	Vector2 debug_wh = (debug_draw_flags & DEBUG_DRAW_BIG) 
 		? (Vector2) { 1920, 1080 } 
 		: (Vector2) {game->render_target_debug.texture.width, game->render_target_debug.texture.height };
+	*/
+
+	Vector2 debug_wh = (debug_draw_flags & DEBUG_DRAW_BIG) 
+		? (Vector2) { VIRT_W, VIRT_H } 
+		: (Vector2) { VIRT_W * 0.5f, VIRT_H * 0.5f };
 
 	// Debug
 	rt_src = (Rectangle) { 0, 0, game->render_target_debug.texture.width, -game->render_target_debug.texture.height };

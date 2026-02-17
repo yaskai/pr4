@@ -319,8 +319,14 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 			nav_graph->nodes = realloc(nav_graph->nodes, sizeof(NavNode) * nav_graph->node_cap);
 		}
 
-		NavNode node = (NavNode) { .position = spawn_point->position, .id = nav_graph->node_count };
-		nav_graph->nodes[nav_graph->node_count++] = node;
+		NavNode node = (NavNode) {
+			.position = spawn_point->position,
+			.id = nav_graph->node_count,
+			.edge_count = 0
+		};
+		memset(node.edges, 0, sizeof(u16) * MAX_EDGES_PER_NODE);
+		nav_graph->nodes[nav_graph->node_count] = node;
+		nav_graph->node_count++;
 
 		return;
 	}

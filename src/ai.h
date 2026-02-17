@@ -4,8 +4,13 @@
 #ifndef AI_H_
 #define AI_H_
 
+#define MAX_EDGES_PER_NODE	8
 typedef struct {
 	Vector3 position;
+
+	u16 edges[MAX_EDGES_PER_NODE];
+	u16 edge_count;
+
 	u16 id;
 
 } NavNode;

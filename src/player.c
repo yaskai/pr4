@@ -10,7 +10,7 @@
 #include "player_gun.h"
 
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
-#define PLAYER_SPEED 230.0f
+#define PLAYER_SPEED 265.0f
 #define PLAYER_MAX_SPEED 300.0f
 #define PLAYER_MAX_VEL 200.5f
 
@@ -28,8 +28,8 @@ float y_vel_prev;
 
 short nudged_this_frame = 0;
 
-#define PLAYER_FRICTION 15.25f 
-#define PLAYER_AIR_FRICTION 13.05f
+#define PLAYER_FRICTION 16.25f 
+#define PLAYER_AIR_FRICTION 14.05f
 
 #define PLAYER_BASE_JUMP_FORCE 420
 
@@ -378,20 +378,6 @@ void PlayerDisplayDebugInfo(Entity *player) {
 
 	Ray clip_ray = (Ray) { .position = player->comp_transform.position, .direction = Vector3Normalize(debug_vel_clipped) };
 	DrawRay(clip_ray, GREEN);
-
-	for(u16 i = 0; i < ptr_sect->nav_graph.node_count; i++) {
-		DrawSphere(ptr_sect->nav_graph.nodes[i].position, 1, BLUE);
-	}
-
-	for(u16 i = 0; i < ptr_sect->nav_graph.edge_count; i++) {
-		NavEdge *edge = &ptr_sect->nav_graph.edges[i];
-
-		NavNode *node_A = &ptr_sect->nav_graph.nodes[edge->node_A];
-		NavNode *node_B = &ptr_sect->nav_graph.nodes[edge->node_B];
-
-		DrawLine3D(node_A->position, node_B->position, MAGENTA);
-	}
-
 }
 
 void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {

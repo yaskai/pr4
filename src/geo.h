@@ -171,11 +171,13 @@ typedef struct {
 	TriPool _tris[3];
 	HullPool _hulls[3];
 
-	NavGraph nav_graph;
+	NavGraph *navgraphs;
 
 	Model model;
 
 	u16 hull_count;
+
+	u8 navgraph_count;
 	u8 flags;
 
 } MapSection;

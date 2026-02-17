@@ -584,18 +584,21 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 // This function basically just constructs edges between nodes that already exist
 #define MAX_EDGE_LENGTH (64.0f*64.0f)
 void BuildNavGraph(MapSection *sect) {
-	NavGraph *nav_graph = &sect->nav_graph;
-	nav_graph->edge_count = 0;
+	NavGraph *navgraph = &sect->navgraphs[0];
+	navgraph->edge_count = 0;
 	
-	for(u16 i = 0; i < nav_graph->node_count; i++) {
-		NavNode *node_A = &nav_graph->nodes[i];
+	for(u16 i = 0; i < navgraph->node_count; i++) {
+		NavNode *node_A = &navgraph->nodes[i];
 
-		for(u16 j = 0; j < nav_graph->node_count; j++) {
+		for(u16 j = 0; j < navgraph->node_count; j++) {
 			// Don't create edges between a node and itself, that makes no sense
-			if(j == i)
-				continue;
+			//if(j == i)
+				//continue;
 
-			NavNode *node_B = &nav_graph->nodes[j];
+			NavNode *node_B = &navgraph->nodes[j];
+
+			if(node_A->id == node_B->id)
+				continue;
 
 			// Using vector subtraction to get distance,
 			// doing this in case I want to integrate actual level geometry later 
@@ -610,15 +613,15 @@ void BuildNavGraph(MapSection *sect) {
 			NavEdge edge = (NavEdge) { .node_A = i, .node_B = j };
 
 			// Resize edge array if needed
-			if(nav_graph->edge_count + 1 >= nav_graph->edge_cap) {
-				nav_graph->edge_cap = nav_graph->edge_cap << 1;
-				nav_graph->edges = realloc(nav_graph->edges, sizeof(NavEdge) * nav_graph->edge_cap);	
+			if(navgraph->edge_count + 1 >= navgraph->edge_cap) {
+				navgraph->edge_cap = navgraph->edge_cap << 1;
+				navgraph->edges = realloc(navgraph->edges, sizeof(NavEdge) * navgraph->edge_cap);	
 			}
 
 			// Skip creating edge if the reverse of it already exists 
 			bool duplicate = false;
-			for(u16 k = 0; k < nav_graph->edge_count; k++) {
-				NavEdge *edge = &nav_graph->edges[k];
+			for(u16 k = 0; k < navgraph->edge_count; k++) {
+				NavEdge *edge = &navgraph->edges[k];
 				if((edge->node_A == i && edge->node_B == j) || (edge->node_B == i && edge->node_A == j)) {
 					duplicate = true;
 					break;
@@ -628,7 +631,172 @@ void BuildNavGraph(MapSection *sect) {
 				continue;
 
 			// Copy to array	
-			nav_graph->edges[nav_graph->edge_count++] = edge;
+			navgraph->edges[navgraph->edge_count++] = edge;
+		}
+	}
+
+	for(u16 i = 0; i < navgraph->edge_count; i++) {
+		NavEdge *edge = &navgraph->edges[i];
+
+		NavNode *node_A = &navgraph->nodes[edge->node_A];
+		NavNode *node_B = &navgraph->nodes[edge->node_B];
+
+		node_A->edges[node_A->edge_count++] = i;
+		node_B->edges[node_B->edge_count++] = i;
+	}
+
+	sect->navgraph_count++;
+
+	SubdivideNavGraph(sect, &sect->navgraphs[0]);
+}
+
+void GetConnectedNodes(NavNode *node, u16 connected[MAX_EDGES_PER_NODE], u8 *count, NavGraph *navgraph) {
+	for(u16 i = 0; i < node->edge_count; i++) {
+		NavEdge *edge = &navgraph->edges[node->edges[i]];
+
+		NavNode *node_A = &navgraph->nodes[edge->node_A];
+		NavNode *node_B = &navgraph->nodes[edge->node_B];
+
+		u16 next_node = (node_A->id == node->id) ? node_B->id : node_A->id;
+		connected[(*count)++] = next_node; 
+	}	
+}
+
+void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count) {
+	NavNode *node = &navgraph->nodes[start_node];	
+
+	walked[(*count)++] = start_node;
+	
+	u16 next_nodes[MAX_EDGES_PER_NODE];
+	u8 next_count = 0;
+
+	GetConnectedNodes(node, next_nodes, &next_count, navgraph);
+	
+	for(u8 i = 0; i < next_count; i++) {
+		bool duplicate = false;
+		for(u16 j = 0; j < *count; j++) {
+			if(walked[j] == next_nodes[i]) {
+				duplicate = true;
+			}
+		}
+
+		if(duplicate) 
+			continue;
+
+		WalkNavGraph(sect, navgraph, next_nodes[i], walked, count);
+	}
+}
+
+// Split navigation graphs so the spatial separation is reflected in data
+// Only having one graph would break pathfinding, 
+// graph/edge construction is distance based
+void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
+	u16 walked[navgraph->node_count];
+	u16 walk_count = 0;
+
+	WalkNavGraph(sect, navgraph, 0, walked, &walk_count);
+
+	//puts("-----------");
+	//for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
+
+	// Full graph was walked, no need for split
+	if(walk_count == navgraph->node_count) { 
+		return;
+	}
+
+	// Find split node candidate
+	u16 next_id = navgraph->node_count;
+
+	// Search through all nodes
+	for(u16 i = 0; i < navgraph->node_count; i++) {
+		NavNode *node_A = &navgraph->nodes[i];
+
+		// Search through walked nodes
+		for(u16 j = 0; j < walk_count; j++) {
+			NavNode *node_B = &navgraph->nodes[walked[j]];
+
+			// Node was walked, 
+			// not a valid split candidate. Skip
+			if(node_A->id == node_B->id)
+				continue;
+
+			// Node was NOT walked, split candidate found
+			next_id = node_A->id; 
+			break;
+		}	
+	}
+
+	walk_count = 0;
+	WalkNavGraph(sect, navgraph, next_id, walked, &walk_count);
+
+	//puts("-----------");
+	//for(u16 i = 0; i < walk_count; i++) printf("%d\n", walked[i]);
+}
+
+void DebugDrawNavGraphs(MapSection *sect, Model model) {
+	for(u16 i = 0; i < sect->navgraph_count; i++) {
+		NavGraph *navgraph = &sect->navgraphs[i];
+
+		for(u16 e = 0; e < navgraph->edge_count; e++) {
+			NavEdge *edge = &navgraph->edges[e];
+
+			NavNode *node_A = &navgraph->nodes[edge->node_A];
+			NavNode *node_B = &navgraph->nodes[edge->node_B];
+
+			DrawModel(model, node_A->position, 1, BLUE);
+			DrawModel(model, node_B->position, 1, BLUE);
+
+			//Color line_color = (e % 2 == 0) ? MAGENTA : GREEN; 
+			Color line_color = MAGENTA;
+			DrawLine3D(node_A->position, node_B->position, line_color);
+		}
+	}
+}
+
+void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size) {
+	Vector3 cam_dir = Vector3Normalize(Vector3Subtract(cam.target, cam.position));
+
+	for(u16 i = 0; i < sect->navgraph_count; i++) {
+		NavGraph *navgraph = &sect->navgraphs[0];
+
+		for(u16 n = 0; n < navgraph->node_count; n++) {
+			NavNode *node = &navgraph->nodes[n];
+
+			Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, node->position));
+			if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+
+			float dist = Vector3Distance(node->position, cam.position);
+			float text_size = (30);
+
+			Vector2 pos = GetWorldToScreen(node->position, cam);
+
+			//DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
+			/*
+			for(u8 e = 0; e < node->edge_count; e++) {
+				NavEdge *edge = &navgraph->edges[node->edges[e]];
+				DrawText(TextFormat(" -> %d", edge->node_B), pos.x, pos.y, text_size, YELLOW);
+			}
+			*/
+
+			DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
+		}
+
+		for(u16 e = 0; e < navgraph->edge_count; e++) {
+			NavEdge *edge = &navgraph->edges[e];
+
+			NavNode *node_A = &navgraph->nodes[edge->node_A];
+			NavNode *node_B = &navgraph->nodes[edge->node_B];
+
+			Vector3 mid = Vector3Scale(Vector3Add(node_A->position, node_B->position), 0.5f);
+
+			Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, mid));
+			if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+
+			Vector2 pos = GetWorldToScreen(mid, cam);
+
+			float text_size = (30);
+
+			DrawText(TextFormat("%d -> %d", edge->node_A, edge->node_B), pos.x, pos.y, text_size, GRAY);
 		}
 	}
 }

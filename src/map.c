@@ -684,9 +684,7 @@ void GetConnectedNodes(NavNode *node, u16 connected[MAX_EDGES_PER_NODE], u8 *cou
 	}	
 }
 
-void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count) {
-	Message("WalkNavGraph()", ANSI_YELLOW);
-
+void WalkNavGraph(NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count) {
 	NavNode *node = &navgraph->nodes[start_node];	
 
 	walked[(*count)++] = start_node;
@@ -707,7 +705,7 @@ void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *wal
 		if(duplicate) 
 			continue;
 
-		WalkNavGraph(sect, navgraph, next_nodes[i], walked, count);
+		WalkNavGraph(navgraph, next_nodes[i], walked, count);
 	}
 }
 
@@ -732,7 +730,7 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 
 		u16 walk_count = 0;
 		u16 temp[navgraph->node_count];
-		WalkNavGraph(sect, navgraph, next, temp, &walk_count);
+		WalkNavGraph(navgraph, next, temp, &walk_count);
 
 		for(u16 i = 0; i < walk_count; i++) {
 			u16 j = temp[i];
@@ -744,13 +742,15 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 
 		splits[split_count++] = next;
 
-		for(u16 i = 0; i < walk_count; i++) printf("[%d]: -> %d\n", i, temp[i]);
+		//for(u16 i = 0; i < walk_count; i++) printf("[%d]: -> %d\n", i, temp[i]);
 	}
 
+	/*
 	printf("split count: %d\n", split_count);
 	for(short i = 0; i < split_count; i++) {
 		printf("split[%d] = %d \n", i, splits[i]);
 	}
+	*/
 
 	for(short i = 0; i < split_count; i++) {
 		u16 split_id = splits[i];
@@ -758,7 +758,7 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 		u16 walk_count = 0;
 		u16 node_ids[navgraph->node_count];
 
-		WalkNavGraph(sect, navgraph, split_id, node_ids, &walk_count);
+		WalkNavGraph(navgraph, split_id, node_ids, &walk_count);
 
 		NavGraph graph = (NavGraph) {0};
 		graph.node_count = walk_count;
@@ -779,6 +779,18 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 	free(traveled);
 }
 
+bool IsNodeInGraph(NavGraph *graph, NavNode *node) {
+	u16 walked[graph->node_count];
+	u16 walk_count = 0;
+	WalkNavGraph(graph, 0, walked, &walk_count);
+
+	for(u16 i = walk_count; i > 0; i--) {
+		if(walked[i] == node->id)
+			return true;
+	}
+
+	return false;
+}
 
 void DebugDrawNavGraphs(MapSection *sect, Model model) {
 	/*
@@ -823,38 +835,40 @@ void DebugDrawNavGraphs(MapSection *sect, Model model) {
 void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size) {
 	Vector3 cam_dir = Vector3Normalize(Vector3Subtract(cam.target, cam.position));
 
-	NavGraph *navgraph = &sect->base_navgraph;
+	for(u16 i = 0; i < sect->navgraph_count; i++) {
+		NavGraph *navgraph = &sect->navgraphs[i];
 
-	for(u16 n = 0; n < navgraph->node_count; n++) {
-		NavNode *node = &navgraph->nodes[n];
+		for(u16 n = 0; n < navgraph->node_count; n++) {
+			NavNode *node = &navgraph->nodes[n];
 
-		Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, node->position));
-		if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+			Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, node->position));
+			if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
 
-		float dist = Vector3Distance(node->position, cam.position);
-		float text_size = (30);
+			float dist = Vector3Distance(node->position, cam.position);
+			float text_size = (30);
 
-		Vector2 pos = GetWorldToScreen(node->position, cam);
+			Vector2 pos = GetWorldToScreen(node->position, cam);
 
-		DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
-	}
+			for(u16 e = 0; e < navgraph->edge_count; e++) {
+				NavEdge *edge = &navgraph->edges[e];
 
-	for(u16 e = 0; e < navgraph->edge_count; e++) {
-		NavEdge *edge = &navgraph->edges[e];
+				NavNode *node_A = &navgraph->nodes[edge->id_A];
+				NavNode *node_B = &navgraph->nodes[edge->id_B];
 
-		NavNode *node_A = &navgraph->nodes[edge->id_A];
-		NavNode *node_B = &navgraph->nodes[edge->id_B];
+				Vector3 mid = Vector3Scale(Vector3Add(node_A->position, node_B->position), 0.5f);
 
-		Vector3 mid = Vector3Scale(Vector3Add(node_A->position, node_B->position), 0.5f);
+				Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, mid));
+				if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
 
-		Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, mid));
-		if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+				Vector2 pos = GetWorldToScreen(mid, cam);
 
-		Vector2 pos = GetWorldToScreen(mid, cam);
+				float text_size = (30);
 
-		float text_size = (30);
+				DrawText(TextFormat("%d -> %d", edge->id_A, edge->id_B), pos.x, pos.y, text_size, GRAY);
+			}
 
-		DrawText(TextFormat("%d -> %d", edge->id_A, edge->id_B), pos.x, pos.y, text_size, GRAY);
+			DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
+		}
 	}
 }
 
@@ -867,6 +881,7 @@ typedef struct {
 rMeshList rmesh_list = {0};
 
 void UpdateMapMeshList(MapSection *sect, Camera3D cam) {
+	/*
 	Vector3 view_pos = cam.position;
 	Vector3 view_dir = Vector3Normalize(Vector3Subtract(cam.target, view_pos));
 
@@ -876,11 +891,15 @@ void UpdateMapMeshList(MapSection *sect, Camera3D cam) {
 
 		rmesh_list.ids[rmesh_list.count++] = i;
 	}
+	*/
 }
 
 void DrawMap(MapSection *sect) {
+	/*
 	for(u16 i = 0; i < rmesh_list.count; i++) {
 		DrawMesh(sect->model.meshes[rmesh_list.ids[i]], sect->model.materials[1], sect->model.transform);	
 	}
+	*/
+	DrawModel(sect->model, Vector3Zero(), 1, WHITE);
 }
 

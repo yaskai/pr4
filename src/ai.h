@@ -44,31 +44,63 @@ typedef struct {
 #define AI_INPUT_SELF_GLITCHED	0x0008
 #define AI_INPUT_TAKE_DAMAGE	0x0010
 #define AI_INPUT_LOST_PLAYER	0x0020
+#define AI_INPUT_HEAR_PLAYER	0x0040
 // *** 
 
-enum anim_states : u8 {
+enum ANIM_STATES : u8 {
 	STATE_IDLE,
 	STATE_MOVE,	
 	STATE_ATTACK,
-	STATE_DIE
+	STATE_RELOAD,
+	STATE_DEAD,
 };
 
 enum AI_SCHEDULES : u8 {
 	SCHED_IDLE,
-	SCHED_FIX,
+	SCHED_PATROL,
+	SCHED_WAIT,
+	SCHED_FIX_FRIEND,
+	SCHED_SEARCH_FOR_PLAYER,
+};
+
+enum AI_TASKS : u8 {
+	TASK_GOTO_POINT,	
+	TASK_FIRE_WEAPON,
+	TASK_RELOAD_WEAPON,
+	TASK_WAIT_TIME,
+	TASK_FIND_POINT,
 };
 
 typedef struct {
+	Vector3 target_point;
+
+	u32 schedule_id;
+	u32 interrupt_mask;
+
+	u16 target_navnode_id;
+	u16 target_entity;
+
+} Ai_TaskData;
+
+typedef struct {
+	Ai_TaskData task_data;
+
 	float sight_cone;
 
 	u32 input_mask;
+	u32 curr_schedule;
 
-	u8 anim_state;
+	int curr_navnode_id;
+
+	u16 self_ent_id;
 
 	u16 navgraph_id;
+
+	u8 state;
 
 	bool component_valid;
 
 } comp_Ai;
 
 #endif
+

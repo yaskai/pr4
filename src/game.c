@@ -148,6 +148,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	game->player_gun = (PlayerGun) {0};
 	PlayerGunInit(&game->player_gun, &game->ent_handler.ents[0]);
+
+	AiNavSetup(&game->ent_handler, &game->test_section);
 }
 
 void GameUpdate(Game *game, float dt) {
@@ -169,7 +171,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 0;
+u8 debug_draw_flags = 1;
 
 void GameDraw(Game *game) {
 	// 3D Rendering, main
@@ -273,10 +275,9 @@ void GameDraw(Game *game) {
 				if(IsKeyPressed(KEY_H)) debug_draw_flags ^= DEBUG_DRAW_HULLS;
 				if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
 					for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
-						//Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 						Tri *tri = &game->test_section.bvh[1].tris.arr[j];
 						Color color = colors[tri->hull_id % 7];
-						//DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorTint(color, BROWN));
+						DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorTint(color, BROWN));
 					}
 					for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
 						Hull *hull = &game->test_section._hulls[1].arr[j];

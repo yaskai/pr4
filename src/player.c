@@ -28,7 +28,7 @@ bool land_frame = false;
 float y_vel_prev;
 
 #define FALLDAMAGE_THRESHOLD 500.0f
-#define FALLDAMAGE_MULTIPLIER -0.045f
+#define FALLDAMAGE_MULTIPLIER -0.095f
 
 short nudged_this_frame = 0;
 
@@ -263,6 +263,7 @@ void PlayerDisplayDebugInfo(Entity *player) {
 	*/
 
 	// Draw box points
+	box_points = BoxGetPoints(player->comp_transform.bounds);
 	for(short i = 0; i < 8; i++) {
 		DrawSphere(box_points.v[i], 2, RED);
 	}
@@ -316,7 +317,7 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	pm_ApplyGravity(ct, dt);
 
 	// 6. Movement tracing 
-	pmTraceData pm;
+	pmTraceData pm = (pmTraceData) {0};
 	pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
 
 	// Step trace

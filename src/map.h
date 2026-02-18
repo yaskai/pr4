@@ -87,7 +87,9 @@ void SplitNavGraph(NavGraph *navgraph, MapSection *sect);
 void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph);
 
 void GetConnectedNodes(NavNode *node, u16 connected[MAX_EDGES_PER_NODE], u8 *count, NavGraph *navgraph);
-void WalkNavGraph(MapSection *sect, NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count);
+void WalkNavGraph(NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count);
+
+bool IsNodeInGraph(NavGraph *graph, NavNode *node);
 
 void DebugDrawNavGraphs(MapSection *sect, Model model);
 void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size);

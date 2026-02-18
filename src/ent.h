@@ -8,6 +8,7 @@
 #ifndef ENT_H_
 #define ENT_H_
 
+// ----------------------------------------------------------------------------------------------------------------------------
 void EntDebugText();
 
 void LoadEntityBaseModels();
@@ -112,6 +113,8 @@ typedef struct {
 
 	Vector3 player_start;
 
+	float ai_tick;
+
 	u16 count;
 	u16 capacity;
 
@@ -126,7 +129,9 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt);
 void RenderEntities(EntityHandler *handler, float dt);
 
 void DrawEntsDebugInfo();
+// ----------------------------------------------------------------------------------------------------------------------------
 
+// ----------------------------------------------------------------------------------------------------------------------------
 // *** Player defs *** 
 typedef struct {
 	BoundingBox sweep_box;
@@ -153,24 +158,31 @@ void PlayerDisplayDebugInfo(Entity *player);
 void PlayerDebugText(Entity *player);
 
 void PlayerMove(Entity *player, float dt);
-// ***
+// ----------------------------------------------------------------------------------------------------------------------------
 
 void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_graph);
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
-// ** Enemies ** 
-
+// ----------------------------------------------------------------------------------------------------------------------------
+// **** Enemies **** 
 void TurretUpdate(Entity *ent, float dt);
 void TurretDraw(Entity *ent);
 
 void MaintainerUpdate(Entity *ent, float dt);
 void MaintainerDraw(Entity *ent, float dt);
+// ----------------------------------------------------------------------------------------------------------------------------
 
-// ***
-
-// ** AI **
+// ----------------------------------------------------------------------------------------------------------------------------
+// **** AI ****
+void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt);
+void AiComponentUpdate(EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt);
 
 void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect);
-// ***
+void AiDoSchedule(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt);
+void AiDoState(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt);
+
+int FindClosestNavNode(Vector3 ent_position, MapSection *sect);
+void AiNavSetup(EntityHandler *handler, MapSection *sect);
+// ----------------------------------------------------------------------------------------------------------------------------
 
 #endif

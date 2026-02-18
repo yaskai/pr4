@@ -190,6 +190,8 @@ void EntHandlerInit(EntityHandler *handler) {
 
 	LoadEntityBaseModels();
 	LoadEntityBaseAnims();
+
+	handler->ai_tick = 0;
 }
 
 void EntHandlerClose(EntityHandler *handler) {
@@ -205,7 +207,7 @@ void EntHandlerClose(EntityHandler *handler) {
 // This struct stores IDs of entities to draw
 #define MAX_RENDERED_ENTS	128
 #define MIN_VIEW_RADIUS		(40.0*40.0)
-#define MAX_VIEW_DOT		(-0.607f * DEG2RAD)
+#define MAX_VIEW_DOT		(-0.107f * DEG2RAD)
 typedef struct {
 	u16 ids[MAX_RENDERED_ENTS];
 	u16 count;	
@@ -258,9 +260,10 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 		Vector3 right = Vector3CrossProduct(view_dir, UP);
 
-		short visible = 2;
-		for(short j = 0; j < 2; j++) {
+		short visible = 3;
+		for(short j = 0; j < 3; j++) {
 			short offset = (j & 1) ? -1 : 1;
+			if(j == 0) offset = 0;
 
 			Vector3 test_point = Vector3Subtract(ent->comp_transform.position, Vector3Scale(right, 72 * offset));
 			if(view_pos.y > ent->comp_transform.position.y) test_point.y = ent->comp_transform.bounds.max.y;
@@ -280,6 +283,12 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			continue;
 
 		render_list.ids[render_list.count++] = i;
+	}
+
+	handler->ai_tick -= dt;
+	if(handler->ai_tick <= 0.0f) {
+		AiSystemUpdate(handler, sect, dt);
+		handler->ai_tick = 0.166f;
 	}
 }
 
@@ -351,7 +360,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
 
 	ent.comp_ai = (comp_Ai) {0};
-	ent.comp_ai.component_valid = true;
+	ent.comp_ai.component_valid = false;
 
 	ent.comp_health = (comp_Health) {0};
 	ent.comp_health.amount = 100;
@@ -370,6 +379,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
 			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
 
+			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.25f;
 
 		} break;
@@ -390,8 +400,8 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
 			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
 
+			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.25f;
-
 
 		} break;
 	}
@@ -447,6 +457,28 @@ void MaintainerDraw(Entity *ent, float dt) {
 	}
 }
 
+void AiComponentUpdate(EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt) {
+	// Handle interrupts
+	for(u32 i = 0; i < 32; i++) {
+		u32 mask = (1 << i);
+		if(task_data->interrupt_mask & mask) {
+
+		}
+	}
+}
+
+void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];
+
+		if(!ent->comp_ai.component_valid)
+			continue;
+
+		comp_Ai *ai = &ent->comp_ai;
+		AiComponentUpdate(handler, ai, NULL, sect, dt);
+	}
+}
+
 // Update senses inputs for an entitie's AI component,
 // executed once per frame for every entity with a valid component.
 void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
@@ -486,6 +518,68 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 	}
 	
 	// ***
+}
+
+void AiDoSchedule(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
+}
+
+void AiDoState(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
+}
+
+#define BREAK_RADIUS (8.0f*8.0f)
+int FindClosestNavNode(Vector3 ent_position, MapSection *sect) {
+	int id = -1;
+
+	float closest_dist = FLT_MAX;
+
+	for(u16 i = 0; i < sect->base_navgraph.node_count; i++) {
+		NavNode *node = &sect->base_navgraph.nodes[i];
+
+		float dist = Vector3DistanceSqr(node->position, ent_position);	
+		if(dist > closest_dist) 
+			continue;
+
+		if(!CheckCollisionSpheres(ent_position, 32, node->position, 32))
+			continue;
+
+		closest_dist = dist;
+		id = node->id;
+
+		if(dist < BREAK_RADIUS)
+			break;
+	}
+
+	return id;
+}
+
+void AiNavSetup(EntityHandler *handler, MapSection *sect) {
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];	
+
+		comp_Ai *ai = &ent->comp_ai;
+		if(!ai->component_valid) continue;
+
+		comp_Transform *ct = &ent->comp_transform;
+
+		ai->curr_navnode_id = FindClosestNavNode(ct->position, sect);
+
+		if(ai->curr_navnode_id > -1) {
+			NavNode *node = &sect->base_navgraph.nodes[ai->curr_navnode_id];
+			
+			ct->position.x = node->position.x;
+			ct->position.z = node->position.z;
+
+			for(u8 j = 0; j < sect->navgraph_count; j++) {
+				if(IsNodeInGraph(&sect->navgraphs[j], node)) {
+					ai->navgraph_id = j;
+					break;
+				}
+			}
+		}
+
+		printf("graph: %d\n", ai->navgraph_id);
+		printf("node: %d\n", ai->curr_navnode_id);
+	}
 }
 
 void EntDebugText() {

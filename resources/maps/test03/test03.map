@@ -3,7 +3,6 @@
 // entity 0
 {
 "classname" "worldspawn"
-"_tb_layer_locked" "1"
 // brush 0
 {
 ( 192 -64 144 ) ( 192 64 16 ) ( 192 64 144 ) concrete_00 0 0 0 1 1
@@ -962,7 +961,7 @@
 // entity 2
 {
 "classname" "maintainer_spawn"
-"origin" "96 -528 40"
+"origin" "-144 -512 40"
 "enum_id" "2"
 "angle" "0"
 }
@@ -1006,34 +1005,58 @@
 // entity 9
 {
 "classname" "nav_node"
-"origin" "98 -466 50"
+"origin" "-46 -530 50"
 "flag" "0"
 }
 // entity 10
 {
 "classname" "nav_node"
-"origin" "-46 -530 50"
+"origin" "-94 -514 50"
 "flag" "0"
 }
 // entity 11
 {
 "classname" "nav_node"
-"origin" "-94 -514 50"
+"origin" "-142 -514 50"
 "flag" "0"
 }
 // entity 12
 {
 "classname" "nav_node"
-"origin" "-142 -514 50"
+"origin" "-190 -514 66"
 "flag" "0"
 }
 // entity 13
 {
 "classname" "nav_node"
-"origin" "-190 -514 66"
+"origin" "114 -450 50"
 "flag" "0"
 }
 // entity 14
+{
+"classname" "nav_node"
+"origin" "114 -402 50"
+"flag" "0"
+}
+// entity 15
+{
+"classname" "nav_node"
+"origin" "114 -354 50"
+"flag" "0"
+}
+// entity 16
+{
+"classname" "nav_node"
+"origin" "82 -322 50"
+"flag" "0"
+}
+// entity 17
+{
+"classname" "nav_node"
+"origin" "82 -290 50"
+"flag" "0"
+}
+// entity 18
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"

@@ -691,7 +691,7 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 		u16 tri_id = bvh->tris.ids[node->first_tri + i];
 		Tri tri = bvh->tris.arr[tri_id];
 
-		//if(Vector3DotProduct(ray.direction, tri.normal) > 0) continue;
+		if(Vector3DotProduct(ray.direction, tri.normal) > 0) continue;
 		//if(Vector3DotProduct(ray.direction, tri.normal) > 0) Vector3Negate(tri.normal);
 		
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);

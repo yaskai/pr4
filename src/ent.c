@@ -341,7 +341,7 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 		return;
 	}
 
-	if(!strcmp(spawn_point->tag, "info_player_start")) {
+	if(!strcmp(spawn_point->tag, "player_start")) {
 		handler->player_start = spawn_point->position;
 		handler->player_start.y += BODY_VOLUME_MEDIUM.y * 0.5f;
 		return;
@@ -562,24 +562,6 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 
 		comp_Transform *ct = &ent->comp_transform;
 
-		/*
-		ai->curr_navnode_id = FindClosestNavNode(ct->position, sect);
-
-		if(ai->curr_navnode_id > -1) {
-			NavNode *node = &sect->base_navgraph.nodes[ai->curr_navnode_id];
-			
-			ct->position.x = node->position.x;
-			ct->position.z = node->position.z;
-
-			for(u8 j = 0; j < sect->navgraph_count; j++) {
-				if(IsNodeInGraph(&sect->navgraphs[j], node)) {
-					ai->navgraph_id = j;
-					break;
-				}
-			}
-		}
-		*/
-
 		for(u16 j = 0; j < sect->navgraph_count; j++) {
 			NavGraph *graph = &sect->navgraphs[j];
 
@@ -587,6 +569,10 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 			if(closest_node > -1) {
 				ai->navgraph_id = j;
 				ai->curr_navnode_id = closest_node;
+
+				NavNode *node = &graph->nodes[closest_node];
+				ct->position.x = node->position.x;
+				ct->position.z = node->position.z;
 
 				break;
 			}
@@ -601,7 +587,7 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 			printf("graph: %d\n", ai->navgraph_id);
 			printf("node: %d\n", ai->curr_navnode_id);
 
-			MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 0);
+			MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 6);
 		}
 	}
 }
@@ -625,29 +611,9 @@ void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 
 	u16 prev = node->id;
 
-	u16 _path[graph->node_count];
-	u16 _path_node_count = 0;
-	memset(_path, 0, sizeof(u16) * graph->node_count);
-
-	/*
-	printf("edge count %d: \n", graph->edge_count);
-	printf("node count %d: \n", graph->node_count);
-
-	for(u16 i = 0; i < graph->edge_count; i++) {
-		printf("edge [%d]: \n", i);
-
-		printf("id_A -> %d\n", graph->edges[i].id_A);
-		printf("id_B -> %d\n", graph->edges[i].id_B);
-	}
-
-	u8 next_count = 0;	
-	u16 next_nodes[MAX_EDGES_PER_NODE] = { 0 };
-	GetConnectedNodes(&graph->nodes[3], next_nodes, &next_count, graph);
-
-	printf("%d\n", next_count);
-	
-	return;
-	*/
+	path->curr = node->id;
+	path->count = 0;
+	memset(path, node->id, sizeof(u16) * MAX_PATH_NODES);
 	
 	while(!dest_found) {
 		u8 next_count = 0;	
@@ -671,7 +637,8 @@ void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 			u16 back = node->id;
 			bool back_found = false;
 			while(!back_found) {
-				node = &graph->nodes[_path[_path_node_count--]];
+				//node = &graph->nodes[_path[_path_node_count--]];
+				node = &graph->nodes[path->nodes[path->count--]];
 
 				u8 adj_count = 0;
 				u16 adj[MAX_EDGES_PER_NODE] = { node->id };
@@ -724,11 +691,11 @@ void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 
 		prev = node->id;
 
-		_path[_path_node_count++] = node->id;
+		path->nodes[path->count++] = node->id;
 		traveled[prev] = true;
 
 		if(next_id == targ_node->id) {
-			_path[_path_node_count++] = next_id;
+			path->nodes[path->count++] = next_id;
 			dest_found = true;
 			break;
 		}
@@ -736,8 +703,8 @@ void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 		node = &graph->nodes[next_id];
 	}
 
-	for(u16 i = 0; i < _path_node_count-1; i++) {
-		printf("%d -> %d\n", _path[i], _path[i+1]);
+	for(u16 i = 0; i < path->count-1; i++) {
+		printf("%d -> %d\n", path->nodes[i], path->nodes[i+1]);
 	}
 }
 

@@ -30,8 +30,9 @@ typedef struct {
 
 } NavGraph;
 
+#define MAX_PATH_NODES 32
 typedef struct {
-	NavNode nodes[32];
+	u16 nodes[MAX_PATH_NODES];
 	u16 count;	
 
 	u16 curr;

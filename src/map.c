@@ -781,17 +781,6 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 			graph.nodes[j].id = j;
 			graph.nodes[j].edge_count = 0;
 		}
-		/*
-		for(u16 j = 0; j < graph.edge_count; j++) {
-			NavEdge *edge = &graph.edges[j];
-
-			NavNode *a = &graph.nodes[edge->id_A];
-			NavNode *b = &graph.nodes[edge->id_B];
-
-			a->edges[a->edge_count++] = j;
-			b->edges[b->edge_count++] = j;
-		}
-		*/
 		BuildNavEdges(&graph);
 		for(u16 j = 0; j < graph.edge_count; j++) {
 			NavEdge *edge = &graph.edges[j];
@@ -952,7 +941,7 @@ void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size)
 			}
 
 			DrawText(TextFormat("%d", node->id), pos.x, pos.y, text_size, YELLOW);
-			DrawText(TextFormat("ec: %d", node->edge_count), pos.x, pos.y - 32, text_size, SKYBLUE);
+			//DrawText(TextFormat("ec: %d", node->edge_count), pos.x, pos.y - 32, text_size, SKYBLUE);
 			/*
 			for(u8 k = 0; k < navgraph->nodes[n].edge_count; k++) {
 				DrawText(TextFormat("%d", navgraph->nodes[n].edges[k]), pos.x, pos.y - (32 * (k+1)), text_size, SKYBLUE);

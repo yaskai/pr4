@@ -960,103 +960,121 @@
 }
 // entity 2
 {
-"classname" "maintainer_spawn"
-"origin" "-144 -512 40"
-"enum_id" "2"
-"angle" "0"
-}
-// entity 3
-{
 "classname" "turret_spawn"
 "origin" "-28 -428 44"
 "enum_id" "1"
 "angle" "0"
 }
-// entity 4
-{
-"classname" "nav_node"
-"origin" "82 -498 50"
-"flag" "0"
-}
-// entity 5
-{
-"classname" "nav_node"
-"origin" "34 -498 50"
-"flag" "0"
-}
-// entity 6
+// entity 3
 {
 "classname" "nav_node"
 "origin" "-14 -498 50"
 "flag" "0"
 }
-// entity 7
-{
-"classname" "nav_node"
-"origin" "-14 -450 50"
-"flag" "0"
-}
-// entity 8
-{
-"classname" "nav_node"
-"origin" "-14 -418 50"
-"flag" "0"
-}
-// entity 9
+// entity 4
 {
 "classname" "nav_node"
 "origin" "-46 -530 50"
 "flag" "0"
 }
-// entity 10
-{
-"classname" "nav_node"
-"origin" "-94 -514 50"
-"flag" "0"
-}
-// entity 11
+// entity 5
 {
 "classname" "nav_node"
 "origin" "-142 -514 50"
 "flag" "0"
 }
-// entity 12
+// entity 6
 {
 "classname" "nav_node"
 "origin" "-190 -514 66"
 "flag" "0"
 }
-// entity 13
-{
-"classname" "nav_node"
-"origin" "114 -450 50"
-"flag" "0"
-}
-// entity 14
+// entity 7
 {
 "classname" "nav_node"
 "origin" "114 -402 50"
 "flag" "0"
 }
-// entity 15
+// entity 8
 {
 "classname" "nav_node"
 "origin" "114 -354 50"
 "flag" "0"
 }
-// entity 16
+// entity 9
 {
 "classname" "nav_node"
 "origin" "82 -322 50"
 "flag" "0"
 }
-// entity 17
+// entity 10
 {
 "classname" "nav_node"
 "origin" "82 -290 50"
 "flag" "0"
 }
+// entity 11
+{
+"classname" "nav_node"
+"origin" "-94 -514 50"
+"flag" "0"
+}
+// entity 12
+{
+"classname" "maintainer_spawn"
+"origin" "-16 -96 40"
+"enum_id" "2"
+"angle" "0"
+}
+// entity 13
+{
+"classname" "nav_node"
+"origin" "18 -482 50"
+"flag" "0"
+}
+// entity 14
+{
+"classname" "nav_node"
+"origin" "66 -482 50"
+"flag" "0"
+}
+// entity 15
+{
+"classname" "nav_node"
+"origin" "114 -450 50"
+"flag" "0"
+}
+// entity 16
+{
+"classname" "nav_node"
+"origin" "-30 -450 50"
+"flag" "0"
+}
+// entity 17
+{
+"classname" "nav_node"
+"origin" "50 -194 50"
+"flag" "0"
+}
 // entity 18
+{
+"classname" "nav_node"
+"origin" "50 -146 50"
+"flag" "0"
+}
+// entity 19
+{
+"classname" "nav_node"
+"origin" "50 -98 50"
+"flag" "0"
+}
+// entity 20
+{
+"classname" "nav_node"
+"origin" "2 -82 50"
+"flag" "0"
+}
+// entity 21
 {
 "classname" "func_group"
 "_tb_type" "_tb_layer"

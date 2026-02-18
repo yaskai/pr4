@@ -9,6 +9,7 @@
 #include "geo.h"
 #include "ai.h"
 #include "../include/log_message.h"
+#include "../include/sort.h"
 
 #define MAX_CLIPS 6
 #define SLIDE_STEPS 4
@@ -561,6 +562,7 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 
 		comp_Transform *ct = &ent->comp_transform;
 
+		/*
 		ai->curr_navnode_id = FindClosestNavNode(ct->position, sect);
 
 		if(ai->curr_navnode_id > -1) {
@@ -576,12 +578,166 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 				}
 			}
 		}
+		*/
 
-		printf("graph: %d\n", ai->navgraph_id);
-		printf("node: %d\n", ai->curr_navnode_id);
+		for(u16 j = 0; j < sect->navgraph_count; j++) {
+			NavGraph *graph = &sect->navgraphs[j];
+
+			int closest_node = FindClosestNavNodeInGraph(ct->position, graph);
+			if(closest_node > -1) {
+				ai->navgraph_id = j;
+				ai->curr_navnode_id = closest_node;
+
+				break;
+			}
+		}
+	}
+
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];	
+		comp_Ai *ai = &ent->comp_ai;
+
+		if(ent->type == ENT_MAINTAINER) {
+			printf("graph: %d\n", ai->navgraph_id);
+			printf("node: %d\n", ai->curr_navnode_id);
+
+			MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 0);
+		}
 	}
 }
 
-void EntDebugText() {
+void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
+	comp_Ai *ai = &ent->comp_ai;
+	Ai_TaskData *task_data = &ai->task_data;
+
+	NavPath *path = &task_data->path;
+
+	NavNode *node = &graph->nodes[ai->curr_navnode_id];
+	NavNode *targ_node = &graph->nodes[target_id];
+
+	u16 start = node->id;
+
+	bool dest_found = false;
+	path->count = 0;
+
+	bool traveled[graph->node_count];
+	memset(traveled, false, sizeof(bool) * graph->node_count);
+
+	u16 prev = node->id;
+
+	u16 _path[graph->node_count];
+	u16 _path_node_count = 0;
+	memset(_path, 0, sizeof(u16) * graph->node_count);
+
+	/*
+	printf("edge count %d: \n", graph->edge_count);
+	printf("node count %d: \n", graph->node_count);
+
+	for(u16 i = 0; i < graph->edge_count; i++) {
+		printf("edge [%d]: \n", i);
+
+		printf("id_A -> %d\n", graph->edges[i].id_A);
+		printf("id_B -> %d\n", graph->edges[i].id_B);
+	}
+
+	u8 next_count = 0;	
+	u16 next_nodes[MAX_EDGES_PER_NODE] = { 0 };
+	GetConnectedNodes(&graph->nodes[3], next_nodes, &next_count, graph);
+
+	printf("%d\n", next_count);
+	
+	return;
+	*/
+	
+	while(!dest_found) {
+		u8 next_count = 0;	
+		u16 next_nodes[MAX_EDGES_PER_NODE] = { 0 };
+		GetConnectedNodes(node, next_nodes, &next_count, graph);
+
+		if(next_count == 1 && traveled[prev]) {
+			/*
+			memset(traveled, false, sizeof(bool) * graph->node_count);
+			traveled[node->id] = true;
+			traveled[prev] = true;
+
+			traveled[start] = false;
+			node = &graph->nodes[start];
+
+			prev = node->id;
+			
+			_path_node_count = 0;
+			*/
+
+			u16 back = node->id;
+			bool back_found = false;
+			while(!back_found) {
+				node = &graph->nodes[_path[_path_node_count--]];
+
+				u8 adj_count = 0;
+				u16 adj[MAX_EDGES_PER_NODE] = { node->id };
+				GetConnectedNodes(node, adj, &adj_count, graph);
+
+				for(u8 j = 0; j < adj_count; j++) {
+					if(!traveled[adj[j]]) {
+						back = adj[j];				
+						back_found = true;
+						break;
+					}
+				}
+			}
+
+			node = &graph->nodes[back];
+
+			continue;
+		}
+
+		float costs[next_count];
+		memset(costs, FLT_MAX, sizeof(float) * next_count);
+		for(u8 i = 0; i < next_count; i++) {
+			NavNode *n = &graph->nodes[next_nodes[i]]; 	
+			float cost = Vector3DistanceSqr(targ_node->position, n->position);
+			costs[i] = cost;
+		}
+
+		for(u8 i = 0; i < next_count; i++) {
+			for(u8 j = i+1; j < next_count-1; j++) {
+				if(costs[i] > costs[j]) {
+					u16 temp_id = next_nodes[i];
+					next_nodes[i] = next_nodes[j];
+					next_nodes[j] = temp_id;
+
+					float temp_cost = costs[i];
+					costs[i] = costs[j];
+					costs[j] = temp_cost; 
+				}
+			}
+		}
+
+		u16 next_id = next_nodes[0];
+		for(u8 i = 0; i < next_count; i++) {
+			if(traveled[next_nodes[i]] == true)
+				continue;
+			
+			next_id = next_nodes[i];
+			break;
+		}
+
+		prev = node->id;
+
+		_path[_path_node_count++] = node->id;
+		traveled[prev] = true;
+
+		if(next_id == targ_node->id) {
+			_path[_path_node_count++] = next_id;
+			dest_found = true;
+			break;
+		}
+
+		node = &graph->nodes[next_id];
+	}
+
+	for(u16 i = 0; i < _path_node_count-1; i++) {
+		printf("%d -> %d\n", _path[i], _path[i+1]);
+	}
 }
 

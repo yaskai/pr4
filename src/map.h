@@ -88,7 +88,9 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph);
 
 void GetConnectedNodes(NavNode *node, u16 connected[MAX_EDGES_PER_NODE], u8 *count, NavGraph *navgraph);
 void WalkNavGraph(NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count);
+void WalkNavGraphEx(NavGraph *navgraph, u16 start_node, u16 *walked, u16 *count, u16 prev_node, u16 targ_node);
 
+int FindClosestNavNodeInGraph(Vector3 position, NavGraph *graph);
 bool IsNodeInGraph(NavGraph *graph, NavNode *node);
 
 void DebugDrawNavGraphs(MapSection *sect, Model model);

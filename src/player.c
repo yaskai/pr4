@@ -268,7 +268,7 @@ void PlayerDisplayDebugInfo(Entity *player) {
 		DrawSphere(box_points.v[i], 2, RED);
 	}
 
-	player_debug_data->accel = player_accel;	
+	player_debug_data->accel = player_accel;
 
 	/*
 	Ray rayX = (Ray) { .position = player->comp_transform.bounds.min, .direction = (Vector3) {1, 0, 0} };

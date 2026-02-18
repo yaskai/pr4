@@ -31,8 +31,11 @@ typedef struct {
 } NavGraph;
 
 typedef struct {
-	NavNode nodes[64];
+	NavNode nodes[32];
 	u16 count;	
+
+	u16 curr;
+	u16 targ;
 
 } NavPath;
 
@@ -72,12 +75,11 @@ enum AI_TASKS : u8 {
 };
 
 typedef struct {
-	Vector3 target_point;
+	NavPath path;
 
 	u32 schedule_id;
 	u32 interrupt_mask;
 
-	u16 target_navnode_id;
 	u16 target_entity;
 
 } Ai_TaskData;

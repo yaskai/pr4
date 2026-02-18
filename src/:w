@@ -779,30 +779,8 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 		for(u16 j = 0; j < walk_count; j++) {
 			graph.nodes[j] = navgraph->nodes[node_ids[j]];
 			graph.nodes[j].id = j;
-			graph.nodes[j].edge_count = 0;
 		}
-		/*
-		for(u16 j = 0; j < graph.edge_count; j++) {
-			NavEdge *edge = &graph.edges[j];
-
-			NavNode *a = &graph.nodes[edge->id_A];
-			NavNode *b = &graph.nodes[edge->id_B];
-
-			a->edges[a->edge_count++] = j;
-			b->edges[b->edge_count++] = j;
-		}
-		*/
 		BuildNavEdges(&graph);
-		for(u16 j = 0; j < graph.edge_count; j++) {
-			NavEdge *edge = &graph.edges[j];
-
-			NavNode *a = &graph.nodes[edge->id_A];
-			NavNode *b = &graph.nodes[edge->id_B];
-
-			a->edges[a->edge_count++] = j;
-			b->edges[b->edge_count++] = j;
-		}
-
 		sect->navgraphs[sect->navgraph_count++] = graph;
 
 		/*

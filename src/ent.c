@@ -208,7 +208,7 @@ void EntHandlerClose(EntityHandler *handler) {
 // **
 // This struct stores IDs of entities to draw
 #define MAX_RENDERED_ENTS	128
-#define MIN_VIEW_RADIUS		(40.0*40.0)
+#define MIN_VIEW_RADIUS		(64.0*64.0)
 #define MAX_VIEW_DOT		(-0.107f * DEG2RAD)
 typedef struct {
 	u16 ids[MAX_RENDERED_ENTS];
@@ -432,6 +432,18 @@ void TurretDraw(Entity *ent) {
 }
 
 void MaintainerUpdate(Entity *ent, float dt) {
+	comp_Ai *ai = &ent->comp_ai;
+
+	switch(ai->state) {
+		case STATE_IDLE:
+			ent->curr_anim = 0;
+			break;
+
+		case STATE_MOVE:
+			ent->curr_anim = 1;
+			break;
+	}
+
 	ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
 }
 
@@ -623,7 +635,7 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 	}
 }
 
-#define NULL_NODE 20000
+#define NULL_NODE UINT16_MAX
 bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 	bool dest_found = false;
 
@@ -644,9 +656,11 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 	}
 
 	g_cost[start] = 0.0f;
-	f_cost[start] = Vector3DistanceSqr(graph->nodes[start].position, graph->nodes[target_id].position);
+	f_cost[start] = Vector3Distance(graph->nodes[start].position, graph->nodes[target_id].position);
 
 	open[start] = true;
+
+	parent[start] = NULL_NODE;
 
 	while(true) {
 		u16 curr = NULL_NODE;
@@ -659,8 +673,12 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 			}
 		}
 
-		if(curr == NULL_NODE)
+		if(curr == NULL_NODE) {
+			ai->task_data.path_set = false;
+			path->count = 0;
+			path->targ = ai->curr_navnode_id;
 			return false;
+		}
 
 		if(curr == target_id)
 			break;
@@ -678,14 +696,14 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 			if(closed[neighbour])
 				continue;
 
-			float step_cost = Vector3DistanceSqr(graph->nodes[curr].position, graph->nodes[target_id].position);
+			float step_cost = Vector3Distance(graph->nodes[curr].position, graph->nodes[neighbour].position);
 			float tentative = g_cost[curr] + step_cost;
 
 			if(!open[neighbour] || tentative < g_cost[neighbour]) {
 				parent[neighbour] = curr;
 				g_cost[neighbour] = tentative;
 
-				f_cost[neighbour] = tentative + Vector3DistanceSqr(graph->nodes[neighbour].position, graph->nodes[target_id].position);
+				f_cost[neighbour] = tentative + Vector3Distance(graph->nodes[neighbour].position, graph->nodes[target_id].position);
 				open[neighbour] = true;
 			}
 		}
@@ -693,6 +711,22 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 
 	path->count = 0;
 	u16 curr = target_id;
+
+	bool reached_start = false;
+	u16 test = target_id;
+	while(test != NULL_NODE) {
+		if(test == start) {
+			reached_start = true;
+			break;
+		}
+		test = parent[test];
+	}
+
+	if(!reached_start) {
+		printf("did not reach start\n");
+		dest_found = false;
+		return dest_found;
+	}
 
 	while(curr != NULL_NODE && path->count < MAX_PATH_NODES - 1) {
 		path->nodes[path->count++] = curr;
@@ -704,13 +738,12 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 		path->nodes[i] = path->nodes[path->count - 1 - i];
 		path->nodes[path->count - 1 - i] = temp;
 	}
-
+	
 	path->curr = 0;
 	ai->task_data.path_set = true;
 	ai->curr_navnode_id = path->nodes[0];
 
 	dest_found = true;
-
 	return dest_found;
 }
 
@@ -722,10 +755,14 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id) {
 	NavPath *path = &task->path;
 
 	if(path_id >= path->count) {
+		//printf("move not possible, path max overflow\n");
+		ct->velocity = Vector3Zero();
 		return false;
 	}
 
 	if(path_id >= graph->node_count) {
+		//printf("move not possible, graph count overflow\n");
+		ct->velocity = Vector3Zero();
 		return false;
 	}
 
@@ -742,6 +779,8 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id) {
 	ct->velocity = Vector3Scale(dir, 60);
  
 	ai->curr_navnode_id = path->nodes[path_id];
+
+	ai->state = STATE_MOVE;
 
 	return true;
 }
@@ -761,9 +800,15 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 		u16 new_targ = GetRandomValue(0, graph->node_count-1);
 		if(MakeNavPath(ent, graph, new_targ) == true) {
 			task->task_id = TASK_GOTO_POINT;
+			
+			ai->state = STATE_MOVE;
+
 		} else { 
-			task->timer = 1;
+			ai->state = STATE_IDLE;
+
+			task->timer = 0.05f;
 			task->task_id = TASK_WAIT_TIME;
+
 			ct->velocity = Vector3Zero();
 		}
 
@@ -773,12 +818,16 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 	if(!task->path_set) {
 		printf("path not set...\n");
 		task->task_id = TASK_MAKE_PATROL_PATH;		
+
+		ai->state = STATE_IDLE;
 		return;
 	}
 
 	if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
-		AiMoveToNode(ent, graph, ++path->curr);
+		AiMoveToNode(ent, graph, path->curr++);
 		task->task_id = TASK_GOTO_POINT;
+
+		ai->state = STATE_MOVE;
 		return;
 	}
 
@@ -788,9 +837,12 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 			ct->velocity = Vector3Zero();
 
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 0.1f;
+			task->timer = 0.05f;
 
 			task->path_set = false;
+
+			ai->state = STATE_IDLE;
+
 			return;
 		}
 	}

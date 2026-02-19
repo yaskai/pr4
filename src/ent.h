@@ -13,6 +13,41 @@ void EntDebugText();
 
 void LoadEntityBaseModels();
 
+typedef struct {
+	int16_t c;	// x, column
+	int16_t r;	// y, row
+	int16_t t;	// z, tab
+
+} Coords;
+
+#define ENT_GRID_CELL_EXTENTS (Vector3) { 255, 255, 255 } 
+#define MAX_ENTS_PER_CELL	16
+typedef struct {
+	BoundingBox aabb;
+
+	i16 ents[MAX_ENTS_PER_CELL];
+	short ent_count;
+
+} EntGridCell;
+
+typedef struct {
+	EntGridCell *cells;
+
+	Vector3 origin;
+	Coords size;
+
+	i16 cell_count;	
+
+} EntGrid;
+
+int16_t CellCoordsToId(Coords coords, EntGrid *grid);
+Coords CellIdToCoords(int16_t id, EntGrid *grid);
+
+Coords Vec3ToCoords(Vector3 v, EntGrid *grid);
+Vector3 CoordsToVec3(Coords coords, EntGrid *grid);
+
+bool CoordsInBounds(Coords coords, EntGrid *grid);
+
 typedef struct  {
 	BoundingBox bounds;
 
@@ -22,6 +57,7 @@ typedef struct  {
 	Vector3 forward;
 
 	Vector3 ground_normal;
+	Vector3 prev_pos;
 
 	float radius;
 
@@ -102,6 +138,9 @@ typedef struct {
 	int anim_count, curr_anim,  anim_frame;
 	float anim_timer;
 
+	u16 id;
+	i16 cell_id;
+
 	i8 type;
 
 	u8 flags;
@@ -110,6 +149,8 @@ typedef struct {
 
 typedef struct {
 	Entity *ents;
+
+	EntGrid grid;
 
 	Vector3 player_start;
 
@@ -127,6 +168,9 @@ void EntHandlerClose(EntityHandler *handler);
 
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt);
 void RenderEntities(EntityHandler *handler, float dt);
+
+void EntGridInit(EntityHandler *handler);
+void UpdateGrid(EntityHandler *handler);
 
 void DrawEntsDebugInfo();
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -191,5 +235,7 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
 void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
+
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id);
 
 #endif

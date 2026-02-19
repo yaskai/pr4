@@ -194,15 +194,140 @@ void EntHandlerInit(EntityHandler *handler) {
 	LoadEntityBaseAnims();
 
 	handler->ai_tick = 0;
+
+	EntGridInit(handler);
 }
 
 void EntHandlerClose(EntityHandler *handler) {
-	if(handler->ents) free(handler->ents);
+	for(u16 i = 0; i < handler->count; i++) {
+		for(u16 j = 0; j < handler->ents[i].anim_count; j++)
+			if(IsModelAnimationValid(handler->ents[i].model, handler->ents[i].animations[j]))
+				UnloadModelAnimation(handler->ents[i].animations[j]);
+
+		if(IsModelValid(handler->ents[i].model))
+			UnloadModel(handler->ents[i].model);
+	}
+
+	if(handler->ents) 
+		free(handler->ents);
+
+	if(handler->grid.cells)
+		free(handler->grid.cells);
 
 	for(int i = 0; i < 16; i++) {
 		UnloadModel(base_ent_models[i]);
 		UnloadModelAnimations(base_ent_anims[i], base_ent_anims[i]->frameCount);
 	}
+}
+
+void EntGridInit(EntityHandler *handler) {
+	printf("grid init\n");
+
+	EntGrid grid = (EntGrid) {0};
+
+	grid.size = (Coords) { .c = 16, .r = 6, .t = 16 };
+
+	grid.cell_count = grid.size.c * grid.size.r * grid.size.t;
+	grid.cells = calloc(grid.cell_count, sizeof(EntGridCell));
+
+	printf("cols: %d\n", grid.size.c);
+	printf("rows: %d\n", grid.size.r);
+	printf("tabs: %d\n", grid.size.t);
+	printf("cell count: %d\n", (grid.size.c * grid.size.r * grid.size.t));
+
+	Vector3 origin = (Vector3) {
+		(-grid.size.c * ENT_GRID_CELL_EXTENTS.x) * 0.5f,
+		(-grid.size.r * ENT_GRID_CELL_EXTENTS.y) * 0.3f, 
+		(-grid.size.t * ENT_GRID_CELL_EXTENTS.z) * 0.5f 
+	};  
+	grid.origin = origin;
+
+	for(u16 i = 0; i < grid.cell_count; i++) {
+		Coords coords = CellIdToCoords(i, &grid); 
+
+		BoundingBox box = (BoundingBox) { .min = Vector3Scale(ENT_GRID_CELL_EXTENTS, -0.5f), .max = Vector3Scale(ENT_GRID_CELL_EXTENTS,  0.5f) };
+		grid.cells[i].aabb = BoxTranslate(box, CoordsToVec3(coords, &grid));
+		
+		grid.cells[i].ent_count = 0;
+		for(u8 j = 0; j < MAX_ENTS_PER_CELL; j++) grid.cells[i].ents[j] = -1;
+	}
+
+	handler->grid = grid;
+}
+
+void UpdateGrid(EntityHandler *handler) {
+	EntGrid *grid = &handler->grid;
+
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];
+
+		comp_Transform *ct = &ent->comp_transform;
+		if(Vector3DistanceSqr(ct->position, ct->prev_pos) < EPSILON)
+			continue;
+
+		Coords coords = Vec3ToCoords(ent->comp_transform.position, grid);
+		if(!CoordsInBounds(coords, grid))			
+			continue;
+
+		i16 cell_id = CellCoordsToId(coords, grid);
+		EntGridCell *cell = &grid->cells[cell_id];
+
+		bool in = false;
+		for(u8 j = 0; j < cell->ent_count; j++) {
+			if(cell->ents[j] == handler->ents[i].id) {
+				in = true;	
+				break;
+			}
+		}
+
+		ent->cell_id = cell_id;
+
+		if(!in)
+			cell->ents[cell->ent_count++] = i;
+	}
+}
+
+int16_t CellCoordsToId(Coords coords, EntGrid *grid) {
+	//return (coords.c + coords.r * + coords.t * grid->size.c * grid->size.r);
+	return (
+		coords.c + 
+		coords.r * grid->size.c + 
+		coords.t * grid->size.c * grid->size.r
+	);
+}
+
+Coords CellIdToCoords(int16_t id, EntGrid *grid) {
+	return (Coords) {
+		.c = id % grid->size.c,						// x,
+		.r = (id / grid->size.c) % grid->size.r,	// y,
+		.t = id / (grid->size.c * grid->size.r)		// z
+	};
+}
+
+Coords Vec3ToCoords(Vector3 v, EntGrid *grid) {
+	Vector3 local = Vector3Subtract(v, grid->origin);
+
+	return (Coords) {
+		.c = (i16)(local.x) / ENT_GRID_CELL_EXTENTS.x,
+		.r = (i16)(local.y) / ENT_GRID_CELL_EXTENTS.y,
+		.t = (i16)(local.z) / ENT_GRID_CELL_EXTENTS.z
+	};
+}
+
+Vector3 CoordsToVec3(Coords coords, EntGrid *grid) {
+	//return Vector3Scale((Vector3) { coords.c, coords.r, coords.t }, ENT_GRID_CELL_EXTENTS.x);
+	Vector3 local = (Vector3) {
+		coords.c * ENT_GRID_CELL_EXTENTS.x,
+		coords.r * ENT_GRID_CELL_EXTENTS.y,
+		coords.t * ENT_GRID_CELL_EXTENTS.z
+	};
+	return Vector3Add(local, grid->origin);
+}
+
+bool CoordsInBounds(Coords coords, EntGrid *grid) {
+	return ( coords.c > -1 && coords.c < grid->size.c &&
+			 coords.r > -1 && coords.r < grid->size.r &&
+			 coords.t > -1 && coords.t < grid->size.t );
 }
 
 // **
@@ -218,6 +343,11 @@ typedef struct {
 RenderList render_list = {0};
 
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];
+		ent->comp_transform.prev_pos = ent->comp_transform.position;
+	}
+
 	Entity *player_ent = &handler->ents[handler->player_id];
 	PlayerUpdate(player_ent, dt);
 
@@ -294,8 +424,9 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 		AiSystemUpdate(handler, sect, dt);
 		handler->ai_tick = 0.166f;
 	}
-}
 
+	UpdateGrid(handler);
+}
 
 void RenderEntities(EntityHandler *handler, float dt) {
 	for(u16 i = 0; i < render_list.count; i++) {
@@ -354,7 +485,7 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 }
 
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
-	Entity ent = (Entity) {0};
+	Entity ent = (Entity) { .id = handler->count };
 
 	ent.comp_transform.position = spawn_point->position;
 
@@ -848,3 +979,90 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 	}
 }
 
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id) {
+	// Two steps: 
+	// 1. Trace surfaces of the level 
+	// 2. Trace Entities
+	// Lowest distance between the two traces is the destination of the bullet 
+
+	Vector3 dest = Vector3Add(origin, Vector3Scale(dir, FLT_MAX));
+
+	Ray ray = (Ray) { .position = origin, .direction = dir };
+
+	// 1. 
+	// Normal BVH trace for level geometry
+	BvhTree *bvh = &sect->bvh[BVH_POINT];
+	BvhTraceData tr = TraceDataEmpty();
+	BvhTracePointEx(ray, sect, bvh, 0, &tr, FLT_MAX);
+
+	// 2. DDA for entities using static grid
+	EntGrid *grid = &handler->grid;
+	Coords cell = Vec3ToCoords(origin, grid); 
+
+	int step_x = (dir.x > 0) ? 1 : -1;
+	int step_y = (dir.y > 0) ? 1 : -1;
+	int step_z = (dir.z > 0) ? 1 : -1;
+
+	float td_x = fabsf(ENT_GRID_CELL_EXTENTS.x / dir.x); 
+	float td_y = fabsf(ENT_GRID_CELL_EXTENTS.y / dir.y); 
+	float td_z = fabsf(ENT_GRID_CELL_EXTENTS.z / dir.z); 
+
+	Vector3 cell_min = CoordsToVec3(cell, grid);
+	Vector3 cell_max = Vector3Add(cell_min, ENT_GRID_CELL_EXTENTS);
+
+	float tmax_X = (dir.x > 0) ? (cell_max.x - origin.x) / dir.x : (cell_min.x - origin.x) / dir.x;
+	float tmax_Y = (dir.y > 0) ? (cell_max.y - origin.y) / dir.y : (cell_min.y - origin.y) / dir.y;
+	float tmax_Z = (dir.z > 0) ? (cell_max.z - origin.z) / dir.z : (cell_min.z - origin.z) / dir.z;
+
+	float t = 0.0f;
+
+	float ent_hit_dist = FLT_MAX;
+	Vector3 ent_hit_point = ray.position;
+
+	while(CoordsInBounds(cell, grid) && t < tr.distance) {
+		i16 cell_id = CellCoordsToId(cell, grid);
+		EntGridCell *pCell = &grid->cells[cell_id];
+
+		for(short i = 0; i < pCell->ent_count; i++) {
+			Entity *ent = &handler->ents[pCell->ents[i]];
+
+			// Skip collision checks with shooting entity  
+			if(ent->id == ent_id)
+				continue;
+			
+			// * NOTE:
+			// Change from transform bounds to actual damage hit box later 
+			RayCollision coll = GetRayCollisionBox(ray, ent->comp_transform.bounds);
+				
+			if(coll.hit && coll.distance < ent_hit_dist) {
+				ent_hit_dist = coll.distance;
+				ent_hit_point = coll.point;
+			}
+		}
+
+		if(tmax_X < tmax_Y) {
+			if(tmax_X < tmax_Z) {
+				cell.c += step_x;
+				t = tmax_X;
+				tmax_X += td_x;
+			} else {
+				cell.t += step_z;
+				t = tmax_Z;
+				tmax_Z += td_z;
+			}
+		} else {
+			if(tmax_X < tmax_Z) {
+				cell.r += step_y;
+				t = tmax_Y;
+				tmax_Y += td_z;
+			} else {
+				cell.t += step_z;
+				t = tmax_Z;
+				tmax_Z += td_z;
+			}
+		}
+	}
+	
+	dest = (ent_hit_dist < tr.distance) ? ent_hit_point : tr.point;	
+	return dest;
+}

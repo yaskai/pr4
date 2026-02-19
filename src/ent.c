@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
@@ -238,6 +239,8 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			} break;
 		}
 
+		ent->comp_transform.position = Vector3Add(ent->comp_transform.position, Vector3Scale(ent->comp_transform.velocity, dt));
+
 		AiCheckInputs(ent, handler, sect);
 
 		// *** Render visibility checking ***
@@ -456,9 +459,14 @@ void MaintainerDraw(Entity *ent, float dt) {
 		//DrawBoundingBox(ent->comp_transform.bounds, GREEN);
 		//DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), GREEN);
 	}
+
+	comp_Ai *ai = &ent->comp_ai;
+	Ai_TaskData *task = &ent->comp_ai.task_data;
+
+	DrawSphere(task->target_position, 10, MAGENTA);
 }
 
-void AiComponentUpdate(EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt) {
+void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt) {
 	// Handle interrupts
 	for(u32 i = 0; i < 32; i++) {
 		u32 mask = (1 << i);
@@ -466,6 +474,8 @@ void AiComponentUpdate(EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_da
 
 		}
 	}
+
+	AiDoSchedule(ent, sect, ai, task_data, dt);
 }
 
 void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
@@ -476,7 +486,7 @@ void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
 			continue;
 
 		comp_Ai *ai = &ent->comp_ai;
-		AiComponentUpdate(handler, ai, NULL, sect, dt);
+		AiComponentUpdate(ent, handler, ai, &ai->task_data, sect, dt);
 	}
 }
 
@@ -521,7 +531,26 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 	// ***
 }
 
-void AiDoSchedule(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
+void AiDoSchedule(Entity *ent, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
+	if(task_data->task_id == TASK_WAIT_TIME) {
+		task_data->timer -= dt;
+		if(task_data->timer > 0) {
+			return;
+		}
+	}
+
+	switch(task_data->schedule_id) {
+		case SCHED_IDLE:
+			break;
+
+		case SCHED_PATROL:
+			AiPatrol(ent, sect, dt);
+			break;
+
+		case SCHED_WAIT:
+			break;
+	}
+	
 }
 
 void AiDoState(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
@@ -587,124 +616,183 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 			printf("graph: %d\n", ai->navgraph_id);
 			printf("node: %d\n", ai->curr_navnode_id);
 
-			MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 6);
+			//MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 6);
+
+			ai->task_data.schedule_id = SCHED_PATROL;
 		}
 	}
 }
 
-void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
-	comp_Ai *ai = &ent->comp_ai;
-	Ai_TaskData *task_data = &ai->task_data;
-
-	NavPath *path = &task_data->path;
-
-	NavNode *node = &graph->nodes[ai->curr_navnode_id];
-	NavNode *targ_node = &graph->nodes[target_id];
-
-	u16 start = node->id;
-
+#define NULL_NODE 20000
+bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 	bool dest_found = false;
-	path->count = 0;
 
-	bool traveled[graph->node_count];
-	memset(traveled, false, sizeof(bool) * graph->node_count);
+	comp_Ai *ai = &ent->comp_ai;
+	NavPath *path = &ai->task_data.path;
 
-	u16 prev = node->id;
+	u16 start = ai->curr_navnode_id;
+	u16 node_count = graph->node_count;
 
-	path->curr = node->id;
-	path->count = 0;
-	memset(path, node->id, sizeof(u16) * MAX_PATH_NODES);
-	
-	while(!dest_found) {
-		u8 next_count = 0;	
-		u16 next_nodes[MAX_EDGES_PER_NODE] = { 0 };
-		GetConnectedNodes(node, next_nodes, &next_count, graph);
+	float g_cost[node_count], f_cost[node_count];
+	bool open[node_count], closed[node_count];
+	u16 parent[node_count];
 
-		if(next_count == 1 && traveled[prev]) {
-			/*
-			memset(traveled, false, sizeof(bool) * graph->node_count);
-			traveled[node->id] = true;
-			traveled[prev] = true;
-
-			traveled[start] = false;
-			node = &graph->nodes[start];
-
-			prev = node->id;
-			
-			_path_node_count = 0;
-			*/
-
-			u16 back = node->id;
-			bool back_found = false;
-			while(!back_found) {
-				//node = &graph->nodes[_path[_path_node_count--]];
-				node = &graph->nodes[path->nodes[path->count--]];
-
-				u8 adj_count = 0;
-				u16 adj[MAX_EDGES_PER_NODE] = { node->id };
-				GetConnectedNodes(node, adj, &adj_count, graph);
-
-				for(u8 j = 0; j < adj_count; j++) {
-					if(!traveled[adj[j]]) {
-						back = adj[j];				
-						back_found = true;
-						break;
-					}
-				}
-			}
-
-			node = &graph->nodes[back];
-
-			continue;
-		}
-
-		float costs[next_count];
-		memset(costs, FLT_MAX, sizeof(float) * next_count);
-		for(u8 i = 0; i < next_count; i++) {
-			NavNode *n = &graph->nodes[next_nodes[i]]; 	
-			float cost = Vector3DistanceSqr(targ_node->position, n->position);
-			costs[i] = cost;
-		}
-
-		for(u8 i = 0; i < next_count; i++) {
-			for(u8 j = i+1; j < next_count-1; j++) {
-				if(costs[i] > costs[j]) {
-					u16 temp_id = next_nodes[i];
-					next_nodes[i] = next_nodes[j];
-					next_nodes[j] = temp_id;
-
-					float temp_cost = costs[i];
-					costs[i] = costs[j];
-					costs[j] = temp_cost; 
-				}
-			}
-		}
-
-		u16 next_id = next_nodes[0];
-		for(u8 i = 0; i < next_count; i++) {
-			if(traveled[next_nodes[i]] == true)
-				continue;
-			
-			next_id = next_nodes[i];
-			break;
-		}
-
-		prev = node->id;
-
-		path->nodes[path->count++] = node->id;
-		traveled[prev] = true;
-
-		if(next_id == targ_node->id) {
-			path->nodes[path->count++] = next_id;
-			dest_found = true;
-			break;
-		}
-
-		node = &graph->nodes[next_id];
+	for(u16 i = 0; i < node_count; i++) {
+		g_cost[i] = FLT_MAX, f_cost[i] = FLT_MAX;
+		open[i] = false, closed[i] = false;
+		parent[i] = NULL_NODE;
 	}
 
-	for(u16 i = 0; i < path->count-1; i++) {
-		printf("%d -> %d\n", path->nodes[i], path->nodes[i+1]);
+	g_cost[start] = 0.0f;
+	f_cost[start] = Vector3DistanceSqr(graph->nodes[start].position, graph->nodes[target_id].position);
+
+	open[start] = true;
+
+	while(true) {
+		u16 curr = NULL_NODE;
+		float best = FLT_MAX;		
+
+		for(u16 i = 0; i < node_count; i++) {
+			if(open[i] && f_cost[i] < best) {
+				best = f_cost[i];
+				curr = i;
+			}
+		}
+
+		if(curr == NULL_NODE)
+			return false;
+
+		if(curr == target_id)
+			break;
+
+		open[curr] = false;
+		closed[curr] = true;
+
+		u8 adj_count = 0;
+		u16 adj[MAX_EDGES_PER_NODE] = { 0 };
+		GetConnectedNodes(&graph->nodes[curr], adj, &adj_count, graph);
+
+		for(u8 j = 0; j < adj_count; j++) {
+			u16 neighbour = adj[j];
+
+			if(closed[neighbour])
+				continue;
+
+			float step_cost = Vector3DistanceSqr(graph->nodes[curr].position, graph->nodes[target_id].position);
+			float tentative = g_cost[curr] + step_cost;
+
+			if(!open[neighbour] || tentative < g_cost[neighbour]) {
+				parent[neighbour] = curr;
+				g_cost[neighbour] = tentative;
+
+				f_cost[neighbour] = tentative + Vector3DistanceSqr(graph->nodes[neighbour].position, graph->nodes[target_id].position);
+				open[neighbour] = true;
+			}
+		}
+	}
+
+	path->count = 0;
+	u16 curr = target_id;
+
+	while(curr != NULL_NODE && path->count < MAX_PATH_NODES - 1) {
+		path->nodes[path->count++] = curr;
+		curr = parent[curr];
+	}
+
+	for(u16 i = 0; i < (path->count >> 1); i++) {
+		u16 temp = path->nodes[i];
+		path->nodes[i] = path->nodes[path->count - 1 - i];
+		path->nodes[path->count - 1 - i] = temp;
+	}
+
+	path->curr = 0;
+	ai->task_data.path_set = true;
+	ai->curr_navnode_id = path->nodes[0];
+
+	dest_found = true;
+
+	return dest_found;
+}
+
+bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id) {
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+
+	Ai_TaskData *task = &ai->task_data;
+	NavPath *path = &task->path;
+
+	if(path_id >= path->count) {
+		return false;
+	}
+
+	if(path_id >= graph->node_count) {
+		return false;
+	}
+
+	Vector3 point = graph->nodes[path->nodes[path_id]].position;
+	task->target_position = point;
+	
+	Vector3 dir = (Vector3Subtract(point, ct->position));
+	dir.y = 0;
+	dir = Vector3Normalize(dir);
+	ct->forward = dir;
+
+	float angle = atan2f(ct->forward.x, ct->forward.z);
+	ent->model.transform = MatrixRotateY(angle + 90 * DEG2RAD);
+	ct->velocity = Vector3Scale(dir, 60);
+ 
+	ai->curr_navnode_id = path->nodes[path_id];
+
+	return true;
+}
+
+#define NODE_REACH_RADIUS (32.0f*32.0f)
+void AiPatrol(Entity *ent, MapSection *sect, float dt) {
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+
+	Ai_TaskData *task = &ai->task_data;
+	NavPath *path = &task->path;
+
+	NavGraph *graph = &sect->navgraphs[ai->navgraph_id];
+
+	if(task->task_id == TASK_MAKE_PATROL_PATH) {
+		printf("setting path...\n");
+		u16 new_targ = GetRandomValue(0, graph->node_count-1);
+		if(MakeNavPath(ent, graph, new_targ) == true) {
+			task->task_id = TASK_GOTO_POINT;
+		} else { 
+			task->timer = 1;
+			task->task_id = TASK_WAIT_TIME;
+			ct->velocity = Vector3Zero();
+		}
+
+		return;
+	}
+
+	if(!task->path_set) {
+		printf("path not set...\n");
+		task->task_id = TASK_MAKE_PATROL_PATH;		
+		return;
+	}
+
+	if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
+		AiMoveToNode(ent, graph, ++path->curr);
+		task->task_id = TASK_GOTO_POINT;
+		return;
+	}
+
+	Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
+	if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) {
+		if(!AiMoveToNode(ent, graph, path->curr++)) {
+			ct->velocity = Vector3Zero();
+
+			task->task_id = TASK_WAIT_TIME;
+			task->timer = 0.1f;
+
+			task->path_set = false;
+			return;
+		}
 	}
 }
 

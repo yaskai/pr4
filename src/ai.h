@@ -73,15 +73,24 @@ enum AI_TASKS : u8 {
 	TASK_RELOAD_WEAPON,
 	TASK_WAIT_TIME,
 	TASK_FIND_POINT,
+	TASK_MAKE_PATROL_PATH,
 };
 
 typedef struct {
 	NavPath path;
 
+	Vector3 target_position;
+
+	float timer;
+
 	u32 schedule_id;
+	u32 task_id;
+
 	u32 interrupt_mask;
 
 	u16 target_entity;
+
+	bool path_set;
 
 } Ai_TaskData;
 

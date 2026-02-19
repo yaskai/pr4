@@ -238,7 +238,11 @@ void GameDraw(Game *game) {
 			RenderEntities(&game->ent_handler, GetFrameTime());
 			//DebugDrawNavGraphs(&game->test_section, sphere_model);
 
+			DebugDrawNavGraphs(&game->test_section, sphere_model);
+
 		EndMode3D();
+
+		//DebugDrawNavGraphsText(&game->test_section, game->camera_debug, (Vector2) {VIRT_W, VIRT_H} );
 
 	EndTextureMode();
 

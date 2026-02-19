@@ -175,17 +175,20 @@ void MaintainerDraw(Entity *ent, float dt);
 // ----------------------------------------------------------------------------------------------------------------------------
 // **** AI ****
 void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt);
-void AiComponentUpdate(EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt);
+void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt);
 
 void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect);
-void AiDoSchedule(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt);
+void AiDoSchedule(Entity *ent, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt);
 void AiDoState(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt);
 
 int FindClosestNavNode(Vector3 position, MapSection *sect);
 void AiNavSetup(EntityHandler *handler, MapSection *sect);
 
 int FindClosestNavNodeInGraph(Vector3 position, NavGraph *graph);
-void MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id);
+bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id);
+
+bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
+void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 

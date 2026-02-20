@@ -3,6 +3,7 @@
 #include "player_gun.h"
 #include "geo.h"
 #include "ent.h"
+#include "v_effect.h"
 
 Vector3 gun_pos = {0};
 float gun_rot = 0;
@@ -17,9 +18,16 @@ bool recoil_add = false;
 
 float friction = 0;
 
-Entity *ptr_player;
+typedef struct {
+	EntityHandler *handler;	
+	MapSection *sect;
+	Entity *player;
+	vEffect_Manager *effect_manager;
 
-void PlayerGunInit(PlayerGun *player_gun, Entity *player) {
+} PlayerGunRefs;
+PlayerGunRefs gun_refs = {0};
+
+void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler, MapSection *sect, vEffect_Manager *effect_manager) {
 	player_gun->cam = (Camera3D) {
 		.position = (Vector3) { 0, 0, -1 },
 		.target = (Vector3) { 0, 0, 1 },
@@ -34,7 +42,10 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player) {
 	gun_pos = REVOLVER_REST;
 	gun_rot = REVOLVER_ANGLE_REST;
 
-	ptr_player = player;
+	gun_refs.player = player;
+	gun_refs.sect = sect;
+	gun_refs.handler = handler;
+	gun_refs.effect_manager = effect_manager;
 }
 
 void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
@@ -52,6 +63,8 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	if(recoil <= -EPSILON) recoil = 0;
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && recoil <= 1.0f) {
+		PlayerShoot(player_gun, gun_refs.handler, gun_refs.sect);
+
 		recoil_add = false;
 		recoil += 130 + (GetRandomValue(10, 30) * 0.1f);
 	}
@@ -69,6 +82,38 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 
 	EndMode3D();
 
-	DrawText(TextFormat("H-%d", ptr_player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.95f));	
+	DrawText(TextFormat("H-%d", gun_refs.player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.95f));	
+}
+
+void PlayerShoot(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
+	comp_Transform *ct = &gun_refs.player->comp_transform;
+
+	Vector3 trace_start = ct->position;
+	//trace_start.y -= 4;
+
+	bool trace_hit = false;
+	Vector3 point = TraceBullet(
+		handler,
+		sect,
+		trace_start,
+		ct->forward,
+		handler->player_id,
+		&trace_hit
+	);
+
+	Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
+	Vector3 right = Vector3CrossProduct(ct->forward, UP);
+	trail_start = Vector3Add(trail_start, Vector3Scale(right, 3.5f));
+
+	//Vector3 trail_end = Vector3Add(trail_start, Vector3Scale(ct->forward, Vector3Distance(ct->position, point)));
+	Vector3 trail_end = point;
+	if(!trace_hit) {
+		trail_end = Vector3Add(trail_start, Vector3Scale(ct->forward, 1000.0f));
+	}
+
+	float dist = Vector3Distance(trail_start, trail_end);
+
+	if(dist >= 20)
+		vEffectsAddTrail(gun_refs.effect_manager, trail_start, trail_end);
 }
 

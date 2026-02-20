@@ -237,7 +237,7 @@ void EntGridInit(EntityHandler *handler) {
 
 	Vector3 origin = (Vector3) {
 		(-grid.size.c * ENT_GRID_CELL_EXTENTS.x) * 0.5f,
-		(-grid.size.r * ENT_GRID_CELL_EXTENTS.y) * 0.3f, 
+		(-grid.size.r * ENT_GRID_CELL_EXTENTS.y) * 0.5f, 
 		(-grid.size.t * ENT_GRID_CELL_EXTENTS.z) * 0.5f 
 	};  
 	grid.origin = origin;
@@ -249,7 +249,7 @@ void EntGridInit(EntityHandler *handler) {
 		grid.cells[i].aabb = BoxTranslate(box, CoordsToVec3(coords, &grid));
 		
 		grid.cells[i].ent_count = 0;
-		for(u8 j = 0; j < MAX_ENTS_PER_CELL; j++) grid.cells[i].ents[j] = -1;
+		for(u8 j = 0; j < MAX_ENTS_PER_CELL; j++) grid.cells[i].ents[j] = 0;
 	}
 
 	handler->grid = grid;
@@ -260,30 +260,45 @@ void UpdateGrid(EntityHandler *handler) {
 
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
-
 		comp_Transform *ct = &ent->comp_transform;
-		if(Vector3DistanceSqr(ct->position, ct->prev_pos) < EPSILON)
+
+		i16 src_id = ent->cell_id; 	
+
+		Coords dest_coords = Vec3ToCoords(ct->position, grid);
+		if(!CoordsInBounds(dest_coords, grid)) {
+			puts("dest coords out of bounds");
 			continue;
-
-		Coords coords = Vec3ToCoords(ent->comp_transform.position, grid);
-		if(!CoordsInBounds(coords, grid))			
-			continue;
-
-		i16 cell_id = CellCoordsToId(coords, grid);
-		EntGridCell *cell = &grid->cells[cell_id];
-
-		bool in = false;
-		for(u8 j = 0; j < cell->ent_count; j++) {
-			if(cell->ents[j] == handler->ents[i].id) {
-				in = true;	
-				break;
-			}
 		}
 
-		ent->cell_id = cell_id;
+		i16 dest_id = CellCoordsToId(dest_coords, grid);
 
-		if(!in)
-			cell->ents[cell->ent_count++] = i;
+		EntGridCell *dest_cell = &grid->cells[dest_id];
+
+		if(src_id == -1) {
+			ent->cell_id = dest_id;
+			dest_cell->ents[dest_cell->ent_count++] = ent->id;
+			continue;
+		}
+	
+		EntGridCell *src_cell = &grid->cells[src_id];
+			
+		if(src_id == dest_id)
+			continue;
+
+		if(!CheckCollisionBoxes(src_cell->aabb, ent->comp_transform.bounds)) {
+			for(u8 j = 0; j < src_cell->ent_count; j++) {
+				if(src_cell->ents[j] == ent->id) { 
+					for(u8 n = j; n < src_cell->ent_count-1; n++)
+						src_cell->ents[n] = src_cell->ents[n+1];
+
+					src_cell->ent_count--;
+				}
+			}
+
+		}
+
+		ent->cell_id = dest_id;
+		dest_cell->ents[dest_cell->ent_count++] = ent->id;
 	}
 }
 
@@ -308,9 +323,9 @@ Coords Vec3ToCoords(Vector3 v, EntGrid *grid) {
 	Vector3 local = Vector3Subtract(v, grid->origin);
 
 	return (Coords) {
-		.c = (i16)(local.x) / ENT_GRID_CELL_EXTENTS.x,
-		.r = (i16)(local.y) / ENT_GRID_CELL_EXTENTS.y,
-		.t = (i16)(local.z) / ENT_GRID_CELL_EXTENTS.z
+		.c = (i16)((local.x) / ENT_GRID_CELL_EXTENTS.x),
+		.r = (i16)((local.y) / ENT_GRID_CELL_EXTENTS.y),
+		.t = (i16)((local.z) / ENT_GRID_CELL_EXTENTS.z)
 	};
 }
 
@@ -363,6 +378,9 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 		if(!(ent->flags & ENT_ACTIVE))
 			continue;
 
+		if(ent->type == ENT_PLAYER)
+			continue;
+
 		switch(ent->type) {
 			case ENT_MAINTAINER: {
 				MaintainerUpdate(ent, dt);
@@ -370,6 +388,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 		}
 
 		ent->comp_transform.position = Vector3Add(ent->comp_transform.position, Vector3Scale(ent->comp_transform.velocity, dt));
+		ent->comp_transform.bounds = BoxTranslate(ent->comp_transform.bounds, ent->comp_transform.position);
 
 		AiCheckInputs(ent, handler, sect);
 
@@ -429,6 +448,8 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 }
 
 void RenderEntities(EntityHandler *handler, float dt) {
+	EntGrid *grid = &handler->grid;
+
 	for(u16 i = 0; i < render_list.count; i++) {
 		Entity *ent = &handler->ents[render_list.ids[i]];
 
@@ -444,6 +465,12 @@ void RenderEntities(EntityHandler *handler, float dt) {
 				MaintainerDraw(ent, dt);
 				break;
 		}
+
+		/*
+		EntGridCell *cell = &grid->cells[ent->cell_id];
+		DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
+		DrawBoundingBox(cell->aabb, GREEN);
+		*/
 	}
 }
 
@@ -481,11 +508,11 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 		return;
 	}
 
-	handler->ents[handler->count++] = SpawnEntity(spawn_point, handler);
+	handler->ents[++handler->count] = SpawnEntity(spawn_point, handler);
 }
 
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
-	Entity ent = (Entity) { .id = handler->count };
+	Entity ent = (Entity) { .id = handler->count, .cell_id = -1 };
 
 	ent.comp_transform.position = spawn_point->position;
 
@@ -521,6 +548,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 
 		case ENT_MAINTAINER: {
 			ent.model = base_ent_models[ENT_MAINTAINER];
+			//ent.model = LoadModelFromMesh(base_ent_models[ENT_MAINTAINER].meshes[0]);
 			ent.animations = base_ent_anims[ENT_MAINTAINER];
 
 			ent.curr_anim = 0;
@@ -927,7 +955,7 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 	NavGraph *graph = &sect->navgraphs[ai->navgraph_id];
 
 	if(task->task_id == TASK_MAKE_PATROL_PATH) {
-		printf("setting path...\n");
+		//printf("setting path...\n");
 		u16 new_targ = GetRandomValue(0, graph->node_count-1);
 		if(MakeNavPath(ent, graph, new_targ) == true) {
 			task->task_id = TASK_GOTO_POINT;
@@ -947,7 +975,7 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 	}
 
 	if(!task->path_set) {
-		printf("path not set...\n");
+		//printf("path not set...\n");
 		task->task_id = TASK_MAKE_PATROL_PATH;		
 
 		ai->state = STATE_IDLE;
@@ -979,7 +1007,7 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 	}
 }
 
-Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id) {
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit) {
 	// Two steps: 
 	// 1. Trace surfaces of the level 
 	// 2. Trace Entities
@@ -994,6 +1022,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	BvhTree *bvh = &sect->bvh[BVH_POINT];
 	BvhTraceData tr = TraceDataEmpty();
 	BvhTracePointEx(ray, sect, bvh, 0, &tr, FLT_MAX);
+	if(tr.hit) *hit = true;
 
 	// 2. DDA for entities using static grid
 	EntGrid *grid = &handler->grid;
@@ -1037,6 +1066,8 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 			if(coll.hit && coll.distance < ent_hit_dist) {
 				ent_hit_dist = coll.distance;
 				ent_hit_point = coll.point;
+
+				*hit = true;
 			}
 		}
 
@@ -1064,5 +1095,26 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	}
 	
 	dest = (ent_hit_dist < tr.distance) ? ent_hit_point : tr.point;	
+
 	return dest;
+}
+
+void DebugDrawEntText(EntityHandler *handler, Camera3D cam) {
+	Vector3 cam_dir = Vector3Normalize(Vector3Subtract(cam.target, cam.position));
+
+	for(u16 i = 0; i < handler->count; i++) {
+
+		Entity *ent = &handler->ents[i];
+		comp_Transform *ct = &ent->comp_transform;
+
+		Vector3 to_cam = Vector3Normalize(Vector3Subtract(cam.position, ct->position));
+		if(Vector3DotProduct(to_cam, cam_dir) > 0) continue;
+
+		float dist = Vector3Distance(ct->position, cam.position);
+		float text_size = (30);
+
+		Vector2 pos = GetWorldToScreen(ct->position, cam);
+
+		DrawText(TextFormat("id: %d", ent->id), pos.x, pos.y, text_size, PURPLE);
+	}
 }

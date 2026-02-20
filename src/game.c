@@ -39,6 +39,7 @@ u16 tri_count = 0;
 Tri *tris;
 
 Model sphere_model;
+float delta_time = 0;
 
 void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
@@ -56,6 +57,7 @@ void GameClose(Game *game) {
 	if(IsTextureValid(game->render_target2D.texture))
 		UnloadRenderTexture(game->render_target2D);
 }
+
 
 void GameRenderSetup(Game *game) {
 	// Initalize 3D camera
@@ -95,6 +97,8 @@ void GameRenderSetup(Game *game) {
 	mat_default.maps[MATERIAL_MAP_DIFFUSE].color = ColorAlpha(BLUE, 0.25f);
 
 	sphere_model = LoadModelFromMesh(GenMeshSphere(2, 16, 8));
+
+	vEffectsInit(&game->effect_manager);
 }
 
 void GameLoadTestScene1(Game *game, char *path) {
@@ -126,7 +130,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 		.node_count = 0, .edge_count = 0
 	};
 
-	game->ent_handler.count = spawn_list.count;
+	//game->ent_handler.count = spawn_list.count;
+	game->ent_handler.count = 0;
 	for(int i = 0; i < spawn_list.count; i++) 
 		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.base_navgraph);
 
@@ -140,14 +145,13 @@ void GameLoadTestScene1(Game *game, char *path) {
 	};
 	game->test_section.navgraphs[0].nodes = calloc(game->test_section.navgraphs[0].node_count, sizeof(NavNode));
 	game->test_section.navgraphs[0].edges = calloc(game->test_section.navgraphs[0].edge_count, sizeof(NavEdge));
-	//SplitNavGraph(&game->test_section.navgraphs[0], &game->test_section);
 	SubdivideNavGraph(&game->test_section, &game->test_section.base_navgraph);
 
 	player.comp_transform.position = game->ent_handler.player_start;
 	game->ent_handler.ents[0] = player;
 
 	game->player_gun = (PlayerGun) {0};
-	PlayerGunInit(&game->player_gun, &game->ent_handler.ents[0]);
+	PlayerGunInit(&game->player_gun, &game->ent_handler.ents[0], &game->ent_handler, &game->test_section, &game->effect_manager);
 
 	AiNavSetup(&game->ent_handler, &game->test_section);
 }
@@ -173,7 +177,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BVH			0x10
 u8 debug_draw_flags = 1;
 
-void GameDraw(Game *game) {
+void GameDraw(Game *game, float dt) {
 	// 3D Rendering, main
 	BeginDrawing();
 	BeginTextureMode(game->render_target3D);
@@ -238,7 +242,7 @@ void GameDraw(Game *game) {
 			RenderEntities(&game->ent_handler, GetFrameTime());
 			//DebugDrawNavGraphs(&game->test_section, sphere_model);
 
-			DebugDrawNavGraphs(&game->test_section, sphere_model);
+			vEffectsRun(&game->effect_manager, dt);
 
 		EndMode3D();
 
@@ -302,12 +306,13 @@ void GameDraw(Game *game) {
 					}
 				}
 
-			DebugDrawNavGraphs(&game->test_section, sphere_model);
+			//DebugDrawNavGraphs(&game->test_section, sphere_model);
 
 			EndMode3D();
 
 			Vector2 dbg_window_size = (Vector2) { .x = game->render_target_debug.texture.width, .y = game->render_target_debug.texture.height };
-			DebugDrawNavGraphsText(&game->test_section, game->camera_debug, dbg_window_size);
+			//DebugDrawNavGraphsText(&game->test_section, game->camera_debug, dbg_window_size);
+			DebugDrawEntText(&game->ent_handler, game->camera_debug);
 			}
 
 			// 2D
@@ -327,7 +332,7 @@ void GameDraw(Game *game) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
-	//PlayerDebugText(&game->ent_handler.ents[0]);
+	PlayerDebugText(&game->ent_handler.ents[0]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;

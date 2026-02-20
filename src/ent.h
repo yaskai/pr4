@@ -14,9 +14,9 @@ void EntDebugText();
 void LoadEntityBaseModels();
 
 typedef struct {
-	int16_t c;	// x, column
-	int16_t r;	// y, row
-	int16_t t;	// z, tab
+	i16 c;	// x, column
+	i16 r;	// y, row
+	i16 t;	// z, tab
 
 } Coords;
 
@@ -26,7 +26,7 @@ typedef struct {
 	BoundingBox aabb;
 
 	i16 ents[MAX_ENTS_PER_CELL];
-	short ent_count;
+	u8 ent_count;
 
 } EntGridCell;
 
@@ -236,6 +236,8 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id);
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit);
+
+void DebugDrawEntText(EntityHandler *handler, Camera3D cam); 
 
 #endif

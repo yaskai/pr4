@@ -34,7 +34,7 @@ int main() {
 		float dt = GetFrameTime(); 	
 
 		GameUpdate(&game, dt);
-		GameDraw(&game);
+		GameDraw(&game, dt);
 	}
 
 	CloseWindow();

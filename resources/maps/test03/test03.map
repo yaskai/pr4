@@ -967,7 +967,7 @@
 // entity 3
 {
 "classname" "turret_spawn"
-"origin" "-24 -428 44"
+"origin" "12 -356 40"
 "enum_id" "1"
 "angle" "0"
 }
@@ -1074,6 +1074,153 @@
 {
 "classname" "nav_node"
 "origin" "114 -434 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 19
+{
+"classname" "nav_node"
+"origin" "50 -30 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 20
+{
+"classname" "nav_node"
+"origin" "2 -30 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 21
+{
+"classname" "nav_node"
+"origin" "-46 -30 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 22
+{
+"classname" "nav_node"
+"origin" "-94 -30 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 23
+{
+"classname" "nav_node"
+"origin" "-126 -14 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 24
+{
+"classname" "nav_node"
+"origin" "-158 2 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 25
+{
+"classname" "nav_node"
+"origin" "-206 2 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 26
+{
+"classname" "nav_node"
+"origin" "-254 2 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 27
+{
+"classname" "nav_node"
+"origin" "-302 2 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 28
+{
+"classname" "nav_node"
+"origin" "-350 2 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 29
+{
+"classname" "nav_node"
+"origin" "-78 18 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 30
+{
+"classname" "nav_node"
+"origin" "-14 18 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 31
+{
+"classname" "nav_node"
+"origin" "-14 -78 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 32
+{
+"classname" "nav_node"
+"origin" "34 -94 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 33
+{
+"classname" "nav_node"
+"origin" "2 -126 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 34
+{
+"classname" "nav_node"
+"origin" "34 -174 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 35
+{
+"classname" "nav_node"
+"origin" "66 -222 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 36
+{
+"classname" "nav_node"
+"origin" "50 -126 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 37
+{
+"classname" "nav_node"
+"origin" "82 -174 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 38
+{
+"classname" "nav_node"
+"origin" "50 -190 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 39
+{
+"classname" "nav_node"
+"origin" "50 -270 50"
 "flag" "0"
 "_tb_layer" "1"
 }

@@ -858,7 +858,7 @@ void PlayerDebugText(Entity *player) {
 	DrawText(TextFormat("pos: { %f, %f, %f }", ct->position.x, ct->position.y, ct->position.z), 16, 870, 24, RAYWHITE);
 	DrawText(TextFormat("on_ground: %d", ct->on_ground), 16, 900, 24, RAYWHITE);
 	DrawText(TextFormat("ground_norm: { %f, %f, %f }", ct->ground_normal.x, ct->ground_normal.y, ct->ground_normal.z), 16, 930, 24, RAYWHITE);
-	DrawText(TextFormat("nudge: %d", nudged_this_frame), 16, 960, 24, RAYWHITE);
+	DrawText(TextFormat("cell_id: %d", player->cell_id), 16, 960, 24, RAYWHITE);
 	DrawText(TextFormat("in hull dist: %f", dbg_hull_pen), 16, 990, 24, RAYWHITE);
 	DrawText(TextFormat("in hull norm: { %f, %f, %f }", dbg_hull_norm.x, dbg_hull_norm.y, dbg_hull_norm.z), 16, 1020, 24, RAYWHITE);
 }

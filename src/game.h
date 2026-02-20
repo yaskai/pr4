@@ -5,6 +5,7 @@
 #include "geo.h"
 #include "ent.h"
 #include "player_gun.h"
+#include "v_effect.h"
 
 #ifndef GAME_H_
 #define GAME_H_
@@ -17,6 +18,8 @@ typedef struct {
 	EntityHandler ent_handler;
 
 	PlayerGun player_gun;
+
+	vEffect_Manager effect_manager;
 
 	RenderTexture2D render_target3D;
 	RenderTexture2D render_target2D;
@@ -41,6 +44,6 @@ void GameLoadTestScene(Game *game, char *path);
 void GameLoadTestScene1(Game *game, char *path);
 
 void GameUpdate(Game *game, float dt);
-void GameDraw(Game *game);
+void GameDraw(Game *game, float dt);
 
 #endif

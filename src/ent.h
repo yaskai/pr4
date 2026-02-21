@@ -98,12 +98,20 @@ void ApplyDamage(comp_Health *comp_health, short amount);
 #define WEAPON_TRAVEL_HITSCAN		0
 #define WEAPON_TRAVEL_PROJECTILE	1	
 
+
+enum weapon_types : u8 {
+	WEAP_PISTOL,
+	WEAP_SHOTGUN,
+	WEAP_REVOLVER,
+	WEAP_DISRUPTOR
+};
+
 typedef struct {
 	float cooldown;
 
-	u16 model_id;
-
 	short travel_type;
+
+	u8 id;
 
 	u8 ammo_type;
 	u8 ammo;
@@ -168,6 +176,8 @@ void EntHandlerClose(EntityHandler *handler);
 
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt);
 void RenderEntities(EntityHandler *handler, float dt);
+
+void UpdateRenderList(EntityHandler *handler, MapSection *sect);
 
 void EntGridInit(EntityHandler *handler);
 void UpdateGrid(EntityHandler *handler);
@@ -236,8 +246,21 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
+typedef struct {
+	Vector3 point;	
+	float dist;
+
+	i16 hit_ent;
+
+} EntTraceData;
+
+EntTraceData EntTraceDataEmpty();
+
+Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sender, EntTraceData *trace_data);
+
 Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit);
 
 void DebugDrawEntText(EntityHandler *handler, Camera3D cam); 
 
 #endif
+

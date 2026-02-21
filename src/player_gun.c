@@ -27,6 +27,8 @@ typedef struct {
 } PlayerGunRefs;
 PlayerGunRefs gun_refs = {0};
 
+Model models[4];
+
 void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler, MapSection *sect, vEffect_Manager *effect_manager) {
 	player_gun->cam = (Camera3D) {
 		.position = (Vector3) { 0, 0, -1 },
@@ -36,7 +38,13 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 		.projection = CAMERA_PERSPECTIVE
 	};
 
-	player_gun->model = LoadModel("resources/models/weapons/rev_00.glb");
+	models[WEAP_PISTOL] 	= LoadModel("resources/models/weapons/pistol_00.glb");
+	models[WEAP_SHOTGUN] 	= LoadModel("resources/models/weapons/pistol_00.glb");
+	models[WEAP_REVOLVER] 	= LoadModel("resources/models/weapons/rev_00.glb");
+	models[WEAP_DISRUPTOR] 	= LoadModel("resources/models/weapons/rev_00.glb");
+
+	//player_gun->model = LoadModel("resources/models/weapons/rev_00.glb");
+	player_gun->model = models[WEAP_REVOLVER];
 	mat = player_gun->model.transform;
 
 	gun_pos = REVOLVER_REST;
@@ -46,19 +54,40 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 	gun_refs.sect = sect;
 	gun_refs.handler = handler;
 	gun_refs.effect_manager = effect_manager;
+
+	player->comp_weapon.id = WEAP_REVOLVER;
 }
 
 void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
-	player_gun->model.transform = mat;
+	switch(gun_refs.player->comp_weapon.id) {
+		case WEAP_PISTOL:
+			break;
 
+		case WEAP_SHOTGUN:
+			break;
+
+		case WEAP_REVOLVER:
+			PlayerGunUpdateRevolver(player_gun, dt);
+			break;
+
+		case WEAP_DISRUPTOR:
+			break;
+	}	
+}
+
+void PlayerGunUpdatePistol(PlayerGun *player_gun, float dt) {
+}
+
+void PlayerGunUpdateShotgun(PlayerGun *player_gun, float dt) {
+}
+
+void PlayerGunUpdateRevolver(PlayerGun *player_gun, float dt) {
 	float recoil_angle = Clamp(recoil + gun_rot, -30, 90.0f);
 	mat = MatrixRotateX(-recoil_angle * DEG2RAD);
 	mat = MatrixMultiply(mat, MatrixRotateY(REVOLVER_ANGLE_REST * DEG2RAD));
 
 	friction = (recoil > 40) ? 4.9f : 10.5f;
-	//if(recoil >= 100) friction = friction - (recoil * 0.033f);
 
-	//recoil -= ((recoil * (1 - EPSILON)) * 11.5f) * dt; 
 	recoil -= (recoil * friction) * dt; 
 	if(recoil <= -EPSILON) recoil = 0;
 
@@ -69,16 +98,18 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 		recoil += 130 + (GetRandomValue(10, 30) * 0.1f);
 	}
 
-	//gun_pos.z = REVOLVER_REST.z - (recoil * 0.0485f);
 	gun_pos.z = REVOLVER_REST.z - (recoil * 0.05f);
-	//gun_pos.z = Lerp(gun_pos.z, REVOLVER_REST.z - (recoil * 0.085f), 20*dt);
+
+	player_gun->model.transform = mat;
+}
+
+void PlayerGunUpdateDisruptor(PlayerGun *player_gun, float dt) {
 }
 
 void PlayerGunDraw(PlayerGun *player_gun) {
 	BeginMode3D(player_gun->cam);
 	
 	DrawModel(player_gun->model, gun_pos, 1.0f, WHITE);
-	//DrawModelEx(player_gun->model, gun_pos, UP, gun_rot, Vector3Scale(Vector3One(), 1.0f), WHITE);
 
 	EndMode3D();
 
@@ -86,6 +117,32 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 }
 
 void PlayerShoot(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
+	switch(gun_refs.player->comp_weapon.id) {
+		case WEAP_PISTOL:
+			PlayerShootPistol(player_gun, handler, sect);
+			break;
+
+		case WEAP_SHOTGUN:
+			PlayerShootShotgun(player_gun, handler, sect);
+			break;
+
+		case WEAP_REVOLVER:
+			PlayerShootRevolver(player_gun, handler, sect);
+			break;
+
+		case WEAP_DISRUPTOR:
+			PlayerShootDisruptor(player_gun, handler, sect);
+			break;
+	}
+}
+
+void PlayerShootPistol(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
+}
+
+void PlayerShootShotgun(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
+}
+
+void PlayerShootRevolver(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
 	comp_Transform *ct = &gun_refs.player->comp_transform;
 
 	Vector3 trace_start = ct->position;
@@ -108,7 +165,7 @@ void PlayerShoot(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect
 	//Vector3 trail_end = Vector3Add(trail_start, Vector3Scale(ct->forward, Vector3Distance(ct->position, point)));
 	Vector3 trail_end = point;
 	if(!trace_hit) {
-		trail_end = Vector3Add(trail_start, Vector3Scale(ct->forward, 1000.0f));
+		trail_end = Vector3Add(trail_start, Vector3Scale(ct->forward, 2000.0f));
 	}
 
 	float dist = Vector3Distance(trail_start, trail_end);
@@ -116,4 +173,8 @@ void PlayerShoot(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect
 	if(dist >= 20)
 		vEffectsAddTrail(gun_refs.effect_manager, trail_start, trail_end);
 }
+
+void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
+}
+
 

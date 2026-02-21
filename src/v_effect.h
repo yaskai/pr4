@@ -6,9 +6,12 @@
 
 #define V_EFFECT_MAX_TRAILS	32
 typedef struct {
+	Quaternion q;
+
 	Vector3 point_A;
 	Vector3 point_B;
 
+	float length;
 	float timer;
 
 	bool active;
@@ -27,6 +30,9 @@ typedef struct {
 } vEffect_ImpactDecal;
 
 typedef struct {
+	Model trail_model;
+	Material trail_material;
+
 	vEffect_Trail trails[V_EFFECT_MAX_TRAILS];
 	vEffect_ImpactDecal impact_decals[V_EFFECT_MAX_IMPACT_DECALS];
 

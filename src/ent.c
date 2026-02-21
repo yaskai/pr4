@@ -357,6 +357,10 @@ typedef struct {
 } RenderList;
 RenderList render_list = {0};
 
+void UpdateRenderList(EntityHandler *handler, MapSection *sect) {
+	render_list.count = 0;
+}
+
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
@@ -1005,6 +1009,90 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 			return;
 		}
 	}
+}
+
+EntTraceData EntTraceDataEmpty() {
+	return (EntTraceData) {
+		.point = Vector3Zero(),
+		.dist = FLT_MAX,
+		.hit_ent = -1
+	};
+}
+
+Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sender, EntTraceData *trace_data) {
+	EntGrid *grid = &handler->grid;
+	Coords cell = Vec3ToCoords(ray.position, grid); 
+
+	int step_x = (ray.direction.x > 0) ? 1 : -1;
+	int step_y = (ray.direction.y > 0) ? 1 : -1;
+	int step_z = (ray.direction.z > 0) ? 1 : -1;
+
+	float td_x = fabsf(ENT_GRID_CELL_EXTENTS.x / ray.direction.x); 
+	float td_y = fabsf(ENT_GRID_CELL_EXTENTS.y / ray.direction.y); 
+	float td_z = fabsf(ENT_GRID_CELL_EXTENTS.z / ray.direction.z); 
+
+	Vector3 cell_min = CoordsToVec3(cell, grid);
+	Vector3 cell_max = Vector3Add(cell_min, ENT_GRID_CELL_EXTENTS);
+
+	float tmax_X = (ray.direction.x > 0) ? (cell_max.x - ray.position.x) / ray.direction.x : (cell_min.x - ray.position.x) / ray.direction.x;
+	float tmax_Y = (ray.direction.y > 0) ? (cell_max.y - ray.position.y) / ray.direction.y : (cell_min.y - ray.position.y) / ray.direction.y;
+	float tmax_Z = (ray.direction.z > 0) ? (cell_max.z - ray.position.z) / ray.direction.z : (cell_min.z - ray.position.z) / ray.direction.z;
+
+	float t = 0.0f;
+
+	float ent_hit_dist = FLT_MAX;
+	Vector3 ent_hit_point = ray.position;
+
+	while(CoordsInBounds(cell, grid) && t < max_dist) {
+		i16 cell_id = CellCoordsToId(cell, grid);
+		EntGridCell *pCell = &grid->cells[cell_id];
+
+		for(short i = 0; i < pCell->ent_count; i++) {
+			Entity *ent = &handler->ents[pCell->ents[i]];
+
+			// Skip collision checks with shooting entity  
+			if(ent->id == sender)
+				continue;
+			
+			// * NOTE:
+			// Change from transform bounds to actual damage hit box later 
+			RayCollision coll = GetRayCollisionBox(ray, ent->comp_transform.bounds);
+				
+			if(coll.hit && coll.distance < ent_hit_dist) {
+				ent_hit_dist = coll.distance;
+				ent_hit_point = coll.point;
+
+				trace_data->hit_ent = ent->id;
+			}
+		}
+
+		if(tmax_X < tmax_Y) {
+			if(tmax_X < tmax_Z) {
+				cell.c += step_x;
+				t = tmax_X;
+				tmax_X += td_x;
+			} else {
+				cell.t += step_z;
+				t = tmax_Z;
+				tmax_Z += td_z;
+			}
+		} else {
+			if(tmax_X < tmax_Z) {
+				cell.r += step_y;
+				t = tmax_Y;
+				tmax_Y += td_z;
+			} else {
+				cell.t += step_z;
+				t = tmax_Z;
+				tmax_Z += td_z;
+			}
+		}
+	}
+
+	trace_data->dist = ent_hit_dist;
+	trace_data->point = ent_hit_point;
+
+	return ent_hit_point;
 }
 
 Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit) {

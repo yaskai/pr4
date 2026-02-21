@@ -607,7 +607,7 @@ void MaintainerUpdate(Entity *ent, float dt) {
 			break;
 	}
 
-	ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
+	//ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
 }
 
 void MaintainerDraw(Entity *ent, float dt) {
@@ -617,12 +617,15 @@ void MaintainerDraw(Entity *ent, float dt) {
 	//DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
 	//DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
 	ent->anim_timer -= dt;
+	/*
 	if(ent->anim_timer <= 0) {
 		UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
 		ent->anim_timer = (0.125f);
 	}
+	*/
 	//UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
-	DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
+	//DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
+	DrawCubeV(ent->comp_transform.position, BoxExtent(ent->comp_transform.bounds), PINK);
 
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	center.y += 10;
@@ -1206,3 +1209,4 @@ void DebugDrawEntText(EntityHandler *handler, Camera3D cam) {
 		DrawText(TextFormat("id: %d", ent->id), pos.x, pos.y, text_size, PURPLE);
 	}
 }
+

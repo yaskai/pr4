@@ -23,8 +23,6 @@ void FabrikSolve(FabrikChain *chain) {
 		for(int i = 1; i < chain->count; i++) {
 			chain->points[i] = Vector3Add(chain->points[i-1], Vector3Scale(dir, chain->lengths[i-1]));
 		}
-
-		return;
 	}
 	
 	// Target can be reached, iterate solve

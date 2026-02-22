@@ -529,7 +529,8 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 		memcpy(brush_pools[i].brushes, brush_pools[0].brushes, sizeof(Brush) * brush_pools[0].count);
 
 		// Expand brush planes/vertices
-		BrushPool exp = ExpandBrushes(&brush_pools[i], BODY_VOLUME_MEDIUM);
+		Vector3 volume = (i == 1) ? BODY_VOLUME_MEDIUM : BODY_VOLUME_SMALL;
+		BrushPool exp = ExpandBrushes(&brush_pools[i], volume);
 
 		// Extract tris
 		sect._tris[i].arr = TrisFromBrushPool(&exp, &sect._tris[i].count);
@@ -538,7 +539,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	}
 
 	// 3. Construct BVH trees for each geometry set
-	for(short i = 0; i < 2; i++) {
+	for(short i = 0; i < 3; i++) {
 		BvhTree *bvh = &sect.bvh[i];
 		bvh->tris = (TriPool) {0};
 		bvh->tris.count = sect._tris[i].count;

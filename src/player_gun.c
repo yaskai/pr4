@@ -13,6 +13,11 @@ Matrix mat = {0};
 #define REVOLVER_REST (Vector3) { -0.75f, -2.35f, 6.25f }
 #define REVOLVER_ANGLE_REST 2.5f
 
+#define DISRUPTOR_REST (Vector3) {  -1.75f, -1.35f, 6.25f  }
+#define DISRUPTOR_REST_ANGLE_REST 2.5f
+
+#define DISRUPTOR_THROW_FORCE 300.0f
+
 float recoil = 0;
 bool recoil_add = false;
 
@@ -28,6 +33,7 @@ typedef struct {
 PlayerGunRefs gun_refs = {0};
 
 Model models[4];
+Matrix gun_matrix;
 
 void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler, MapSection *sect, vEffect_Manager *effect_manager) {
 	player_gun->cam = (Camera3D) {
@@ -41,11 +47,9 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 	models[WEAP_PISTOL] 	= LoadModel("resources/models/weapons/pistol_00.glb");
 	models[WEAP_SHOTGUN] 	= LoadModel("resources/models/weapons/pistol_00.glb");
 	models[WEAP_REVOLVER] 	= LoadModel("resources/models/weapons/rev_00.glb");
-	models[WEAP_DISRUPTOR] 	= LoadModel("resources/models/weapons/rev_00.glb");
+	models[WEAP_DISRUPTOR] 	= LoadModel("resources/models/weapons/bug_00.glb");
 
 	//player_gun->model = LoadModel("resources/models/weapons/rev_00.glb");
-	player_gun->model = models[WEAP_REVOLVER];
-	mat = player_gun->model.transform;
 
 	gun_pos = REVOLVER_REST;
 	gun_rot = REVOLVER_ANGLE_REST;
@@ -55,15 +59,25 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 	gun_refs.handler = handler;
 	gun_refs.effect_manager = effect_manager;
 
-	player->comp_weapon.id = WEAP_REVOLVER;
+	player->comp_weapon.id = WEAP_DISRUPTOR;
+	player_gun->current_gun = player->comp_weapon.id;
+
+	player_gun->model = models[player_gun->current_gun];
+	mat = player_gun->model.transform;
 }
 
 void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
+	int scroll = GetMouseWheelMove();
+	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 4;
+	player_gun->current_gun = gun_refs.player->comp_weapon.id;
+
 	switch(gun_refs.player->comp_weapon.id) {
 		case WEAP_PISTOL:
+			PlayerGunUpdatePistol(player_gun, dt);
 			break;
 
 		case WEAP_SHOTGUN:
+			PlayerGunUpdateShotgun(player_gun, dt);
 			break;
 
 		case WEAP_REVOLVER:
@@ -71,6 +85,7 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 			break;
 
 		case WEAP_DISRUPTOR:
+			PlayerGunUpdateDisruptor(player_gun, dt);
 			break;
 	}	
 }
@@ -98,20 +113,40 @@ void PlayerGunUpdateRevolver(PlayerGun *player_gun, float dt) {
 		recoil += 130 + (GetRandomValue(10, 30) * 0.1f);
 	}
 
+	gun_pos = REVOLVER_REST;
 	gun_pos.z = REVOLVER_REST.z - (recoil * 0.05f);
+
+	models[WEAP_REVOLVER].transform = mat;
+}
+
+void PlayerGunUpdateDisruptor(PlayerGun *player_gun, float dt) {
+	gun_pos = DISRUPTOR_REST;
+
+	mat = MatrixRotateX(-DISRUPTOR_REST_ANGLE_REST * DEG2RAD);
+	mat = MatrixMultiply(mat, MatrixRotateY(DISRUPTOR_REST_ANGLE_REST * DEG2RAD));
+
+	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		PlayerShoot(player_gun, gun_refs.handler, gun_refs.sect);
+	}
 
 	player_gun->model.transform = mat;
 }
 
-void PlayerGunUpdateDisruptor(PlayerGun *player_gun, float dt) {
-}
-
 void PlayerGunDraw(PlayerGun *player_gun) {
-	BeginMode3D(player_gun->cam);
-	
-	DrawModel(player_gun->model, gun_pos, 1.0f, WHITE);
+	Entity *bug_ent = &gun_refs.handler->ents[gun_refs.handler->bug_id];
+	bool skip_draw = false;
 
-	EndMode3D();
+	if(player_gun->current_gun == WEAP_DISRUPTOR) {
+		if(bug_ent->comp_ai.state > 0) {
+			skip_draw = true;
+		}
+	}
+
+	if(!skip_draw) {
+		BeginMode3D(player_gun->cam);
+		DrawModel(models[gun_refs.player->comp_weapon.id], gun_pos, 1.0f, WHITE);
+		EndMode3D();
+	}
 
 	DrawText(TextFormat("H-%d", gun_refs.player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.95f));	
 }
@@ -175,6 +210,28 @@ void PlayerShootRevolver(PlayerGun *player_gun, EntityHandler *handler, MapSecti
 }
 
 void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
-}
+	Entity *bug_ent = &handler->ents[handler->bug_id];
+	Entity *player_ent = &handler->ents[handler->player_id];
 
+	comp_Ai *ai = &bug_ent->comp_ai;
+	comp_Transform *ct = &bug_ent->comp_transform;
+
+	if(ai->state > 0) 
+		return;
+
+	ai->state = BUG_LAUNCHED;
+
+	ct->position = player_ent->comp_transform.position;
+	ct->forward = player_ent->comp_transform.forward;
+	
+	ct->position = Vector3Add(ct->position, Vector3Scale(ct->forward, 15));
+
+	Vector3 throw_dir = ct->forward;
+	throw_dir = Vector3Normalize(throw_dir);
+	ct->velocity = Vector3Scale(throw_dir, DISRUPTOR_THROW_FORCE);
+	ct->velocity.y += 150;
+
+	float angle = atan2f(-ct->forward.x, -ct->forward.z);
+	bug_ent->model.transform = MatrixRotateY(angle);
+}
 

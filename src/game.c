@@ -154,6 +154,14 @@ void GameLoadTestScene1(Game *game, char *path) {
 	PlayerGunInit(&game->player_gun, &game->ent_handler.ents[0], &game->ent_handler, &game->test_section, &game->effect_manager);
 
 	AiNavSetup(&game->ent_handler, &game->test_section);
+
+	Entity bug = (Entity) {0};
+	bug.type = ENT_DISRUPTOR;
+	bug.flags |= ENT_ACTIVE;
+
+	game->ent_handler.bug_id = game->ent_handler.count++;
+	game->ent_handler.ents[game->ent_handler.bug_id] = bug;
+	BugInit(&game->ent_handler.ents[game->ent_handler.bug_id], &game->ent_handler, &game->test_section);
 }
 
 void GameUpdate(Game *game, float dt) {

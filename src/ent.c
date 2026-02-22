@@ -56,6 +56,7 @@ Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce) {
 	return (Vector3) { out.v[0], out.v[1], out.v[2] };
 }
 
+/*
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
 	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
 	Vector3 pos = comp_transform->position;
@@ -64,22 +65,20 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 	Vector3 clips[MAX_CLIPS] = {0};
 	short clip_count = 0;
 
-	float y_offset = -(BoxExtent(comp_transform->bounds).y) * 0.25f;
-	if(!comp_transform->on_ground) y_offset = 0;
-
 	for(short i = 0; i < SLIDE_STEPS; i++) {
-		Ray ray = (Ray) { .position = Vector3Add(pos, Vector3Scale(UP, y_offset)), .direction = Vector3Normalize(vel) };
+		Ray ray = (Ray) { .position = comp_transform->position, .direction = Vector3Normalize(vel) };
 
 		BvhTraceData tr = TraceDataEmpty();
-		//BvhTracePointEx(ray, sect, bvh, 0, &tr);
-		BvhBoxSweep(ray, sect, &sect->bvh[1], 0, comp_transform->bounds, &tr);
+		BvhTracePointEx(ray, sect, bvh, 0, &tr, Vector3Length(vel));
 
-		if(tr.contact_dist > Vector3Length(wish_move)) {
+		if(tr.distance > Vector3Length(wish_move)) {
 			pos = Vector3Add(pos, vel);
 			break;
 		}
 
-		float allowed = (tr.contact_dist - 0.001f);
+		float diff = MinkowskiDiff(tr.normal, Vector3Scale(BoxExtent(comp_transform->bounds), 0.5f));
+
+		float allowed = (tr.distance - 0.001f - diff);
 
 		if(fabsf(allowed) < 0.01f) {
 			allowed = 0;
@@ -105,7 +104,13 @@ void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSectio
 	}
 
 	comp_transform->position = pos;
-	comp_transform->on_ground = CheckGround(comp_transform, pos, sect, &sect->bvh[1], dt);
+}
+*/
+
+void ApplyMovement(comp_Transform *ct, Vector3 wish_vel, MapSection *sect, BvhTree *bvh, float dt) {
+	for(short i = 0; i < SLIDE_STEPS; i++) {
+			
+	}
 }
 
 void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt) {
@@ -133,33 +138,37 @@ short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect,
 	float feet = (ent_height * 0.5f) - (1 + 0.001f);
 
 	Ray ray = (Ray) { .position = pos, .direction = DOWN };
-	ray.position = comp_transform->position;
-	//ray.position = Vector3Add(ray.position, offset);
 
 	BvhTraceData tr = TraceDataEmpty();
-	BvhBoxSweep(ray, sect, &sect->bvh[1], 0, comp_transform->bounds, &tr);
-	//BvhTracePointEx(ray, sect, &sect->bvh[1], 0, &tr);
+	BvhTracePointEx(ray, sect, bvh, 0, &tr, FLT_MAX);
 
-	if(tr.contact_dist >= 1.0f) {
+	float diff = MinkowskiDiff(tr.normal, Vector3Scale(BoxExtent(comp_transform->bounds), 0.5f));
+
+	/*
+	if(tr.contact_dist >= 1.0f)
 		return 0;
-	}
+	*/
 
-	if(tr.normal.y == 0) return 0;
+	if(tr.contact_dist >= diff)
+		return 0;
+
+	if(tr.normal.y == 0)
+		return 0;
 
 	float into_slope = Vector3DotProduct(h_vel, tr.normal);
 	float slope_y = (into_slope) / tr.normal.y;
 
-	if(fabsf(tr.normal.y) == 1.0f) slope_y = 0;
+	if(fabsf(tr.normal.y) == 1.0f)
+		slope_y = 0;
 
 	comp_transform->on_ground = 1;
 	comp_transform->velocity.y = 0;
 
 	float change = (tr.contact.y - slope_y) - (comp_transform->position.y);
-	comp_transform->position.y = (tr.contact.y - slope_y);
+	comp_transform->position.y = (tr.contact.y - slope_y) + diff;
 	//comp_transform->position.y = (tr.point.y + ent_height*2) - slope_y;
 
 	comp_transform->last_ground_surface = tr.tri_id; 
-	//comp_transform->position.y += change;
 
 	return 1;
 }
@@ -389,10 +398,16 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			case ENT_MAINTAINER: {
 				MaintainerUpdate(ent, dt);
 			} break;
+
+			case ENT_DISRUPTOR:
+				BugUpdate(ent, handler, sect, dt);
+				break;
 		}
 
-		ent->comp_transform.position = Vector3Add(ent->comp_transform.position, Vector3Scale(ent->comp_transform.velocity, dt));
-		ent->comp_transform.bounds = BoxTranslate(ent->comp_transform.bounds, ent->comp_transform.position);
+		if(i != handler->bug_id) {
+			ent->comp_transform.position = Vector3Add(ent->comp_transform.position, Vector3Scale(ent->comp_transform.velocity, dt));
+			ent->comp_transform.bounds = BoxTranslate(ent->comp_transform.bounds, ent->comp_transform.position);
+		}
 
 		AiCheckInputs(ent, handler, sect);
 
@@ -467,6 +482,10 @@ void RenderEntities(EntityHandler *handler, float dt) {
 
 			case ENT_MAINTAINER:
 				MaintainerDraw(ent, dt);
+				break;
+
+			case ENT_DISRUPTOR:
+				BugDraw(ent);
 				break;
 		}
 
@@ -615,8 +634,8 @@ void MaintainerDraw(Entity *ent, float dt) {
 	//ent->model.transform = MatrixMultiply(ent->model.transform, MatrixRotateY(angle * DEG2RAD));
 
 	//DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
-	//DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
-	ent->anim_timer -= dt;
+	DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
+	//ent->anim_timer -= dt;
 	/*
 	if(ent->anim_timer <= 0) {
 		UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
@@ -625,7 +644,7 @@ void MaintainerDraw(Entity *ent, float dt) {
 	*/
 	//UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
 	//DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
-	DrawCubeV(ent->comp_transform.position, BoxExtent(ent->comp_transform.bounds), PINK);
+	//DrawCubeV(ent->comp_transform.position, BoxExtent(ent->comp_transform.bounds), PINK);
 
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	center.y += 10;
@@ -796,7 +815,7 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 
 			//MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 6);
 
-			ai->task_data.schedule_id = SCHED_PATROL;
+			//ai->task_data.schedule_id = SCHED_PATROL;
 		}
 	}
 }

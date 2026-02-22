@@ -1,12 +1,14 @@
 #include "raylib.h"
+#include "raymath.h"
 #include "input_handler.h"
 
 void InputInit(InputHandler *handler) {
 	handler->input_method = INPUT_DEVICE_KEYBOARD;	
 
 	//handler->mouse_sensitivity = 0.475f;
-	handler->mouse_sensitivity = 0.0045f;
+	//handler->mouse_sensitivity = 0.0045f;
 	//handler->mouse_sensitivity = 0.0195f;
+	handler->mouse_sensitivity = 0.0035f;
 
 	handler->actions[ACTION_MOVE_L].key 	= KEY_A;
 	handler->actions[ACTION_MOVE_R].key 	= KEY_D;
@@ -22,9 +24,8 @@ void PollInput(InputHandler *handler) {
 	float dt = GetFrameTime();
 
 	// Get mouse delta, scale by sensitivity setting
-	handler->mouse_delta = GetMouseDelta();
-	handler->mouse_delta.x *= handler->mouse_sensitivity;
-	handler->mouse_delta.y *= handler->mouse_sensitivity;
+	Vector2 d = GetMouseDelta();
+	handler->mouse_delta = Vector2Scale(d, handler->mouse_sensitivity);
 
 	for(u8 i = 0; i < INPUT_ACTION_COUNT; i++) {
 		InputAction *action = &handler->actions[i];

@@ -125,15 +125,19 @@ enum ENT_BEHAVIORS : i8 {
 	ENT_BEHAVIOR_PLAYER		=  0,
 };
 
-#define ENT_PLAYER 			0
-#define ENT_TURRET 			1
-#define ENT_MAINTAINER 		2
-#define ENT_REGULATOR		3
-#define ENT_DRONE 			4
-#define ENT_HEALTHPACK		5
-#define ENT_AMMO_PISTOL		6
-#define ENT_AMMO_SHOTGUN	7
-#define ENT_AMMO_REVOLVER	8
+enum ENT_TYPES : u8 {
+	ENT_PLAYER 		 	= 	0,
+	ENT_TURRET 		 	= 	1,
+	ENT_MAINTAINER 	 	= 	2,
+	ENT_REGULATOR	 	= 	3,
+	ENT_DRONE 		 	= 	4,
+	ENT_HEALTHPACK	 	= 	5,
+	ENT_AMMO_PISTOL	 	= 	6,
+	ENT_AMMO_SHOTGUN 	= 	7,
+	ENT_AMMO_REVOLVER	=	8,
+	ENT_DISRUPTOR	 	= 	9,
+};
+
 typedef struct {
 	Model model;
 	ModelAnimation *animations;
@@ -168,6 +172,7 @@ typedef struct {
 	u16 capacity;
 
 	u16 player_id;
+	u16 bug_id;
 
 } EntityHandler;
 
@@ -244,6 +249,7 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id);
 bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
 void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
+
 // ----------------------------------------------------------------------------------------------------------------------------
 
 typedef struct {
@@ -261,6 +267,22 @@ Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sende
 Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit);
 
 void DebugDrawEntText(EntityHandler *handler, Camera3D cam); 
+
+
+// ----------------------------------------------------------------------------------------------------------------------------
+// **** BUG ****
+
+enum BUG_STATES : u8 {
+	BUG_DEFAULT,		// Default state, attached to player
+	BUG_LAUNCHED,		// In air
+	BUG_LANDED			// On ground/enemy
+};
+
+void BugInit(Entity *ent, EntityHandler *handler, MapSection *sect);
+void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
+void BugDraw(Entity *ent);
+
+// ----------------------------------------------------------------------------------------------------------------------------
 
 #endif
 

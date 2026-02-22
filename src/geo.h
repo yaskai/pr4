@@ -167,9 +167,9 @@ typedef struct {
 #define MAP_SECT_LOADED	0x01
 #define MAP_SECT_QUEUED	0x02
 typedef struct {
-	BvhTree bvh[3];
-	TriPool _tris[3];
-	HullPool _hulls[3];
+	BvhTree bvh[4];
+	TriPool _tris[4];
+	HullPool _hulls[4];
 
 	NavGraph base_navgraph;
 	NavGraph *navgraphs;
@@ -189,12 +189,13 @@ float BvhNodeCost(BvhNode *node);
 // Grow bounding box of a node using it's contained primitives
 void BvhNodeUpdateBounds(MapSection *sect, BvhTree *bvh, u16 node_id);
 
+#define BODY_VOLUME_SMALL (Vector3) { 8, 8, 8 }
 #define BODY_VOLUME_MEDIUM (Vector3) { 28, 64, 28 }
 
 enum BVH_SHAPES : u8 {
 	BVH_POINT		= 0,	
 	BVH_BOX_MED 	= 1,
-	BVH_BOX_BIG		= 2
+	BVH_BOX_SMALL	= 2
 };
 
 // Start BVH tree construction

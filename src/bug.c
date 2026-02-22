@@ -125,11 +125,14 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	if(ai->state == BUG_DEFAULT) {
 		ct->position = player_ent->comp_transform.position;
 		ct->velocity = Vector3Zero();
+		ent->flags &= ~ENT_COLLIDERS;	
 	}
 
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 
 	if(ai->state == BUG_LAUNCHED) {
+		ent->flags |= ENT_COLLIDERS;	
+
 		ct->on_ground = bug_CheckGround(ct, ct->position, sect);
 		if(!ct->on_ground) {
 			ct->velocity.y -= 800.0f * dt;

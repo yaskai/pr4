@@ -118,7 +118,8 @@ typedef struct {
 
 } comp_Weapon;
 
-#define ENT_ACTIVE	0x01
+#define ENT_ACTIVE		0x01
+#define ENT_COLLIDERS	0x02
 
 enum ENT_BEHAVIORS : i8 {
 	ENT_BEHAVIOR_NONE 		= -1,
@@ -282,7 +283,8 @@ enum BUG_STATES : u8 {
 
 // Bug flags
 // 0x01 reserved for ENT_ACTIVE
-#define BUG_DISRUPTED_ENEMY 0x02
+// 0x02 reserved for ENT_COLLIDERS
+#define BUG_DISRUPTED_ENEMY 0x04
 
 void BugInit(Entity *ent, EntityHandler *handler, MapSection *sect);
 void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);

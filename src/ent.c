@@ -599,7 +599,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 		} break;
 	}
 
-	ent.flags |= ENT_ACTIVE;
+	ent.flags = (ENT_ACTIVE | ENT_COLLIDERS);
 
 	return ent;
 }
@@ -1229,6 +1229,12 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 
 			// Skip collision checks with shooting entity  
 			if(ent->id == ent_id)
+				continue;
+
+			if(!(ent->flags & ENT_ACTIVE))
+				continue;
+				
+			if(!(ent->flags & ENT_COLLIDERS))
 				continue;
 			
 			// * NOTE:

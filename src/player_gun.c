@@ -59,7 +59,7 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 	gun_refs.handler = handler;
 	gun_refs.effect_manager = effect_manager;
 
-	player->comp_weapon.id = WEAP_DISRUPTOR;
+	player->comp_weapon.id = WEAP_REVOLVER;
 	player_gun->current_gun = player->comp_weapon.id;
 
 	player_gun->model = models[player_gun->current_gun];
@@ -71,7 +71,7 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 4;
 	player_gun->current_gun = gun_refs.player->comp_weapon.id;
 
-	switch(gun_refs.player->comp_weapon.id) {
+	switch(player_gun->current_gun) {
 		case WEAP_PISTOL:
 			PlayerGunUpdatePistol(player_gun, dt);
 			break;
@@ -107,7 +107,7 @@ void PlayerGunUpdateRevolver(PlayerGun *player_gun, float dt) {
 	if(recoil <= -EPSILON) recoil = 0;
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && recoil <= 1.0f) {
-		PlayerShoot(player_gun, gun_refs.handler, gun_refs.sect);
+		PlayerShootRevolver(player_gun, gun_refs.handler, gun_refs.sect);
 
 		recoil_add = false;
 		recoil += 130 + (GetRandomValue(10, 30) * 0.1f);
@@ -129,7 +129,7 @@ void PlayerGunUpdateDisruptor(PlayerGun *player_gun, float dt) {
 		PlayerShoot(player_gun, gun_refs.handler, gun_refs.sect);
 	}
 
-	player_gun->model.transform = mat;
+	models[WEAP_DISRUPTOR].transform = mat;
 }
 
 void PlayerGunDraw(PlayerGun *player_gun) {
@@ -205,8 +205,8 @@ void PlayerShootRevolver(PlayerGun *player_gun, EntityHandler *handler, MapSecti
 
 	float dist = Vector3Distance(trail_start, trail_end);
 
-	if(dist >= 20)
-		vEffectsAddTrail(gun_refs.effect_manager, trail_start, trail_end);
+	//if(dist >= 20)
+	vEffectsAddTrail(gun_refs.effect_manager, trail_start, trail_end);
 }
 
 void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
@@ -221,6 +221,7 @@ void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSect
 
 	ai->state = BUG_LAUNCHED;
 	bug_ent->flags = ENT_ACTIVE;
+	bug_ent->flags |= ENT_COLLIDERS;
 
 	ct->position = player_ent->comp_transform.position;
 	ct->forward = player_ent->comp_transform.forward;

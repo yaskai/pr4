@@ -184,7 +184,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 1;
+u8 debug_draw_flags = 0;
 
 void GameDraw(Game *game, float dt) {
 	// 3D Rendering, main
@@ -249,7 +249,7 @@ void GameDraw(Game *game, float dt) {
 				*/
 			}
 			RenderEntities(&game->ent_handler, GetFrameTime());
-			DebugDrawNavGraphs(&game->test_section, sphere_model);
+			//DebugDrawNavGraphs(&game->test_section, sphere_model);
 
 			vEffectsRun(&game->effect_manager, dt);
 
@@ -321,7 +321,7 @@ void GameDraw(Game *game, float dt) {
 
 			Vector2 dbg_window_size = (Vector2) { .x = game->render_target_debug.texture.width, .y = game->render_target_debug.texture.height };
 			//DebugDrawNavGraphsText(&game->test_section, game->camera_debug, dbg_window_size);
-			DebugDrawEntText(&game->ent_handler, game->camera_debug);
+			//DebugDrawEntText(&game->ent_handler, game->camera_debug);
 			}
 
 			// 2D

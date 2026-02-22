@@ -160,6 +160,7 @@ void GameLoadTestScene1(Game *game, char *path) {
 	bug.flags |= ENT_ACTIVE;
 
 	game->ent_handler.bug_id = game->ent_handler.count++;
+	bug.id = game->ent_handler.bug_id;
 	game->ent_handler.ents[game->ent_handler.bug_id] = bug;
 	BugInit(&game->ent_handler.ents[game->ent_handler.bug_id], &game->ent_handler, &game->test_section);
 }
@@ -183,7 +184,7 @@ void GameUpdate(Game *game, float dt) {
 #define DEBUG_DRAW_BIG	 		0x04
 #define DEBUG_DRAW_FULL_MODEL	0x08
 #define DEBUG_DRAW_BVH			0x10
-u8 debug_draw_flags = 0;
+u8 debug_draw_flags = 1;
 
 void GameDraw(Game *game, float dt) {
 	// 3D Rendering, main
@@ -248,7 +249,7 @@ void GameDraw(Game *game, float dt) {
 				*/
 			}
 			RenderEntities(&game->ent_handler, GetFrameTime());
-			//DebugDrawNavGraphs(&game->test_section, sphere_model);
+			DebugDrawNavGraphs(&game->test_section, sphere_model);
 
 			vEffectsRun(&game->effect_manager, dt);
 

@@ -1224,3 +1224,24 @@
 "flag" "0"
 "_tb_layer" "1"
 }
+// entity 40
+{
+"classname" "nav_node"
+"origin" "50 -338 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 41
+{
+"classname" "nav_node"
+"origin" "2 -370 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 42
+{
+"classname" "nav_node"
+"origin" "2 -402 50"
+"flag" "0"
+"_tb_layer" "1"
+}

@@ -85,7 +85,7 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 			break;
 
 		case WEAP_DISRUPTOR:
-			PlayerGunUpdateDisruptor(player_gun, dt);
+		 	PlayerGunUpdateDisruptor(player_gun, dt);
 			break;
 	}	
 }
@@ -220,6 +220,7 @@ void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSect
 		return;
 
 	ai->state = BUG_LAUNCHED;
+	bug_ent->flags = ENT_ACTIVE;
 
 	ct->position = player_ent->comp_transform.position;
 	ct->forward = player_ent->comp_transform.forward;

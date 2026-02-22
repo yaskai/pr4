@@ -237,7 +237,7 @@ void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt);
 void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt);
 
 void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect);
-void AiDoSchedule(Entity *ent, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt);
+void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt);
 void AiDoState(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt);
 
 int FindClosestNavNode(Vector3 position, MapSection *sect);
@@ -249,6 +249,7 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id);
 bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
 void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
+void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -272,15 +273,23 @@ void DebugDrawEntText(EntityHandler *handler, Camera3D cam);
 // ----------------------------------------------------------------------------------------------------------------------------
 // **** BUG ****
 
+// Bug states
 enum BUG_STATES : u8 {
 	BUG_DEFAULT,		// Default state, attached to player
 	BUG_LAUNCHED,		// In air
 	BUG_LANDED			// On ground/enemy
 };
 
+// Bug flags
+// 0x01 reserved for ENT_ACTIVE
+#define BUG_DISRUPTED_ENEMY 0x02
+
 void BugInit(Entity *ent, EntityHandler *handler, MapSection *sect);
 void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 void BugDraw(Entity *ent);
+
+void DisruptEntity(EntityHandler *handler, u16 ent_id);
+void AlertMaintainers(EntityHandler *handler, u16 disrupted_id);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 

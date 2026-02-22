@@ -451,6 +451,13 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 				visible--;
 		}
 
+		// * NOTE:
+		// Special case for bug 
+		// fix visibility for when player is below entity,
+		// won't be needed after
+		if(i == handler->bug_id)
+			visible = 3;
+
 		if(visible <= 0)
 			continue;
 
@@ -672,7 +679,7 @@ void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_Task
 		}
 	}
 
-	AiDoSchedule(ent, sect, ai, task_data, dt);
+	AiDoSchedule(ent, handler, sect, ai, task_data, dt);
 }
 
 void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
@@ -697,7 +704,9 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 		return;
 
 	// Clear inputs
-	ai->input_mask = 0;
+	// *NOTE:
+	// Don't do this! Some (most) inputs need to be retained
+	//ai->input_mask = 0;
 
 	comp_Transform *ct = &ent->comp_transform;
 
@@ -705,6 +714,9 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 
 	// ** Check if player is visible **	
 	//
+	// Clear 'see player' flag
+	ai->input_mask &= ~AI_INPUT_SEE_PLAYER;
+
 	Entity *player_ent = &handler->ents[handler->player_id];
 	Vector3 to_player = Vector3Normalize(Vector3Subtract(player_ent->comp_transform.position, ct->position));
 
@@ -728,7 +740,7 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 	// ***
 }
 
-void AiDoSchedule(Entity *ent, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
+void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
 	if(task_data->task_id == TASK_WAIT_TIME) {
 		task_data->timer -= dt;
 		if(task_data->timer > 0) {
@@ -745,6 +757,10 @@ void AiDoSchedule(Entity *ent, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_
 			break;
 
 		case SCHED_WAIT:
+			break;
+
+		case SCHED_FIX_FRIEND:
+			AiFixFriendSchedule(ent, handler, sect, dt);
 			break;
 	}
 	
@@ -1033,6 +1049,52 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 	}
 }
 
+void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+
+	Ai_TaskData *task = &ai->task_data;
+	NavPath *path = &task->path;
+
+	NavGraph *graph = &sect->navgraphs[ai->navgraph_id];
+
+	Entity *friend = &handler->ents[ai->task_data.target_entity];
+
+	if(!task->path_set) {
+		MakeNavPath(ent, graph, FindClosestNavNodeInGraph(friend->comp_transform.position, graph));	
+		task->path_set = true;
+		task->task_id = TASK_GOTO_POINT;
+		return;
+	}
+
+	if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
+		AiMoveToNode(ent, graph, path->curr++);
+		task->task_id = TASK_GOTO_POINT;
+
+		ai->state = STATE_MOVE;
+		return;
+	}
+
+	Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
+	if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) {
+		if(!AiMoveToNode(ent, graph, path->curr++)) {
+			ct->velocity = Vector3Zero();
+
+			task->task_id = TASK_WAIT_TIME;
+			task->timer = 0.05f;
+
+			task->path_set = false;
+
+			ai->state = STATE_IDLE;
+
+			ai->curr_schedule = SCHED_IDLE;
+			task->schedule_id = SCHED_WAIT;
+
+			return;
+		}
+	}
+}
+
 EntTraceData EntTraceDataEmpty() {
 	return (EntTraceData) {
 		.point = Vector3Zero(),
@@ -1226,6 +1288,45 @@ void DebugDrawEntText(EntityHandler *handler, Camera3D cam) {
 		Vector2 pos = GetWorldToScreen(ct->position, cam);
 
 		DrawText(TextFormat("id: %d", ent->id), pos.x, pos.y, text_size, PURPLE);
+	}
+}
+
+// * NOTE:
+// This function is placeholder and mostly for testing,
+// in the future I'll probably use actual ai inputs for this...
+// Sound, sight, etc.
+void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
+	Entity *disrupted_ent = &handler->ents[disrupted_id];
+	comp_Ai *disrupted_ai = &disrupted_ent->comp_ai;
+
+	for(u16 i = 0; i < handler->count; i++) {
+		Entity *ent = &handler->ents[i];
+		comp_Ai *ai = &ent->comp_ai;
+
+		if(!ai->component_valid)	
+			continue;
+
+		if(ent->type == ENT_PLAYER)
+			continue;
+
+		if(ent->type == ENT_DISRUPTOR)
+			continue;
+	
+		if(ai->navgraph_id != disrupted_ai->navgraph_id)	
+			continue;
+
+		ai->input_mask |= AI_INPUT_SEE_GLITCHED;
+
+		if(ent->type != ENT_MAINTAINER)
+			continue;
+
+		if(ent->id == disrupted_id)
+			continue;
+				
+		ai->curr_schedule = SCHED_FIX_FRIEND;
+		ai->task_data.schedule_id = SCHED_FIX_FRIEND;
+		ai->task_data.target_entity = disrupted_id;
+		ai->task_data.path_set = false;
 	}
 }
 

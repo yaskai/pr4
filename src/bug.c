@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <float.h>
 #include "raylib.h"
 #include "raymath.h"
@@ -121,19 +122,14 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	comp_Transform *ct = &ent->comp_transform;
 	comp_Ai *ai = &ent->comp_ai;
 
+	if(ai->state == BUG_DEFAULT) {
+		ct->position = player_ent->comp_transform.position;
+		ct->velocity = Vector3Zero();
+	}
+
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 
 	if(ai->state == BUG_LAUNCHED) {
-		/*
-		Vector3 wish_point = Vector3Add(ct->position, Vector3Scale(ct->velocity, dt));
-
-		CheckCeiling(ct, sect, &sect->bvh[0]);
-		ApplyGravity(ct, sect, &sect->bvh[0], 450.33f, dt);
-		ApplyMovement(ct, wish_point, sect, &sect->bvh[0], dt);
-
-		ct->on_ground = CheckGround(ct, ct->position, sect, &sect->bvh[0], dt);
-		*/
-
 		ct->on_ground = bug_CheckGround(ct, ct->position, sect);
 		if(!ct->on_ground) {
 			ct->velocity.y -= 800.0f * dt;
@@ -155,6 +151,42 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	if(ai->state == BUG_LANDED) {
 		ct->velocity = Vector3Zero();
 		
+		// Check if there is an enemy to disrupt
+		if(!(ent->flags & BUG_DISRUPTED_ENEMY)) {
+			EntGrid *grid = &handler->grid;
+			Coords coords = Vec3ToCoords(ct->position, grid);
+			i16 cell_id = CellCoordsToId(coords, grid);
+			EntGridCell *cell = &grid->cells[cell_id];
+
+			//printf("disrupt prox check\n");
+			//printf("cell: %d\n", cell_id);
+			//printf("ent count: %d\n", cell->ent_count);
+
+			for(u8 i = 0; i < cell->ent_count; i++) {
+				Entity *enemy_ent = &handler->ents[cell->ents[i]];
+
+				if(enemy_ent->type == ENT_PLAYER)
+					continue;
+
+				if(enemy_ent->type == ENT_DISRUPTOR)
+					continue;
+
+				if(!enemy_ent->comp_ai.component_valid)
+					continue;
+
+				//printf("ent[%d] id: %d\n", i, cell->ents[i]);
+
+				if(!CheckCollisionBoxes(ct->bounds, enemy_ent->comp_transform.bounds))
+					continue;
+
+				printf("hit!\n");
+
+				DisruptEntity(handler, enemy_ent->id);	
+			}
+
+			ent->flags |= BUG_DISRUPTED_ENEMY;
+		}
+		
 		// Pickup
 		if(CheckCollisionBoxes(ct->bounds, player_ent->comp_transform.bounds)) {
 			ai->state = BUG_DEFAULT;
@@ -167,6 +199,16 @@ void BugDraw(Entity *ent) {
 		return;
 
 	DrawModel(ent->model, ent->comp_transform.position, 3, WHITE);	
-	DrawBoundingBox(ent->comp_transform.bounds, GREEN);
+	//DrawBoundingBox(ent->comp_transform.bounds, GREEN);
+}
+
+void DisruptEntity(EntityHandler *handler, u16 ent_id) {
+	//printf("dirsrupted entity [%d]\n", ent_id);
+	Entity *ent = &handler->ents[ent_id];
+	comp_Ai *ai = &ent->comp_ai;	
+
+	ai->input_mask |= AI_INPUT_SELF_GLITCHED;
+
+	AlertMaintainers(handler, ent_id);
 }
 

@@ -131,7 +131,6 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 
 	if(ai->state == BUG_LAUNCHED) {
-
 		ct->on_ground = bug_CheckGround(ct, ct->position, sect);
 		if(!ct->on_ground) {
 			ct->velocity.y -= 800.0f * dt;
@@ -139,10 +138,35 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 		pmTraceData pm = (pmTraceData) {0};
 		//pm_AirFriction(ct, dt);
-
+	
+		Vector3 prev_pos = ct->position;
 		bug_TraceMove(ct, ct->position, ct->velocity, &pm, dt, sect);
 		ent->comp_transform.velocity = pm.end_vel;
 		ent->comp_transform.position = pm.end_pos;
+
+		EntGrid *grid = &handler->grid;
+		Coords coords = Vec3ToCoords(ct->position, grid);
+		i16 cell_id = CellCoordsToId(coords, grid);
+		EntGridCell *cell = &grid->cells[cell_id];
+		for(u8 i = 0; i < cell->ent_count; i++) {
+			Entity *enemy_ent = &handler->ents[cell->ents[i]];
+
+			if(enemy_ent->type == ENT_PLAYER && ct->velocity.y > 0)
+				continue;
+
+			if(enemy_ent->type == ENT_DISRUPTOR)
+				continue;
+
+			/*
+			if(!enemy_ent->comp_ai.component_valid)
+				continue;
+			*/
+
+			if(CheckCollisionBoxes(ct->bounds, enemy_ent->comp_transform.bounds)) {
+				ct->on_ground = true;
+				break;
+			}
+		}
 
 		if(ct->on_ground) {
 			ai->state = BUG_LANDED;

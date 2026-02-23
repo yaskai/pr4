@@ -628,7 +628,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 
 void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
 	//AiSentrySchedule(ent, handler, sect, dt);
-	ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, dt*20);
+	ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 50*dt);
 
 	if(ent->comp_ai.task_data.task_id == TASK_FIRE_WEAPON)
 		TurretShoot(ent, handler, sect, dt);
@@ -695,6 +695,10 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 
 	Vector3 right = Vector3CrossProduct(ct->forward, UP);
 	dir = Vector3Add(dir, Vector3Scale(right, offset));
+
+	offset = GetRandomValue(-10, 10) * 0.001f;
+	dir = Vector3Add(dir, Vector3Scale(UP, offset));
+
 	dir = Vector3Normalize(dir);
 
 	bool hit = false;
@@ -1208,15 +1212,17 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 		task->task_id = TASK_LOOK_AT_ENTITY;
 		task->target_entity = handler->player_id;
 	} else {
-		Vector3 targ = ct->start_forward;
-		ct->targ_look = targ;
+		//Vector3 targ = ct->start_forward;
+		//ct->targ_look = targ;
 
 		task->task_id = TASK_WAIT_TIME;
-		task->timer = 0.07f;
+		task->timer = 0.03f;
 	}
 
 	if(task->task_id == TASK_LOOK_AT_ENTITY) {
 		Vector3 look_point = handler->ents[task->target_entity].comp_transform.position;
+		look_point = Vector3Add(look_point, Vector3Scale(handler->ents[task->target_entity].comp_transform.velocity, 10*dt));
+
 		Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
 		ct->targ_look = targ;
 
@@ -1226,7 +1232,7 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 			ent->comp_weapon.cooldown = 0.05f;
 		} else {
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 0.07f;
+			task->timer = 0.01f;
 		}
 	}
 }

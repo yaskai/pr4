@@ -176,7 +176,7 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 		EndMode3D();
 	}
 
-	DrawText(TextFormat("H-%d", gun_refs.player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.95f));	
+	DrawText(TextFormat("_H_%d", gun_refs.player->comp_health.amount), 64, 980, 80, ColorAlpha(SKYBLUE, 0.95f));	
 }
 
 void PlayerShoot(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
@@ -293,14 +293,27 @@ void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSect
 	bug_ent->flags |= ENT_COLLIDERS;
 
 	ct->position = player_ent->comp_transform.position;
+	ct->position.y += 10;
+
 	ct->forward = player_ent->comp_transform.forward;
 	
-	ct->position = Vector3Add(ct->position, Vector3Scale(ct->forward, 15));
+	ct->position = Vector3Add(ct->position, Vector3Scale(ct->forward, 10));
 
-	Vector3 throw_dir = ct->forward;
+	float updot = Vector3DotProduct(UP, ct->forward);
+
+	Vector3 throw_dir = (Vector3) { ct->forward.x, 0, ct->forward.z };
 	throw_dir = Vector3Normalize(throw_dir);
-	ct->velocity = Vector3Scale(throw_dir, DISRUPTOR_THROW_FORCE);
-	ct->velocity.y += 250;
+
+	if(ct->forward.y <= 0.98f && ct->forward.y > 0) {
+		ct->velocity = Vector3Scale(throw_dir, DISRUPTOR_THROW_FORCE);
+		ct->velocity.y += 250 + (((ct->forward.y) * (DISRUPTOR_THROW_FORCE)) * updot);
+	} else {
+		Vector3 throw_dir = (Vector3) { ct->forward.x, ct->forward.y, ct->forward.z };
+		throw_dir = Vector3Normalize(throw_dir);
+
+		ct->velocity = Vector3Scale(throw_dir, DISRUPTOR_THROW_FORCE);
+		ct->velocity.y += 250;
+	}
 
 	//ct->velocity = Vector3Add(ct->velocity, player_ent->comp_transform.velocity);
 

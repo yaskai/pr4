@@ -162,6 +162,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 	bug.id = game->ent_handler.bug_id;
 	game->ent_handler.ents[game->ent_handler.bug_id] = bug;
 	BugInit(&game->ent_handler.ents[game->ent_handler.bug_id], &game->ent_handler, &game->test_section);
+
+	SpawnPlayer(&game->ent_handler.ents[game->ent_handler.player_id], game->ent_handler.player_start);
 }
 
 void GameUpdate(Game *game, float dt) {
@@ -340,7 +342,7 @@ void GameDraw(Game *game, float dt) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
-	PlayerDebugText(&game->ent_handler.ents[0]);
+	//PlayerDebugText(&game->ent_handler.ents[0]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;

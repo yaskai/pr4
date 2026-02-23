@@ -35,6 +35,7 @@ short nudged_this_frame = 0;
 
 #define PLAYER_FRICTION 16.25f 
 #define PLAYER_AIR_FRICTION 0.75f
+#define PLAYER_HURT_FRICTION 40.0f
 
 #define PLAYER_BASE_JUMP_FORCE 420.0f
 
@@ -303,6 +304,8 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 		.y = sinf(ct->pitch),
 		.z = sinf(ct->yaw) * cosf(ct->pitch)
 	};
+
+	ct->targ_look = Vector3Normalize(look);
 
 	// Update forward direction, infer 'right' (orthogonal direction to look, needed for side input)
 	Vector3 forward = Vector3Normalize(look);
@@ -818,6 +821,8 @@ void pm_AirFriction(comp_Transform *ct, float dt) {
 
 void OnHitPlayer(Entity *ent, short damage) {
 	comp_Health *health = &ent->comp_health;
+	comp_Transform *ct = &ent->comp_transform;
+
 	health->amount -= damage; 
 }
 

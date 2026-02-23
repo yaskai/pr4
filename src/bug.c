@@ -6,6 +6,7 @@
 #include "pm.h"
 
 u8 bug_bounce = 0;
+float launch_timer = 0;
 
 void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 *bounce) {
 	EntGrid *grid = &handler->grid;
@@ -59,6 +60,13 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 
 	(*bounce)++;
 
+	Vector3 hdir = (Vector3) { ct->velocity.x, 0, ct->velocity.z };
+	hdir = Vector3Normalize(hdir);
+	ct->forward = hdir;	
+
+	float angle = GetRandomValue(-70, 70);
+	ct->forward = Vector3RotateByAxisAngle(ct->forward, UP, angle*DEG2RAD);
+
 	if(enemy_id <= -1) 
 		return;
 
@@ -88,6 +96,7 @@ u8 bug_CheckGround(comp_Transform *ct, Vector3 position, MapSection *sect, u8 *b
 		ct->ground_normal = Vector3Zero();
 		return 0;
 	}
+
 
 	ct->ground_normal = tr.normal;
 	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.50001f, 0);
@@ -208,14 +217,17 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 		ct->ground_normal = Vector3Zero();
 		bug_bounce = 0;
+		launch_timer = 0.25f;
 	}
+
+	launch_timer -= dt;
 
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 
 	if(ai->state == BUG_LAUNCHED) {
 		ct->on_ground = bug_CheckGround(ct, ct->position, sect, &bug_bounce, handler);
 		if(!ct->on_ground) {
-			ct->velocity.y -= 800.0f * dt;
+			ct->velocity.y -= 900.0f * dt;
 		}
 
 		pmTraceData pm = (pmTraceData) {0};
@@ -225,8 +237,8 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 		Vector3 prev_pos = ct->position;
 		bug_TraceMove(ct, ct->position, ct->velocity, &pm, dt, sect);
-		ent->comp_transform.velocity = pm.end_vel;
-		ent->comp_transform.position = pm.end_pos;
+		ct->velocity = pm.end_vel;
+		ct->position = pm.end_pos;
 
 		EntGrid *grid = &handler->grid;
 		Coords coords = Vec3ToCoords(ct->position, grid);
@@ -253,6 +265,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			ai->state = BUG_LANDED;
 			ct->velocity = Vector3Zero();
 		}
+
 	}
 
 	if(ai->state == BUG_LANDED) {
@@ -295,11 +308,9 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 		}
 		
 		// Pickup
-		if(CheckCollisionBoxes(ct->bounds, player_ent->comp_transform.bounds)) {
+		if(CheckCollisionBoxes(ct->bounds, player_ent->comp_transform.bounds) && launch_timer <= 0) {
 			ai->state = BUG_DEFAULT;
 		}
-
-
 	}
 }
 
@@ -307,7 +318,11 @@ void BugDraw(Entity *ent) {
 	if(ent->comp_ai.state == 0)
 		return;
 
+	float angle = atan2f(-ent->comp_transform.forward.x, -ent->comp_transform.forward.z);
+	ent->model.transform = MatrixRotateY(angle);
+
 	DrawModel(ent->model, ent->comp_transform.position, 3, WHITE);	
+
 	//DrawBoundingBox(ent->comp_transform.bounds, GREEN);
 }
 
@@ -317,6 +332,10 @@ void DisruptEntity(EntityHandler *handler, u16 ent_id) {
 	comp_Ai *ai = &ent->comp_ai;	
 
 	ai->input_mask |= AI_INPUT_SELF_GLITCHED;
+
+	// * NOTE: 
+	// Magic number, change later based on entity type maybe??
+	ai->disrupt_timer = 60;
 
 	AlertMaintainers(handler, ent_id);
 }

@@ -960,7 +960,7 @@
 // entity 2
 {
 "classname" "turret_spawn"
-"origin" "44 -692 168"
+"origin" "12 -356 40"
 "enum_id" "1"
 "angle" "0"
 }
@@ -1234,7 +1234,7 @@
 // entity 41
 {
 "classname" "nav_node"
-"origin" "2 -370 50"
+"origin" "-14 -370 50"
 "flag" "0"
 "_tb_layer" "1"
 }
@@ -1242,6 +1242,34 @@
 {
 "classname" "nav_node"
 "origin" "2 -402 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 43
+{
+"classname" "nav_node"
+"origin" "50 -386 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 44
+{
+"classname" "nav_node"
+"origin" "82 -402 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 45
+{
+"classname" "nav_node"
+"origin" "34 -418 50"
+"flag" "0"
+"_tb_layer" "1"
+}
+// entity 46
+{
+"classname" "nav_node"
+"origin" "66 -450 50"
 "flag" "0"
 "_tb_layer" "1"
 }

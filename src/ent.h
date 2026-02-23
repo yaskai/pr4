@@ -21,7 +21,7 @@ typedef struct {
 
 } Coords;
 
-#define ENT_GRID_CELL_EXTENTS (Vector3) { 128, 128, 128 } 
+#define ENT_GRID_CELL_EXTENTS (Vector3) { 255, 255, 255 } 
 #define MAX_ENTS_PER_CELL	16
 typedef struct {
 	BoundingBox aabb;
@@ -82,6 +82,7 @@ void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh
 short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt);
 short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh);
 
+
 typedef struct {
 	BoundingBox hit_box;
 
@@ -93,6 +94,8 @@ typedef struct {
 
 	// Destroy function id
 	short on_destroy;
+	
+	bool component_valid;
 
 } comp_Health;
 
@@ -194,6 +197,9 @@ void EntGridInit(EntityHandler *handler);
 void UpdateGrid(EntityHandler *handler);
 
 void DrawEntsDebugInfo();
+
+void SpawnPlayer(Entity *ent, Vector3 position);
+
 // ----------------------------------------------------------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -257,7 +263,9 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
 void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
 void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
+
 void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
+void AiSentryDisruptionSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -307,6 +315,12 @@ void OnHitBug(Entity *ent, short damage);
 void OnHitTurret(Entity *ent, short damage);
 void OnHitMaintainer(Entity *ent, short damage);
 void OnHitRegulator(Entity *ent, short damage);
+
+void DoFix(Entity *ent);
+
+void OnFixTurret(Entity *ent);
+void OnFixMaintainer(Entity *ent);
+void OnFixRegulator(Entity *ent);
 
 #endif
 

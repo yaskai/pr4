@@ -77,6 +77,7 @@ enum AI_TASKS : u8 {
 	TASK_MAKE_PATROL_PATH,
 	TASK_LOOK_AT_ENTITY,
 	TASK_LOOK_AROUND,
+	TASK_DO_FIX,
 };
 
 typedef struct {
@@ -106,6 +107,8 @@ typedef struct {
 	u32 curr_schedule;
 
 	int curr_navnode_id;
+
+	float disrupt_timer;
 
 	u16 self_ent_id;
 

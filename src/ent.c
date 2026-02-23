@@ -26,7 +26,6 @@ OnHitFunc on_hit_funcs[] = {
 	&OnHitBug,
 };
 
-
 // *
 float ground_diff = 0;
 float proj_y;
@@ -425,6 +424,14 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			ent->comp_transform.bounds = BoxTranslate(ent->comp_transform.bounds, ent->comp_transform.position);
 		}
 
+		comp_Health *health = &ent->comp_health;
+		if(health->component_valid) {
+			health->damage_cooldown -= dt;
+
+			if(health->damage_cooldown < 0)
+				health->damage_cooldown = 0;
+		}
+
 		AiCheckInputs(ent, handler, sect);
 
 		// *** Render visibility checking ***
@@ -637,8 +644,20 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 }
 
 void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
-	//AiSentrySchedule(ent, handler, sect, dt);
-	ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 50*dt);
+	if((ent->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)) {
+		float angle_min = -170;
+		float angle_max =  170;
+		
+		float angle = sinf(GetTime());
+		angle = Clamp(angle, angle_min, angle_max);
+
+		if(ent->comp_ai.disrupt_timer > 0)
+			ent->comp_transform.forward = Vector3RotateByAxisAngle(ent->comp_transform.targ_look, UP, angle);		
+		else 
+			ent->comp_transform.targ_look = ent->comp_transform.forward;		
+
+	} else
+		ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 50*dt);
 
 	if(ent->comp_ai.task_data.task_id == TASK_FIRE_WEAPON) {
 		TurretShoot(ent, handler, sect, dt);
@@ -698,7 +717,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 
 	if(weap->ammo <= 0) {
 		ai->task_data.task_id = TASK_WAIT_TIME;
-		ai->task_data.timer = 0.25f;
+		ai->task_data.timer = 10.25f;
 	}
 
 	Vector3 trace_start = ct->position;
@@ -728,7 +747,11 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 
 	float dist = Vector3Distance(trail_start, trail_end);
 
-	vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
+	// *NOTE:
+	// This just hides a bug with the turret rotation,
+	// delete check when fixed
+	if(weap->ammo < 60)
+		vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
 	
 	weap->cooldown = 0.1f;
 	weap->ammo--;
@@ -794,6 +817,12 @@ void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_Task
 	}
 
 	AiDoSchedule(ent, handler, sect, ai, task_data, dt);
+
+	ai->task_data.timer--;
+
+	if(ai->input_mask & AI_INPUT_SELF_GLITCHED) {
+		ai->disrupt_timer--;
+	}
 }
 
 void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
@@ -855,8 +884,8 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 }
 
 void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
+	task_data->timer -= dt;
 	if(task_data->task_id == TASK_WAIT_TIME) {
-		task_data->timer -= dt;
 		if(task_data->timer > 0) {
 			return;
 		}
@@ -1178,37 +1207,46 @@ void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, 
 
 	Entity *friend = &handler->ents[ai->task_data.target_entity];
 
-	if(!task->path_set) {
-		MakeNavPath(ent, graph, FindClosestNavNodeInGraph(friend->comp_transform.position, graph));	
-		task->path_set = true;
-		task->task_id = TASK_GOTO_POINT;
-		return;
-	}
-
-	if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
-		AiMoveToNode(ent, graph, path->curr++);
-		task->task_id = TASK_GOTO_POINT;
-
-		ai->state = STATE_MOVE;
-		return;
-	}
-
-	Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
-	if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) {
-		if(!AiMoveToNode(ent, graph, path->curr++)) {
-			ct->velocity = Vector3Zero();
-
-			task->task_id = TASK_WAIT_TIME;
-			task->timer = 0.05f;
-
-			task->path_set = false;
-
-			ai->state = STATE_IDLE;
-
-			ai->curr_schedule = SCHED_IDLE;
-			task->schedule_id = SCHED_WAIT;
-
+	// **
+	// Move to target entity
+	if(task->task_id == TASK_GOTO_POINT) {
+		if(!task->path_set) {
+			MakeNavPath(ent, graph, FindClosestNavNodeInGraph(friend->comp_transform.position, graph));	
+			task->path_set = true;
+			task->task_id = TASK_GOTO_POINT;
 			return;
+		}
+
+		if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
+			AiMoveToNode(ent, graph, path->curr++);
+			task->task_id = TASK_GOTO_POINT;
+
+			ai->state = STATE_MOVE;
+			return;
+		}
+
+		Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
+		if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) {
+			if(!AiMoveToNode(ent, graph, path->curr++)) {
+				ct->velocity = Vector3Zero();
+
+				task->task_id = TASK_DO_FIX;
+				task->timer = 10;
+				
+				return;
+			}
+		}
+	}
+	// **
+
+	// Fix friend
+	if(task->task_id == TASK_DO_FIX) {
+		if(task->timer < 0) {
+			// Perform fix action
+			DoFix(&handler->ents[task->target_entity]);
+
+			// End schedule
+			ai->curr_schedule = SCHED_PATROL;	
 		}
 	}
 }
@@ -1218,6 +1256,11 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 	comp_Ai *ai = &ent->comp_ai;
 
 	Ai_TaskData *task = &ai->task_data;
+
+	if(ai->input_mask & AI_INPUT_SELF_GLITCHED) {
+		AiSentryDisruptionSchedule(ent, handler, sect, dt);
+		return;
+	}
 
 	if(task->task_id == TASK_FIRE_WEAPON) {
 		return;
@@ -1250,6 +1293,22 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 			task->task_id = TASK_WAIT_TIME;
 			task->timer = 0.01f;
 		}
+	}
+}
+
+void AiSentryDisruptionSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+	comp_Weapon *weap = &ent->comp_weapon;
+
+	Ai_TaskData *task = &ai->task_data;
+
+	if(task->task_id == TASK_FIRE_WEAPON) {
+		return;
+	}
+
+	if(ai->disrupt_timer <= 0) {
+		ai->curr_schedule = SCHED_IDLE;
 	}
 }
 
@@ -1434,14 +1493,22 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 		}
 	}
 	
-	dest = (ent_hit_dist < tr.distance) ? ent_hit_point : tr.point;	
+	//dest = (ent_hit_dist < tr.distance) ? ent_hit_point : tr.point;	
+
+	bool ent_first = (ent_hit_dist < tr.distance);
+	if(ent_first) {
+		dest = ent_hit_point;	
+	} else {
+		dest = tr.point;
+		ent_hit_id = -1;
+	}
 
 	if(*hit && ent_hit_id > -1) {
 		Entity *hit_ent = &handler->ents[ent_hit_id];
 		comp_Health *health = &hit_ent->comp_health;
 
-		if(health->on_hit > -1) {
-		} 
+		if(health->on_hit > -1)
+			on_hit_funcs[health->on_hit](hit_ent, 1);
 	}
 
 	return dest;
@@ -1519,5 +1586,49 @@ void OnHitMaintainer(Entity *ent, short damage) {
 void OnHitRegulator(Entity *ent, short damage) {
 	comp_Health *health = &ent->comp_health;
 	health->amount -= damage; 
+}
+
+void SpawnPlayer(Entity *ent, Vector3 position) {
+	ent->comp_transform.position = position;
+
+	ent->comp_health.amount = 100;
+	ent->comp_health.on_hit = 0;
+
+	ent->flags = (ENT_ACTIVE | ENT_COLLIDERS);
+}
+
+void DoFix(Entity *ent) {
+	ent->comp_ai.input_mask &= ~AI_INPUT_SELF_GLITCHED;
+
+	switch(ent->type) {
+		case ENT_TURRET:
+			OnFixTurret(ent);
+			break;
+			
+		case ENT_MAINTAINER:
+			OnFixMaintainer(ent);
+			break;
+
+		case ENT_REGULATOR:
+			OnFixRegulator(ent);
+			break;
+	}
+}
+
+void OnFixTurret(Entity *ent) {
+	comp_Ai *ai = &ent->comp_ai;
+
+	ai->curr_schedule = SCHED_SENTRY;
+	ai->task_data.schedule_id = SCHED_SENTRY;
+	ai->task_data.task_id = TASK_WAIT_TIME;
+	ai->task_data.timer = 1;
+
+	puts("fixed turret!");
+}
+
+void OnFixMaintainer(Entity *ent) {
+}
+
+void OnFixRegulator(Entity *ent) {
 }
 

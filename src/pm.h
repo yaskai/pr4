@@ -24,7 +24,7 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position);
 void pm_ApplyGravity(comp_Transform *ct, float dt);
 
 #define PLAYER_ACCEL_GROUND	20.0f
-#define PLAYER_ACCEL_AIR	5.51f
+#define PLAYER_ACCEL_AIR	3.51f
 void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float accel, float dt);
 
 // -*

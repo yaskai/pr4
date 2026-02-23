@@ -91,14 +91,13 @@ void GameRenderSetup(Game *game) {
 	SetTextureFilter(game->render_target2D.texture, TEXTURE_FILTER_POINT);
 	SetTextureFilter(game->render_target_debug.texture, TEXTURE_FILTER_TRILINEAR);
 
-	EntHandlerInit(&game->ent_handler);
+	vEffectsInit(&game->effect_manager);
+	EntHandlerInit(&game->ent_handler, &game->effect_manager);
 
 	mat_default = LoadMaterialDefault();
 	mat_default.maps[MATERIAL_MAP_DIFFUSE].color = ColorAlpha(BLUE, 0.25f);
 
 	sphere_model = LoadModelFromMesh(GenMeshSphere(2, 16, 8));
-
-	vEffectsInit(&game->effect_manager);
 }
 
 void GameLoadTestScene1(Game *game, char *path) {

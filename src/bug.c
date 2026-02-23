@@ -131,7 +131,6 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 
 	if(ai->state == BUG_LAUNCHED) {
-		ent->flags |= ENT_COLLIDERS;	
 
 		ct->on_ground = bug_CheckGround(ct, ct->position, sect);
 		if(!ct->on_ground) {
@@ -139,7 +138,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 		}
 
 		pmTraceData pm = (pmTraceData) {0};
-		pm_AirFriction(ct, dt);
+		//pm_AirFriction(ct, dt);
 
 		bug_TraceMove(ct, ct->position, ct->velocity, &pm, dt, sect);
 		ent->comp_transform.velocity = pm.end_vel;

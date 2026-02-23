@@ -4,6 +4,7 @@
 #include "geo.h"
 #include "map.h"
 #include "ai.h"
+#include "v_effect.h"
 
 #ifndef ENT_H_
 #define ENT_H_
@@ -55,6 +56,8 @@ typedef struct  {
 	Vector3 velocity;
 	
 	Vector3 forward;
+	Vector3 start_forward;
+	Vector3 targ_look;
 
 	Vector3 ground_normal;
 	Vector3 prev_pos;
@@ -98,12 +101,12 @@ void ApplyDamage(comp_Health *comp_health, short amount);
 #define WEAPON_TRAVEL_HITSCAN		0
 #define WEAPON_TRAVEL_PROJECTILE	1	
 
-
 enum weapon_types : u8 {
 	WEAP_PISTOL,
 	WEAP_SHOTGUN,
 	WEAP_REVOLVER,
-	WEAP_DISRUPTOR
+	WEAP_DISRUPTOR,
+	WEAP_TURRET
 };
 
 typedef struct {
@@ -165,6 +168,8 @@ typedef struct {
 
 	EntGrid grid;
 
+	vEffect_Manager *effect_manager;
+
 	Vector3 player_start;
 
 	float ai_tick;
@@ -177,7 +182,7 @@ typedef struct {
 
 } EntityHandler;
 
-void EntHandlerInit(EntityHandler *handler);
+void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager);
 void EntHandlerClose(EntityHandler *handler);
 
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt);
@@ -225,8 +230,9 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 // **** Enemies **** 
-void TurretUpdate(Entity *ent, float dt);
+void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 void TurretDraw(Entity *ent);
+void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 void MaintainerUpdate(Entity *ent, float dt);
 void MaintainerDraw(Entity *ent, float dt);
@@ -251,6 +257,7 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
 void AiPatrol(Entity *ent, MapSection *sect, float dt);
 
 void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
+void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 

@@ -691,14 +691,14 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 20));
 
 	Vector3 dir = ct->forward;
-	float offset = GetRandomValue(-10, 10) * 0.001f;	
+	float offset = GetRandomValue(-10, 10) * 0.1f;	
 
 	Vector3 right = Vector3CrossProduct(ct->forward, UP);
 	dir = Vector3Add(dir, Vector3Scale(right, offset));
 	dir = Vector3Normalize(dir);
 
 	bool hit = false;
-	Vector3 bullet_dest = TraceBullet(handler, sect, ct->position, dir, ent->id, &hit);
+	Vector3 bullet_dest = TraceBullet(handler, sect, ct->position, ct->forward, ent->id, &hit);
 
 	Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
 

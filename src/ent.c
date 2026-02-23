@@ -640,8 +640,9 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 	//AiSentrySchedule(ent, handler, sect, dt);
 	ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 50*dt);
 
-	if(ent->comp_ai.task_data.task_id == TASK_FIRE_WEAPON)
+	if(ent->comp_ai.task_data.task_id == TASK_FIRE_WEAPON) {
 		TurretShoot(ent, handler, sect, dt);
+	}
 }
 
 void TurretDraw(Entity *ent) {
@@ -686,7 +687,11 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 		return; 
 
 	if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
-		Vector3 look_point = handler->ents[ai->task_data.target_entity].comp_transform.position;
+		Entity *targ_ent = &handler->ents[ai->task_data.target_entity];
+
+		Vector3 look_point = targ_ent->comp_transform.position;
+		look_point = Vector3Add(look_point, Vector3Scale(targ_ent->comp_transform.velocity, 10*dt));
+
 		Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
 		ct->targ_look = targ;
 	}
@@ -1231,7 +1236,8 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 
 	if(task->task_id == TASK_LOOK_AT_ENTITY) {
 		Vector3 look_point = handler->ents[task->target_entity].comp_transform.position;
-		look_point = Vector3Add(look_point, Vector3Scale(handler->ents[task->target_entity].comp_transform.velocity, 10*dt));
+		Vector3 target_vel = handler->ents[task->target_entity].comp_transform.velocity;
+		look_point = Vector3Add(look_point, target_vel);
 
 		Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
 		ct->targ_look = targ;

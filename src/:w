@@ -7,57 +7,33 @@
 
 u8 bug_bounce = 0;
 
-void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 *bounce) {
+void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler * handler) {
 	EntGrid *grid = &handler->grid;
-
 	Coords coords = Vec3ToCoords(ct->position, grid);
 
-	Coords cell_coords[] = {
-		coords,
-		(Coords) { coords.c - 1, coords.r, coords.t - 1 },
-		(Coords) { coords.c + 0, coords.r, coords.t - 1 },
-		(Coords) { coords.c + 1, coords.r, coords.t - 1 },
-		(Coords) { coords.c - 1, coords.r, coords.t + 0 },
-		(Coords) { coords.c + 1, coords.r, coords.t + 0 },
-		(Coords) { coords.c - 1, coords.r, coords.t + 1 },
-		(Coords) { coords.c + 0, coords.r, coords.t + 1 },
-		(Coords) { coords.c + 1, coords.r, coords.t + 1 },
-	};
-	short adj_count = sizeof(cell_coords) / sizeof(cell_coords[0]);
-	
-	//i16 cell_id = CellCoordsToId(coords, grid);
-	//EntGridCell *cell = &grid->cells[cell_id];
+	i16 cell_id = CellCoordsToId(coords, grid);
+	EntGridCell *cell = &grid->cells[cell_id];
 
 	float closest = FLT_MAX;
 	i16 enemy_id = -1;
 
-	for(u8 j = 0; j < adj_count; j++) {
-		i16 cell_id = CellCoordsToId(cell_coords[j], grid);
-		EntGridCell *cell = &grid->cells[cell_id];
+	for(u8 i = 0; i < cell->ent_count; i++) {
+		Entity *enemy_ent = &handler->ents[cell->ents[i]];
 
-		for(u8 i = 0; i < cell->ent_count; i++) {
-			Entity *enemy_ent = &handler->ents[cell->ents[i]];
+		if(enemy_ent->type == ENT_DISRUPTOR)
+			continue;
 
-			if(enemy_ent->type == ENT_DISRUPTOR)
-				continue;
+		if(enemy_ent->type == ENT_PLAYER)
+			continue;
 
-			if(enemy_ent->type == ENT_PLAYER)
-				continue;
+		Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	
+		float dist = Vector3Length(to_enemy);
 
-			Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	
-			float dist = Vector3Length(to_enemy);
-
-			if(dist > 200.0f)
-				continue;
-
-			if(dist < closest) {
-				closest = dist;
-				enemy_id = enemy_ent->id;
-			}
+		if(dist < closest) {
+			closest = dist;
+			enemy_id = enemy_ent->id;
 		}
 	}
-
-	(*bounce)++;
 
 	if(enemy_id <= -1) 
 		return;
@@ -69,13 +45,15 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 	to_enemy.y = 0;
 	to_enemy = Vector3Normalize(to_enemy);
 
-	//ct->velocity = Vector3Add(ct->velocity, Vector3Scale(to_enemy, d));	
-	ct->velocity.x = to_enemy.x * d;	
-	ct->velocity.z = to_enemy.z * d;	
+	Vector3 dir = Vector3Normalize(ct->velocity);
 
-	ct->velocity.y += d*0.05f;
-	if(d <= 128.0f)
-		ct->velocity.y += 300-d;
+	ct->velocity.x += to_enemy.x * d;	
+	ct->velocity.z += to_enemy.z * d;	
+
+	ct->velocity.y += (d*0.01f);
+	if(d < 5.0f) {
+		ct->velocity = Vector3Scale(to_enemy, 20);
+	}
 }
 
 u8 bug_CheckGround(comp_Transform *ct, Vector3 position, MapSection *sect, u8 *bounce, EntityHandler *handler) {
@@ -92,12 +70,13 @@ u8 bug_CheckGround(comp_Transform *ct, Vector3 position, MapSection *sect, u8 *b
 	ct->ground_normal = tr.normal;
 	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.50001f, 0);
 	//if(fabsf(ct->velocity.y) <= 2.0f) {
-	if(*bounce >= 3) {
+	if(fabsf(ct->velocity.y) <= 2.0f && *bounce >= 5) {
 		ct->velocity.y = 0;
 		return 1;
 	}
 
-	BugBounce(ct, sect, handler, bounce);
+	(*bounce)++;
+	BugBounce(ct, sect, handler);
 
 	return 0;
 }

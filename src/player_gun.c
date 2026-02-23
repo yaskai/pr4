@@ -13,8 +13,8 @@ Matrix mat = {0};
 #define REVOLVER_REST (Vector3) { -0.75f, -2.35f, 6.25f }
 #define REVOLVER_ANGLE_REST 2.5f
 
-#define PISTOL_REST (Vector3) { -0.95f, -2.65f, 6.25f }
-#define PISTOL_ANGLE_REST 2.5f
+#define PISTOL_REST (Vector3) { -1.15f, -2.65f, 6.25f }
+#define PISTOL_ANGLE_REST 0.1f
 
 #define DISRUPTOR_REST (Vector3) {  -1.75f, -1.35f, 6.25f  }
 #define DISRUPTOR_REST_ANGLE_REST 2.5f
@@ -99,20 +99,20 @@ void PlayerGunUpdatePistol(PlayerGun *player_gun, float dt) {
 	mat = MatrixMultiply(mat, MatrixRotateY(PISTOL_ANGLE_REST * DEG2RAD));
 
 	//friction = (recoil > 40) ? 4.9f : 10.5f;
-	friction = 20;
+	friction = 17.5f;
 
 	recoil -= (recoil * friction) * dt; 
 	if(recoil <= -EPSILON) recoil = 0;
 
-	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && recoil <= 3.0f) {
+	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && recoil <= 0.9f) {
 		PlayerShootPistol(player_gun, gun_refs.handler, gun_refs.sect);
 
 		recoil_add = false;
-		recoil += 30 + (GetRandomValue(10, 20) * 0.01f);
+		recoil += 15 + (GetRandomValue(10, 20) * 0.01f);
 	}
 
 	gun_pos = PISTOL_REST;
-	gun_pos.z = PISTOL_REST.z - (recoil * 0.05f);
+	gun_pos.z = PISTOL_REST.z - (recoil * 0.1f);
 
 	models[WEAP_PISTOL].transform = mat;
 }

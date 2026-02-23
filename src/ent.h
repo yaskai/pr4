@@ -21,7 +21,7 @@ typedef struct {
 
 } Coords;
 
-#define ENT_GRID_CELL_EXTENTS (Vector3) { 255, 255, 255 } 
+#define ENT_GRID_CELL_EXTENTS (Vector3) { 512, 512, 512 } 
 #define MAX_ENTS_PER_CELL	16
 typedef struct {
 	BoundingBox aabb;
@@ -301,6 +301,12 @@ void DisruptEntity(EntityHandler *handler, u16 ent_id);
 void AlertMaintainers(EntityHandler *handler, u16 disrupted_id);
 
 // ----------------------------------------------------------------------------------------------------------------------------
+
+void OnHitPlayer(Entity *ent, short damage);
+void OnHitBug(Entity *ent, short damage);
+void OnHitTurret(Entity *ent, short damage);
+void OnHitMaintainer(Entity *ent, short damage);
+void OnHitRegulator(Entity *ent, short damage);
 
 #endif
 

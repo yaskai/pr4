@@ -815,3 +815,9 @@ void pm_AirFriction(comp_Transform *ct, float dt) {
 	ct->velocity.x = vel.x;
 	ct->velocity.z = vel.z;
 }
+
+void OnHitPlayer(Entity *ent, short damage) {
+	comp_Health *health = &ent->comp_health;
+	health->amount -= damage; 
+}
+

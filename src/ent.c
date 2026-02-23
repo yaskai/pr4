@@ -17,6 +17,16 @@
 
 #define STEP_SIZE 8.0f
 
+typedef void (*OnHitFunc)(Entity *ent, short damage);
+OnHitFunc on_hit_funcs[] = {
+	&OnHitPlayer,
+	&OnHitTurret,
+	&OnHitMaintainer,
+	&OnHitRegulator,
+	&OnHitBug,
+};
+
+
 // *
 float ground_diff = 0;
 float proj_y;
@@ -766,7 +776,7 @@ void MaintainerDraw(Entity *ent, float dt) {
 	comp_Ai *ai = &ent->comp_ai;
 	Ai_TaskData *task = &ent->comp_ai.task_data;
 
-	DrawSphere(task->target_position, 10, MAGENTA);
+	//DrawSphere(task->target_position, 10, MAGENTA);
 }
 
 void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt) {
@@ -1362,6 +1372,8 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	float ent_hit_dist = FLT_MAX;
 	Vector3 ent_hit_point = ray.position;
 
+	i16 ent_hit_id = -1;
+
 	while(CoordsInBounds(cell, grid) && t < tr.distance) {
 		i16 cell_id = CellCoordsToId(cell, grid);
 		EntGridCell *pCell = &grid->cells[cell_id];
@@ -1386,6 +1398,8 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 			if(coll.hit && coll.distance < ent_hit_dist) {
 				ent_hit_dist = coll.distance;
 				ent_hit_point = coll.point;
+
+				ent_hit_id = ent->id;
 
 				*hit = true;
 			}
@@ -1415,6 +1429,14 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	}
 	
 	dest = (ent_hit_dist < tr.distance) ? ent_hit_point : tr.point;	
+
+	if(*hit && ent_hit_id > -1) {
+		Entity *hit_ent = &handler->ents[ent_hit_id];
+		comp_Health *health = &hit_ent->comp_health;
+
+		if(health->on_hit > -1) {
+		} 
+	}
 
 	return dest;
 }
@@ -1476,5 +1498,20 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
 		ai->task_data.target_entity = disrupted_id;
 		ai->task_data.path_set = false;
 	}
+}
+
+void OnHitTurret(Entity *ent, short damage) {
+	comp_Health *health = &ent->comp_health;
+	health->amount -= damage; 
+}
+
+void OnHitMaintainer(Entity *ent, short damage) {
+	comp_Health *health = &ent->comp_health;
+	health->amount -= damage; 
+}
+
+void OnHitRegulator(Entity *ent, short damage) {
+	comp_Health *health = &ent->comp_health;
+	health->amount -= damage; 
 }
 

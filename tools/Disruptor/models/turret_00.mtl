@@ -1,4 +1,4 @@
-# Blender 5.0.1 MTL File: 'maintainer.blend'
+# Blender 5.0.1 MTL File: 'turret_00.blend'
 # www.blender.org
 
 newmtl Material
@@ -8,5 +8,5 @@ Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
-illum 1
-map_Kd maintainer_tx.png
+illum 2
+map_Kd turret_tx.png

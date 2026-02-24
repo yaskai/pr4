@@ -4,7 +4,9 @@
 #ifndef AI_H_
 #define AI_H_
 
-#define MAX_EDGES_PER_NODE	8
+#define AI_TICK_RATE 0.0166f
+
+#define MAX_EDGES_PER_NODE	16
 typedef struct {
 	Vector3 position;
 
@@ -30,7 +32,7 @@ typedef struct {
 
 } NavGraph;
 
-#define MAX_PATH_NODES 32
+#define MAX_PATH_NODES 64
 typedef struct {
 	u16 nodes[MAX_PATH_NODES];
 	u16 count;	
@@ -57,6 +59,7 @@ enum ANIM_STATES : u8 {
 	STATE_ATTACK,
 	STATE_RELOAD,
 	STATE_DEAD,
+	STATE_DISABLED
 };
 
 enum AI_SCHEDULES : u8 {
@@ -66,6 +69,8 @@ enum AI_SCHEDULES : u8 {
 	SCHED_FIX_FRIEND,
 	SCHED_SEARCH_FOR_PLAYER,
 	SCHED_SENTRY,
+	SCHED_DEAD,
+	SCHED_CHASE_PLAYER
 };
 
 enum AI_TASKS : u8 {
@@ -78,12 +83,14 @@ enum AI_TASKS : u8 {
 	TASK_LOOK_AT_ENTITY,
 	TASK_LOOK_AROUND,
 	TASK_DO_FIX,
+	TASK_STICK_TO_ENT,
 };
 
 typedef struct {
 	NavPath path;
 
 	Vector3 target_position;
+	Vector3 known_target_position;
 
 	float timer;
 
@@ -101,7 +108,11 @@ typedef struct {
 typedef struct {
 	Ai_TaskData task_data;
 
+	Vector3 wish_dir;
+	Vector3 move_input;
+
 	float sight_cone;
+	float speed;
 
 	u32 input_mask;
 	u32 curr_schedule;
@@ -112,7 +123,7 @@ typedef struct {
 
 	u16 self_ent_id;
 
-	u16 navgraph_id;
+	i16 navgraph_id;
 
 	u8 state;
 

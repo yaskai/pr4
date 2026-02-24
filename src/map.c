@@ -192,7 +192,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		EntSpawn *curr_entspawn = &spawn_list->arr[curr_ent];
 
 		// Set mode & id of brush or entity 
-		if(line[0] == '/') {
+		if(line[0] == '/' && line[1] == '/' && line[2] == ' ') {
 			if(line[3] == 'b') {
 				parse_mode = PARSE_BRUSH;
 				char *tok; 
@@ -206,10 +206,13 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			} else if(line[3] == 'e') {
 				parse_mode = PARSE_ENT;
 				char *tok = strtok(line, " ");
+				/*
 				while(tok != NULL) {
 					sscanf(tok, "%d", &curr_ent);
 					tok = strtok(NULL, " ");
 				}
+				*/
+				curr_ent++;
 				spawn_list->count++;
 			}
 		}
@@ -258,8 +261,14 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			}
 
 			if(streq(key, "origin")) {
-				sscanf(val, "%f %f %f", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
-				curr_entspawn->position.z *= -1;
+				int x, y, z;
+				sscanf(val, "%d %d %d", &x, &z, &y);
+				z *= -1;
+
+				curr_entspawn->position = (Vector3) { x, y, z }; 
+
+				//sscanf(val, "%d %d %d", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
+				//curr_entspawn->position.z *= -1;
 			}
 
 			if(streq(key, "enum_id")) {
@@ -293,18 +302,17 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		}
 	}
 
-	/*
 	if(GetLogState()) {
 		Message("--------------- [ ENTITIES ] -----------------", ANSI_GREEN);
 		for(int i = 0; i < spawn_list->count; i++) {
 			printf("-----------------------\n");
+			printf("tag: %s\n", spawn_list->arr[i].tag);
 			printf("type: %d\n", spawn_list->arr[i].ent_type);
 			printf("pos: { %f %f %f }\n", spawn_list->arr[i].position.x, spawn_list->arr[i].position.y, spawn_list->arr[i].position.z);
 			printf("angle: %d\n", spawn_list->arr[i].angle);
 		}
 		Message("----------------------------------------------", ANSI_GREEN);
 	}
-	*/
 }
 
 // Expand brushes to use as fitting collision volumes 
@@ -485,6 +493,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	Message("Loading model...", ANSI_BLUE);
 	short model_id = -1;
 	for(short i = 0; i < path_list.count; i++) if(strcmp(GetFileExtension(path_list.paths[i]), ".glb") == 0) model_id = i;
+	//for(short i = 0; i < path_list.count; i++) if(strcmp(GetFileExtension(path_list.paths[i]), ".obj") == 0) model_id = i;
 
 	// No model, exit
 	if(model_id == -1) {
@@ -501,7 +510,6 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	sect._tris[0].arr = ModelToTris(model, &sect._tris[0].count, &sect._tris[0].ids);
 	if(GetLogState()) printf("model tri_count: %d\n", sect._tris[0].count);
 
-
 	// 2. Load .map file, collision, physics, ai logic, etc. 
 	Message("Loading map file...", ANSI_BLUE);
 	short mpf_id = -1;
@@ -515,7 +523,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 
 	*spawn_list = (SpawnList) {
 		.count = 0,
-		.capacity = 128,
+		.capacity = 255,
 	};
 	spawn_list->arr = calloc(spawn_list->capacity, sizeof(EntSpawn));
 

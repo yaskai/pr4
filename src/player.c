@@ -245,7 +245,6 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 
 	// 6. Movement tracing 
 	pmTraceData pm = (pmTraceData) {0};
-
 	pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
 
 	// Step trace
@@ -465,6 +464,7 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 		// Determine how much of movement was obstructed
 		float fraction = (tr.distance / Vector3Length(move));
 		fraction = Clamp(fraction, 0.0f, 1.0f);
+		pm->fraction = fraction;
 
 		// Update destination
 		dest = Vector3Add(dest, Vector3Scale(move, fraction));
@@ -789,7 +789,7 @@ void PlayerDebugText(Entity *player) {
 	DrawText(TextFormat("on_ground: %d", ct->on_ground), 16, 900, 24, RAYWHITE);
 	DrawText(TextFormat("ground_norm: { %f, %f, %f }", ct->ground_normal.x, ct->ground_normal.y, ct->ground_normal.z), 16, 930, 24, RAYWHITE);
 	DrawText(TextFormat("cell_id: %d", player->cell_id), 16, 960, 24, RAYWHITE);
-	DrawText(TextFormat("in hull dist: %f", dbg_hull_pen), 16, 990, 24, RAYWHITE);
+	DrawText(TextFormat("graph_id: %d", player->comp_ai.navgraph_id), 16, 990, 24, RAYWHITE);
 	DrawText(TextFormat("in hull norm: { %f, %f, %f }", dbg_hull_norm.x, dbg_hull_norm.y, dbg_hull_norm.z), 16, 1020, 24, RAYWHITE);
 }
 

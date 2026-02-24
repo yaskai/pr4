@@ -71,7 +71,7 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 
 void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	int scroll = GetMouseWheelMove();
-	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 4;
+	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 2;
 	player_gun->current_gun = gun_refs.player->comp_weapon.id;
 
 	switch(player_gun->current_gun) {
@@ -304,7 +304,7 @@ void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSect
 	Vector3 throw_dir = (Vector3) { ct->forward.x, 0, ct->forward.z };
 	throw_dir = Vector3Normalize(throw_dir);
 
-	if(ct->forward.y <= 0.98f && ct->forward.y > 0) {
+	if(ct->forward.y < 1.0f && ct->forward.y > 0) {
 		ct->velocity = Vector3Scale(throw_dir, DISRUPTOR_THROW_FORCE);
 		ct->velocity.y += 250 + (((ct->forward.y) * (DISRUPTOR_THROW_FORCE)) * updot);
 	} else {
@@ -315,7 +315,8 @@ void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSect
 		ct->velocity.y += 250;
 	}
 
-	//ct->velocity = Vector3Add(ct->velocity, player_ent->comp_transform.velocity);
+	if(Vector3DotProduct(player_ent->comp_transform.velocity, ct->forward) > 0)
+		ct->velocity = Vector3Add(ct->velocity, Vector3Scale(ct->forward, Vector3Length(player_ent->comp_transform.velocity) * 0.5f));
 
 	float angle = atan2f(-ct->forward.x, -ct->forward.z);
 	bug_ent->model.transform = MatrixRotateY(angle);

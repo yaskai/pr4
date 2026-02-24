@@ -62,6 +62,7 @@ typedef struct  {
 	Vector3 ground_normal;
 	Vector3 prev_pos;
 
+	float start_angle;
 	float radius;
 
 	float pitch, yaw, roll;
@@ -78,13 +79,22 @@ Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce);
 void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt);
 
 #define GRAV_DEFAULT 800.0f
-void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt);
-short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt);
-short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh);
+void ApplyGravity(comp_Transform *ct, MapSection *sect, BvhTree *bvh, float gravity, float dt);
+short CheckGround(comp_Transform *ct, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt);
+short CheckCeiling(comp_Transform *ct, MapSection *sect, BvhTree *bvh);
 
+
+#define BUG_POINT_TURRET (Vector3) { 0, 20, 0 }
+#define BUG_POINT_MAINTAINER (Vector3) { 0, 25, 0 }
 
 typedef struct {
 	BoundingBox hit_box;
+
+	// Hitbox for bug 
+	BoundingBox bug_box;
+
+	// Point where bug will be if succesful hit
+	Vector3 bug_point;
 
 	float damage_cooldown;
 	short amount;
@@ -105,11 +115,18 @@ void ApplyDamage(comp_Health *comp_health, short amount);
 #define WEAPON_TRAVEL_PROJECTILE	1	
 
 enum weapon_types : u8 {
+	/*	
 	WEAP_PISTOL,
 	WEAP_SHOTGUN,
 	WEAP_REVOLVER,
 	WEAP_DISRUPTOR,
 	WEAP_TURRET
+	*/
+	WEAP_DISRUPTOR,
+	WEAP_REVOLVER,
+	WEAP_PISTOL,
+	WEAP_SHOTGUN,
+	WEAP_TURRET,
 };
 
 typedef struct {
@@ -185,6 +202,7 @@ typedef struct {
 
 } EntityHandler;
 
+
 void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager);
 void EntHandlerClose(EntityHandler *handler);
 
@@ -240,7 +258,7 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 void TurretDraw(Entity *ent);
 void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
-void MaintainerUpdate(Entity *ent, float dt);
+void MaintainerUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 void MaintainerDraw(Entity *ent, float dt);
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -266,6 +284,8 @@ void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, 
 
 void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 void AiSentryDisruptionSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
+
+void AiChasePlayerSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
@@ -310,6 +330,7 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
+void OnHitEnt(Entity *ent, short damage);
 void OnHitPlayer(Entity *ent, short damage);
 void OnHitBug(Entity *ent, short damage);
 void OnHitTurret(Entity *ent, short damage);
@@ -317,10 +338,11 @@ void OnHitMaintainer(Entity *ent, short damage);
 void OnHitRegulator(Entity *ent, short damage);
 
 void DoFix(Entity *ent);
-
 void OnFixTurret(Entity *ent);
 void OnFixMaintainer(Entity *ent);
 void OnFixRegulator(Entity *ent);
 
-#endif
+Vector3 EntTraceMove(comp_Transform *ct, MapSection *sect, EntityHandler *handler, float dt);
+void EntMove(Entity *ent, MapSection *sect, EntityHandler *handler, float dt);
 
+#endif

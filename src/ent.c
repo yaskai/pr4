@@ -11,9 +11,7 @@
 #include "ai.h"
 #include "../include/log_message.h"
 #include "../include/sort.h"
-
-#define MAX_CLIPS 6
-#define SLIDE_STEPS 4
+#include "pm.h"
 
 #define STEP_SIZE 8.0f
 
@@ -25,10 +23,6 @@ OnHitFunc on_hit_funcs[] = {
 	&OnHitRegulator,
 	&OnHitBug,
 };
-
-// *
-float ground_diff = 0;
-float proj_y;
 
 Model base_ent_models[16] = {0};
 void LoadEntityBaseModels() {
@@ -42,144 +36,6 @@ ModelAnimation *base_ent_anims[16] = {0};
 void LoadEntityBaseAnims() {
 	char *prefix = "resources/models";
 	base_ent_anims[ENT_MAINTAINER] = LoadModelAnimations(TextFormat("%s/enemies/maintainer.glb", prefix), &base_ent_anims_count[ENT_MAINTAINER]);	 
-}
-
-Vector3 ClipVelocity(Vector3 in, Vector3 normal, float overbounce) {
-	float3 out = Vector3ToFloatV(in), in3 = out;
-	float3 n = Vector3ToFloatV(normal);
-
-	float backoff;
-	float change;
-
-	backoff = Vector3DotProduct(in, normal) * overbounce;
-
-	for(short i = 0; i < 3; i++) {
-		change = n.v[i] * backoff;
-		out.v[i] = in3.v[i] - change;
-
-		if(out.v[i] > -EPSILON && out.v[i] < EPSILON)
-			out.v[i] = 0; 
-
-	}
-
-	return (Vector3) { out.v[0], out.v[1], out.v[2] };
-}
-
-/*
-void ApplyMovement(comp_Transform *comp_transform, Vector3 wish_point, MapSection *sect, BvhTree *bvh, float dt) {
-	Vector3 wish_move = Vector3Subtract(wish_point, comp_transform->position);
-	Vector3 pos = comp_transform->position;
-	Vector3 vel = wish_move;
-
-	Vector3 clips[MAX_CLIPS] = {0};
-	short clip_count = 0;
-
-	for(short i = 0; i < SLIDE_STEPS; i++) {
-		Ray ray = (Ray) { .position = comp_transform->position, .direction = Vector3Normalize(vel) };
-
-		BvhTraceData tr = TraceDataEmpty();
-		BvhTracePointEx(ray, sect, bvh, 0, &tr, Vector3Length(vel));
-
-		if(tr.distance > Vector3Length(wish_move)) {
-			pos = Vector3Add(pos, vel);
-			break;
-		}
-
-		float diff = MinkowskiDiff(tr.normal, Vector3Scale(BoxExtent(comp_transform->bounds), 0.5f));
-
-		float allowed = (tr.distance - 0.001f - diff);
-
-		if(fabsf(allowed) < 0.01f) {
-			allowed = 0;
-		}
-
-		pos = Vector3Add(pos, Vector3Scale(ray.direction, allowed));
-
-		if(clip_count + 1 < MAX_CLIPS)
-			clips[clip_count++] = tr.normal;
-
-		vel = wish_move;
-		for(short j = 0; j < clip_count; j++) {
-			float into = Vector3DotProduct(vel, clips[j]);	
-			if(into <= 0.0f) {
-				vel = Vector3Subtract(vel, Vector3Scale(clips[j], into));	
-				comp_transform->velocity =
-					Vector3Subtract(comp_transform->velocity, Vector3Scale(clips[j], (into * 1 + EPSILON) * dt));	
-					//Vector3Subtract(comp_transform->velocity, Vector3Scale(comp_transform->velocity, 0.1f * dt));	
-			}
-		}
-
-		pos = Vector3Add(pos, Vector3Scale(tr.normal, 0.01f));
-	}
-
-	comp_transform->position = pos;
-}
-*/
-
-void ApplyMovement(comp_Transform *ct, Vector3 wish_vel, MapSection *sect, BvhTree *bvh, float dt) {
-	for(short i = 0; i < SLIDE_STEPS; i++) {
-			
-	}
-}
-
-void ApplyGravity(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh, float gravity, float dt) {
-	if(!comp_transform->on_ground)
-		comp_transform->air_time += dt;
-	else 
-		comp_transform->air_time = 0;
-
-	comp_transform->on_ground = CheckGround(comp_transform, comp_transform->position, sect, bvh, dt);
-	CheckCeiling(comp_transform, sect, bvh);
-
-	if(!comp_transform->on_ground) {
-		comp_transform->velocity.y -= gravity * dt;
-		comp_transform->position.y += comp_transform->velocity.y * dt;
-	}
-}
-
-short CheckGround(comp_Transform *comp_transform, Vector3 pos, MapSection *sect, BvhTree *bvh, float dt) {
-	if(comp_transform->velocity.y >= EPSILON) return 0;
-
-	Vector3 h_vel = (Vector3) { comp_transform->velocity.x, 0, comp_transform->velocity.z };
-	Vector3 offset = Vector3Scale(h_vel, dt);
-
-	float ent_height = BoxExtent(comp_transform->bounds).y;
-	float feet = (ent_height * 0.5f) - (1 + 0.001f);
-
-	Ray ray = (Ray) { .position = pos, .direction = DOWN };
-
-	BvhTraceData tr = TraceDataEmpty();
-	BvhTracePointEx(ray, sect, bvh, 0, &tr, FLT_MAX);
-
-	float diff = MinkowskiDiff(tr.normal, Vector3Scale(BoxExtent(comp_transform->bounds), 0.5f));
-
-	/*
-	if(tr.contact_dist >= 1.0f)
-		return 0;
-	*/
-
-	if(tr.contact_dist >= diff)
-		return 0;
-
-	if(tr.normal.y == 0)
-		return 0;
-
-	float into_slope = Vector3DotProduct(h_vel, tr.normal);
-	float slope_y = (into_slope) / tr.normal.y;
-
-	if(fabsf(tr.normal.y) == 1.0f)
-		slope_y = 0;
-
-	comp_transform->on_ground = 1;
-	comp_transform->velocity.y = 0;
-
-	float change = (tr.contact.y - slope_y) - (comp_transform->position.y);
-	comp_transform->position.y = (tr.contact.y - slope_y) + diff;
-	//comp_transform->position.y = (tr.point.y + ent_height*2) - slope_y;
-
-	comp_transform->last_ground_surface = tr.tri_id; 
-
-	return 1;
 }
 
 short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh) {
@@ -407,11 +263,11 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 		switch(ent->type) {
 			case ENT_TURRET: 
-				TurretUpdate(ent, handler, sect, dt);
+				//TurretUpdate(ent, handler, sect, dt);
 				break;
 
 			case ENT_MAINTAINER:
-				MaintainerUpdate(ent, dt);
+				MaintainerUpdate(ent, handler, sect, dt);
 				break;
 
 			case ENT_DISRUPTOR:
@@ -419,10 +275,21 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 				break;
 		}
 
+		ent->comp_health.bug_box = BoxTranslate(
+			ent->comp_health.bug_box,
+			Vector3Add(ent->comp_transform.position, ent->comp_health.bug_point)	
+		);
+
+
+		// * NOTE: 
+		// Commmenting this out, using same system as player for entities that move
+		// handling in entity type specific functions...  MaintainerUpdate(), RegulatorUpdate(), etc.
+		/*
 		if(i != handler->bug_id) {
 			ent->comp_transform.position = Vector3Add(ent->comp_transform.position, Vector3Scale(ent->comp_transform.velocity, dt));
 			ent->comp_transform.bounds = BoxTranslate(ent->comp_transform.bounds, ent->comp_transform.position);
 		}
+		*/
 
 		comp_Health *health = &ent->comp_health;
 		if(health->component_valid) {
@@ -490,7 +357,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 	handler->ai_tick -= dt;
 	if(handler->ai_tick <= 0.0f) {
 		AiSystemUpdate(handler, sect, dt);
-		handler->ai_tick = 0.166f;
+		handler->ai_tick = 0.0333f;
 	}
 
 	UpdateGrid(handler);
@@ -527,11 +394,6 @@ void RenderEntities(EntityHandler *handler, float dt) {
 	}
 }
 
-void DrawEntsDebugInfo() {
-	DrawText(TextFormat("diff: %.2f", ground_diff), 0, 340, 32, DARKPURPLE);
-	DrawText(TextFormat("proj: %.2f", proj_y), 256, 340, 32, DARKPURPLE);
-}
-
 void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_graph) {
 	if(!strcmp(spawn_point->tag, "worldspawn")) {
 		return;
@@ -561,6 +423,10 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 		return;
 	}
 
+	if(!spawn_point->ent_type)
+		return;
+
+
 	handler->ents[++handler->count] = SpawnEntity(spawn_point, handler);
 }
 
@@ -569,9 +435,18 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 
 	ent.comp_transform.position = spawn_point->position;
 
+	/*
 	ent.comp_transform.forward.x = sinf(-spawn_point->angle * DEG2RAD);
 	ent.comp_transform.forward.y = 0;
 	ent.comp_transform.forward.z = -cosf(-spawn_point->angle * DEG2RAD);
+	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
+	*/
+
+	ent.comp_transform.start_angle = spawn_point->angle;
+
+	ent.comp_transform.forward.x = -cosf(spawn_point->angle + 90 * DEG2RAD);
+	ent.comp_transform.forward.y = 0;
+	ent.comp_transform.forward.z = sinf(spawn_point->angle * DEG2RAD);
 	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
 
 	ent.comp_ai = (comp_Ai) {0};
@@ -596,7 +471,9 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 			
 			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
-			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
+
+			//angle = 90 * DEG2RAD;
+			ent.model.transform = MatrixRotateY(angle);
 
 			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.35f;
@@ -611,6 +488,11 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 				.id = WEAP_TURRET,
 				.cooldown = 1,
 			};
+
+			ent.comp_health.amount = 100;
+			ent.comp_health.on_hit = 1;
+
+			ent.comp_health.bug_point = BUG_POINT_TURRET;
 
 		} break;
 
@@ -629,35 +511,66 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 			
 			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
-			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle + 90 * DEG2RAD));
+			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle+90*DEG2RAD));
 
 			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.25f;
+			//ent.comp_ai.curr_schedule = SCHED_CHASE_PLAYER;
+			ent.comp_ai.curr_schedule = SCHED_PATROL;
+			ent.comp_ai.task_data.task_id = TASK_MAKE_PATROL_PATH;
+			//ent.comp_ai.task_data.task_id = TASK_WAIT_TIME;
+			//ent.comp_ai.task_data.timer = 0.1f;
+
+			ent.comp_health.amount = 3;
+			ent.comp_health.on_hit = 2;
+
+			ent.comp_health.bug_point = BUG_POINT_MAINTAINER;
+			
+			//ent.comp_ai.wish_dir = (Vector3) { -1, 0, 0 };
+
+		} break;
+
+		case ENT_REGULATOR: {
 
 		} break;
 	}
 
+	ent.comp_health.bug_box = (BoundingBox) {
+		.min = Vector3Scale(BODY_VOLUME_SMALL, -0.5f),	
+		.max = Vector3Scale(BODY_VOLUME_SMALL,  0.5f)
+	};
+
 	ent.comp_transform.start_forward = ent.comp_transform.forward;
 	ent.flags = (ENT_ACTIVE | ENT_COLLIDERS);
+
+	ent.comp_ai.navgraph_id = -1;
+	ent.comp_ai.speed = 50;
+	ent.comp_ai.wish_dir = Vector3Zero();
 
 	return ent;
 }
 
 void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
 	if((ent->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)) {
-		float angle_min = -170;
-		float angle_max =  170;
+		float angle_min = -70;
+		float angle_max =  70;
 		
-		float angle = sinf(GetTime());
+		float angle = sinf(GetTime()) * 1.25f;
 		angle = Clamp(angle, angle_min, angle_max);
 
-		if(ent->comp_ai.disrupt_timer > 0)
+		angle = angle + ent->comp_transform.start_angle;
+
+		//if(ent->comp_ai.disrupt_timer > 0)
+		if(ent->comp_weapon.ammo > 0)
 			ent->comp_transform.forward = Vector3RotateByAxisAngle(ent->comp_transform.targ_look, UP, angle);		
-		else 
+		else {
 			ent->comp_transform.targ_look = ent->comp_transform.forward;		
+			ent->comp_ai.task_data.task_id = TASK_WAIT_TIME;
+			ent->comp_ai.state = STATE_DEAD;
+		}
 
 	} else
-		ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 50*dt);
+		ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 10*dt);
 
 	if(ent->comp_ai.task_data.task_id == TASK_FIRE_WEAPON) {
 		TurretShoot(ent, handler, sect, dt);
@@ -672,7 +585,7 @@ void TurretDraw(Entity *ent) {
 	Matrix mat_base = MatrixMultiply(ent->model.transform, MatrixTranslate(ct->position.x, ct->position.y, ct->position.z));
 	Matrix mat_gun = MatrixRotateY(yaw);
 
-	Vector3 right = (Vector3) { 0, 0, 1 };
+	Vector3 right = Vector3CrossProduct(ct->start_forward, UP);
 
 	Vector2 xz = (Vector2) { ct->forward.x, ct->forward.z };
 	xz = Vector2Normalize(xz);
@@ -686,14 +599,12 @@ void TurretDraw(Entity *ent) {
 	DrawMesh(ent->model.meshes[1], ent->model.materials[1], mat_base);
 	DrawMesh(ent->model.meshes[0], ent->model.materials[1], mat_gun);
 
-	/*
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	Vector3 forward = ent->comp_transform.forward;
 
 	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 60)), PURPLE);
 
 	DrawBoundingBox(ct->bounds, RED);
-	*/
 }
 
 void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
@@ -705,23 +616,24 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	if(weap->cooldown > 0)
 		return; 
 
-	if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
-		Entity *targ_ent = &handler->ents[ai->task_data.target_entity];
+	if(!(ai->input_mask & AI_INPUT_SELF_GLITCHED)) {
+		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
+			Entity *targ_ent = &handler->ents[ai->task_data.target_entity];
 
-		Vector3 look_point = targ_ent->comp_transform.position;
-		look_point = Vector3Add(look_point, Vector3Scale(targ_ent->comp_transform.velocity, 10*dt));
+			Vector3 look_point = targ_ent->comp_transform.position;
+			look_point = Vector3Add(look_point, Vector3Scale(targ_ent->comp_transform.velocity, 10*dt));
 
-		Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
-		ct->targ_look = targ;
+			Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
+			ct->targ_look = targ;
+		}
 	}
 
 	if(weap->ammo <= 0) {
-		ai->task_data.task_id = TASK_WAIT_TIME;
-		ai->task_data.timer = 10.25f;
+		return;
 	}
 
 	Vector3 trace_start = ct->position;
-	trace_start.y -= 6;
+	trace_start.y -= 7;
 	trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 20));
 
 	Vector3 dir = ct->forward;
@@ -730,7 +642,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	Vector3 right = Vector3CrossProduct(ct->forward, UP);
 	dir = Vector3Add(dir, Vector3Scale(right, offset));
 
-	offset = GetRandomValue(-10, 10) * 0.001f;
+	offset = GetRandomValue(-20, 20) * 0.001f;
 	dir = Vector3Add(dir, Vector3Scale(UP, offset));
 
 	dir = Vector3Normalize(dir);
@@ -753,11 +665,11 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	if(weap->ammo < 60)
 		vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
 	
-	weap->cooldown = 0.1f;
+	weap->cooldown = 0.15f;
 	weap->ammo--;
 }
 
-void MaintainerUpdate(Entity *ent, float dt) {
+void MaintainerUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
 	comp_Ai *ai = &ent->comp_ai;
 
 	switch(ai->state) {
@@ -770,44 +682,44 @@ void MaintainerUpdate(Entity *ent, float dt) {
 			break;
 	}
 
+	EntMove(ent, sect, handler, dt);
 	//ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
 }
 
 void MaintainerDraw(Entity *ent, float dt) {
-	//float angle = atan2f(ent->comp_transform.forward.x, ent->comp_transform.forward.z);
-	//ent->model.transform = MatrixMultiply(ent->model.transform, MatrixRotateY(angle * DEG2RAD));
+	comp_Ai *ai = &ent->comp_ai;
 
-	//DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
-	DrawModel(ent->model, ent->comp_transform.position, 0.1f, LIGHTGRAY);
-	//ent->anim_timer -= dt;
-	/*
-	if(ent->anim_timer <= 0) {
-		UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
-		ent->anim_timer = (0.125f);
+	if(ai->state == STATE_DEAD) {
+		Vector3 pos = ent->comp_transform.position;		
+		pos.y -= 25;
+
+		DrawModelEx(
+			ent->model,
+			pos,
+			Vector3CrossProduct(ent->comp_transform.forward, UP),
+			90,
+			Vector3Scale(Vector3One(), 0.1f),
+			LIGHTGRAY 
+		);
+		return;
 	}
-	*/
-	//UpdateModelAnimation(ent->model, ent->animations[ent->curr_anim], ent->anim_frame);
-	//DrawModel(ent->model, ent->comp_transform.position, 0.75f, LIGHTGRAY);
-	//DrawCubeV(ent->comp_transform.position, BoxExtent(ent->comp_transform.bounds), PINK);
+	
+	Vector3 pos = ent->comp_transform.position;
+	pos.y -= 10;
+	DrawModel(ent->model, pos, 0.1f, LIGHTGRAY);
 
+	/*
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	center.y += 10;
 	Vector3 forward = ent->comp_transform.forward;
-
-	//DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), PURPLE);
-
-	if(ent->comp_ai.input_mask & AI_INPUT_SEE_PLAYER) {
-		//DrawBoundingBox(ent->comp_transform.bounds, GREEN);
-		//DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 30)), GREEN);
-	}
-
-	comp_Ai *ai = &ent->comp_ai;
-	Ai_TaskData *task = &ent->comp_ai.task_data;
-
-	//DrawSphere(task->target_position, 10, MAGENTA);
+	DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
+	*/
 }
 
 void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt) {
+	if(ent->comp_ai.state == STATE_DEAD)
+		return;
+
 	// Handle interrupts
 	for(u32 i = 0; i < 32; i++) {
 		u32 mask = (1 << i);
@@ -826,8 +738,23 @@ void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_Task
 }
 
 void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
+	Entity *player = &handler->ents[handler->player_id];
+	player->comp_ai.navgraph_id = -1;
+	for(u16 j = 0; j < sect->navgraph_count; j++) {
+		NavGraph *graph = &sect->navgraphs[j];
+
+		int closest_node = FindClosestNavNodeInGraph(player->comp_transform.position, graph);
+		if(closest_node > -1) {
+			player->comp_ai.navgraph_id = j;
+			player->comp_ai.curr_navnode_id = closest_node;
+			break;
+		}
+	}
+
 	for(u16 i = 0; i < handler->count; i++) {
 		Entity *ent = &handler->ents[i];
+		if(handler->player_id == i)
+			continue;
 
 		if(!ent->comp_ai.component_valid)
 			continue;
@@ -909,6 +836,10 @@ void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai
 		case SCHED_SENTRY:
 			AiSentrySchedule(ent, handler, sect, dt);
 			break;
+
+		case SCHED_CHASE_PLAYER:
+			AiChasePlayerSchedule(ent, handler, sect, dt);
+			break;
 	}
 	
 }
@@ -977,27 +908,30 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 			printf("node: %d\n", ai->curr_navnode_id);
 
 			//MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 6);
-
-			//ai->task_data.schedule_id = SCHED_PATROL;
+			//ai->curr_schedule = SCHED_PATROL;
+			//ai->task_data.task_id = TASK_MAKE_PATROL_PATH;
 		}
 	}
 }
 
-#define NULL_NODE UINT16_MAX
+#define NULL_NODE -1
 bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 	bool dest_found = false;
 
 	comp_Ai *ai = &ent->comp_ai;
 	NavPath *path = &ai->task_data.path;
 
-	u16 start = ai->curr_navnode_id;
+	path->count = 0;
+	ai->task_data.path_set = false;
+
+	i16 start = ai->curr_navnode_id;
 	u16 node_count = graph->node_count;
 
 	float g_cost[node_count], f_cost[node_count];
 	bool open[node_count], closed[node_count];
-	u16 parent[node_count];
+	i16 parent[node_count];
 
-	for(u16 i = 0; i < node_count; i++) {
+	for(i16 i = 0; i < node_count; i++) {
 		g_cost[i] = FLT_MAX, f_cost[i] = FLT_MAX;
 		open[i] = false, closed[i] = false;
 		parent[i] = NULL_NODE;
@@ -1011,7 +945,7 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 	parent[start] = NULL_NODE;
 
 	while(true) {
-		u16 curr = NULL_NODE;
+		i16 curr = NULL_NODE;
 		float best = FLT_MAX;		
 
 		for(u16 i = 0; i < node_count; i++) {
@@ -1039,7 +973,7 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 		GetConnectedNodes(&graph->nodes[curr], adj, &adj_count, graph);
 
 		for(u8 j = 0; j < adj_count; j++) {
-			u16 neighbour = adj[j];
+			i16 neighbour = adj[j];
 
 			if(closed[neighbour])
 				continue;
@@ -1058,10 +992,10 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
 	}
 
 	path->count = 0;
-	u16 curr = target_id;
+	i16 curr = target_id;
 
 	bool reached_start = false;
-	u16 test = target_id;
+	i16 test = target_id;
 	while(test != NULL_NODE) {
 		if(test == start) {
 			reached_start = true;
@@ -1103,14 +1037,16 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id) {
 	NavPath *path = &task->path;
 
 	if(path_id >= path->count) {
-		//printf("move not possible, path max overflow\n");
-		ct->velocity = Vector3Zero();
+		printf("move not possible, path max overflow\n");
+		//ct->velocity = Vector3Zero();
+		ai->wish_dir = Vector3Zero();
 		return false;
 	}
 
 	if(path_id >= graph->node_count) {
-		//printf("move not possible, graph count overflow\n");
-		ct->velocity = Vector3Zero();
+		printf("move not possible, graph count overflow\n");
+		//ct->velocity = Vector3Zero();
+		ai->wish_dir = Vector3Zero();
 		return false;
 	}
 
@@ -1124,7 +1060,8 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id) {
 
 	float angle = atan2f(ct->forward.x, ct->forward.z);
 	ent->model.transform = MatrixRotateY(angle + 90 * DEG2RAD);
-	ct->velocity = Vector3Scale(dir, 60);
+	ai->wish_dir = Vector3Add(Vector3Scale(ai->wish_dir, 0.1f), dir); 
+	ai->wish_dir = Vector3Normalize(ai->wish_dir);
  
 	ai->curr_navnode_id = path->nodes[path_id];
 
@@ -1148,13 +1085,12 @@ void AiPatrol(Entity *ent, MapSection *sect, float dt) {
 		u16 new_targ = GetRandomValue(0, graph->node_count-1);
 		if(MakeNavPath(ent, graph, new_targ) == true) {
 			task->task_id = TASK_GOTO_POINT;
-			
 			ai->state = STATE_MOVE;
 
 		} else { 
 			ai->state = STATE_IDLE;
 
-			task->timer = 0.05f;
+			task->timer = 0.5f;
 			task->task_id = TASK_WAIT_TIME;
 
 			ct->velocity = Vector3Zero();
@@ -1210,6 +1146,9 @@ void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, 
 	// **
 	// Move to target entity
 	if(task->task_id == TASK_GOTO_POINT) {
+		if(friend->comp_ai.navgraph_id != ai->navgraph_id)
+			return;
+
 		if(!task->path_set) {
 			MakeNavPath(ent, graph, FindClosestNavNodeInGraph(friend->comp_transform.position, graph));	
 			task->path_set = true;
@@ -1263,6 +1202,23 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 	}
 
 	if(task->task_id == TASK_FIRE_WEAPON) {
+		if(ent->comp_weapon.ammo <= 0) {
+			task->task_id = TASK_RELOAD_WEAPON;
+			task->timer = 100.0f;
+			printf("reload start\n");
+		}
+		return;
+	}
+
+	if(task->task_id == TASK_RELOAD_WEAPON) {
+		if(task->timer <= 0) {
+			ent->comp_weapon.ammo = 40;
+			ent->comp_weapon.cooldown = 10.45f;
+			task->task_id = TASK_WAIT_TIME;
+			task->timer = 0.1f;
+			printf("reload done\n");
+		}
+
 		return;
 	}
 
@@ -1274,10 +1230,36 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 		//ct->targ_look = targ;
 
 		task->task_id = TASK_WAIT_TIME;
-		task->timer = 0.03f;
+		task->timer = 0.9f;
 	}
 
 	if(task->task_id == TASK_LOOK_AT_ENTITY) {
+		Vector3 look_point;
+
+		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
+			look_point = handler->ents[task->target_entity].comp_transform.position;
+			ai->task_data.known_target_position = look_point;
+
+			Vector3 target_vel = handler->ents[task->target_entity].comp_transform.velocity;
+			look_point = Vector3Add(look_point, target_vel);
+
+		} else if(ai->input_mask & AI_INPUT_LOST_PLAYER) {
+			look_point = ai->task_data.known_target_position;
+		}
+
+		Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
+		ct->targ_look = targ;
+
+		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
+			task->task_id = TASK_FIRE_WEAPON;
+			ent->comp_weapon.ammo = 40;
+			ent->comp_weapon.cooldown = 0.05f;
+		} else {
+			task->task_id = TASK_WAIT_TIME;
+			task->timer = 80.0f;
+		}
+		
+		/*
 		Vector3 look_point = handler->ents[task->target_entity].comp_transform.position;
 		Vector3 target_vel = handler->ents[task->target_entity].comp_transform.velocity;
 		look_point = Vector3Add(look_point, target_vel);
@@ -1287,12 +1269,13 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 
 		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
 			task->task_id = TASK_FIRE_WEAPON;
-			ent->comp_weapon.ammo = 60;
+			ent->comp_weapon.ammo = 40;
 			ent->comp_weapon.cooldown = 0.05f;
 		} else {
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 0.01f;
+			task->timer = 1.0f;
 		}
+		*/
 	}
 }
 
@@ -1309,6 +1292,50 @@ void AiSentryDisruptionSchedule(Entity *ent, EntityHandler *handler, MapSection 
 
 	if(ai->disrupt_timer <= 0) {
 		ai->curr_schedule = SCHED_IDLE;
+	}
+}
+
+void AiChasePlayerSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+
+	Ai_TaskData *task = &ai->task_data;
+	NavPath *path = &task->path;
+
+	NavGraph *graph = &sect->navgraphs[ai->navgraph_id];
+
+	Entity *player = &handler->ents[handler->player_id];
+
+	if(player->comp_ai.navgraph_id != ai->navgraph_id) {
+		//ct->velocity = Vector3Zero();
+		return;
+	}
+
+	// **
+	// Move to target entity
+	if(task->task_id == TASK_GOTO_POINT) {
+		if(!task->path_set) {
+			MakeNavPath(ent, graph, FindClosestNavNodeInGraph(player->comp_transform.position, graph));	
+			task->path_set = true;
+			task->task_id = TASK_GOTO_POINT;
+			return;
+		}
+
+		if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
+			AiMoveToNode(ent, graph, path->curr++);
+			task->task_id = TASK_GOTO_POINT;
+
+			ai->state = STATE_MOVE;
+			return;
+		}
+
+		Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
+		if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) {
+			if(!AiMoveToNode(ent, graph, path->curr++)) {
+				task->path_set = false;
+				return;
+			}
+		}
 	}
 }
 
@@ -1505,10 +1532,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 
 	if(*hit && ent_hit_id > -1) {
 		Entity *hit_ent = &handler->ents[ent_hit_id];
-		comp_Health *health = &hit_ent->comp_health;
-
-		if(health->on_hit > -1)
-			on_hit_funcs[health->on_hit](hit_ent, 1);
+		OnHitEnt(hit_ent, 1);
 	}
 
 	return dest;
@@ -1554,6 +1578,9 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
 
 		if(ent->type == ENT_DISRUPTOR)
 			continue;
+
+		if(ent->comp_ai.state == STATE_DEAD)
+			return;
 	
 		if(ai->navgraph_id != disrupted_ai->navgraph_id)	
 			continue;
@@ -1573,19 +1600,37 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
 	}
 }
 
-void OnHitTurret(Entity *ent, short damage) {
+void OnHitEnt(Entity *ent, short damage) {
 	comp_Health *health = &ent->comp_health;
-	health->amount -= damage; 
+	comp_Ai *ai = &ent->comp_ai;
+
+	health->amount -= damage;
+	if(health->amount <= 0) {
+		ent->comp_ai.state = STATE_DEAD;
+		ent->comp_ai.curr_schedule = SCHED_DEAD;
+	}
+
+	if(health->on_hit > -1) {
+		on_hit_funcs[health->on_hit](ent, damage);
+	}
+}
+
+void OnHitTurret(Entity *ent, short damage) {
 }
 
 void OnHitMaintainer(Entity *ent, short damage) {
-	comp_Health *health = &ent->comp_health;
-	health->amount -= damage; 
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+
+	if(ai->state == STATE_DEAD) {
+		ct->velocity.x = 0;
+		ct->velocity.z = 0;	
+		ai->wish_dir = Vector3Zero();
+	}
+	
 }
 
 void OnHitRegulator(Entity *ent, short damage) {
-	comp_Health *health = &ent->comp_health;
-	health->amount -= damage; 
 }
 
 void SpawnPlayer(Entity *ent, Vector3 position) {
@@ -1622,13 +1667,34 @@ void OnFixTurret(Entity *ent) {
 	ai->task_data.schedule_id = SCHED_SENTRY;
 	ai->task_data.task_id = TASK_WAIT_TIME;
 	ai->task_data.timer = 1;
-
-	puts("fixed turret!");
 }
 
 void OnFixMaintainer(Entity *ent) {
 }
 
 void OnFixRegulator(Entity *ent) {
+}
+
+void EntMove(Entity *ent, MapSection *sect, EntityHandler *handler, float dt) {
+	comp_Transform *ct = &ent->comp_transform;
+	comp_Ai *ai = &ent->comp_ai;
+
+	ct->on_ground = pm_CheckGround(ct, ct->position);
+	pm_ApplyGravity(ct, dt);
+
+	Vector3 wish_dir = ai->wish_dir;
+	float wish_speed = ai->speed;
+	Vector3 wish_vel = Vector3Scale(wish_dir, wish_speed);
+
+	pm_GroundFriction(ct, dt);
+	pm_Accelerate(ct, wish_dir, wish_speed, 20.0f, dt);
+
+	pmTraceData move_data = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1 };
+	pm_TraceMove(ct, ct->position, ct->velocity, &move_data, dt);
+
+	ct->position = move_data.end_pos;
+	ct->velocity = move_data.end_vel;
+
+	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 }
 

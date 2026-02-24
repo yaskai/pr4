@@ -1,0 +1,33 @@
+newmtl 02intonacopr_nt3.jpg.preview
+map_Kd ../../../tools/Disruptor/textures/custom/02intonacopr_nt3.jpg.preview.jpg
+
+newmtl conc_slabs01_c
+map_Kd ../../../tools/Disruptor/textures/custom/conc_slabs01_c.png
+
+newmtl conc_strange
+map_Kd ../../../tools/Disruptor/textures/custom/conc_strange.jpg
+
+newmtl concrete_00
+map_Kd ../../../tools/Disruptor/textures/custom/concrete_00.png
+
+newmtl ft_conc01_c
+map_Kd ../../../tools/Disruptor/textures/custom/ft_conc01_c.png
+
+newmtl metal_00
+map_Kd ../../../tools/Disruptor/textures/custom/metal_00.png
+
+newmtl metal_01
+map_Kd ../../../tools/Disruptor/textures/custom/metal_01.png
+
+newmtl mtl01_c
+map_Kd ../../../tools/Disruptor/textures/custom/mtl01_c.png
+
+newmtl mtl_trim01_c
+map_Kd ../../../tools/Disruptor/textures/custom/mtl_trim01_c.png
+
+newmtl tiles_diffuse
+map_Kd ../../../tools/Disruptor/textures/custom/tiles_diffuse.png
+
+newmtl wall_stone03_c
+map_Kd ../../../tools/Disruptor/textures/custom/wall_stone03_c.png
+

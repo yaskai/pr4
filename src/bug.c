@@ -50,6 +50,9 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 
 			if(enemy_ai->state == STATE_DEAD)
 				continue;
+			
+			if(!enemy_ai->component_valid)
+				continue;
 
 			//if(enemy_ai->input_mask & AI_INPUT_SELF_GLITCHED)
 				//continue;
@@ -86,6 +89,7 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 		return;
 
 	Entity *enemy_ent = &handler->ents[enemy_id];
+	printf("target: entity[%d]\n", enemy_id);
 
 	Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	
 	Vector3 to_bug = Vector3Subtract(ct->position, enemy_ent->comp_transform.position);	
@@ -137,6 +141,7 @@ u8 bug_CheckGround(comp_Transform *ct, Vector3 position, MapSection *sect, u8 *b
 		ct->velocity.y = 0;
 		return 1;
 	}
+	(*bounce)++;
 
 	BugBounce(ct, sect, handler, bounce, dt);
 
@@ -234,6 +239,8 @@ void BugInit(Entity *ent, EntityHandler *handler, MapSection *sect) {
 		.max = (Vector3) {  4,  4,  4 }
 	};
 
+	ent->comp_ai.component_valid = false;
+	ent->comp_ai.task_data.target_entity = -1;
 	ent->comp_ai.state = 0;
 }
 
@@ -280,13 +287,6 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 		EntGridCell *cell = &grid->cells[cell_id];
 		for(u8 i = 0; i < cell->ent_count; i++) {
 			Entity *enemy_ent = &handler->ents[cell->ents[i]];
-
-			/*
-			if(enemy_ent->type == ENT_PLAYER && launch_timer > 0) {
-				if(Vector3DotProduct(Vector3Normalize(ct->velocity), player_ent->comp_transform.forward) > 0.0f)
-					continue;
-			}
-			*/
 
 			if(enemy_ent->type == ENT_DISRUPTOR)
 				continue;
@@ -337,7 +337,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 		}
 
-		if((ent->flags & BUG_DISRUPTED_ENEMY) && ai->task_data.target_entity > 0) {
+		if((ent->flags & BUG_DISRUPTED_ENEMY) && ai->task_data.target_entity > 0 && ai->task_data.target_entity < handler->count) {
 			Entity *stick_ent = &handler->ents[ai->task_data.target_entity];			
 			ct->position = Vector3Add(stick_ent->comp_transform.position, stick_ent->comp_health.bug_point);
 		}

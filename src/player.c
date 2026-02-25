@@ -73,61 +73,17 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 	ptr_input = input;
 	ptr_sect = test_section;
 	ptr_ent_handler = ent_handler;
-
 	player_debug_data = debug_data;
 }
 
 void PlayerUpdate(Entity *player, float dt) {
-	//ptr_cam->target = Vector3Add(ptr_cam->position, player->comp_transform.forward);
 	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
-
-	/*
-	PlayerInput(player, ptr_input, dt);
-
-	y_vel_prev = player->comp_transform.velocity.y;
-	land_frame = false;
-
-	// -
-	// Apply friction
-	float friction = (player->comp_transform.on_ground) ? PLAYER_FRICTION : PLAYER_AIR_FRICTION;
-
-	player->comp_transform.velocity.x += -player->comp_transform.velocity.x * (friction) * dt;
-	if(fabsf(player->comp_transform.velocity.x) <= EPSILON) player->comp_transform.velocity.x = 0;
-
-	player->comp_transform.velocity.z += -player->comp_transform.velocity.z * (friction) * dt;
-	if(fabsf(player->comp_transform.velocity.z) <= EPSILON) player->comp_transform.velocity.z = 0;
-
-	player->comp_transform.velocity.x = Clamp(player->comp_transform.velocity.x, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
-	player->comp_transform.velocity.z = Clamp(player->comp_transform.velocity.z, -PLAYER_MAX_VEL, PLAYER_MAX_VEL);
-	// -
-
-	Vector3 horizontal_velocity = (Vector3) { player->comp_transform.velocity.x, 0, player->comp_transform.velocity.z };
-	Vector3 wish_point = Vector3Add(player->comp_transform.position, horizontal_velocity);
-
-	ApplyMovement(&player->comp_transform, wish_point, ptr_sect, &ptr_sect->bvh[1], dt);
-	if(player->comp_transform.velocity.y == 0 && y_vel_prev <= -335.0f) {
-		land_frame = true;
-	}
-
-	ApplyGravity(&player->comp_transform, ptr_sect, &ptr_sect->bvh[1], GRAV_DEFAULT, dt);
-	*/
-
-	/*
-	PlayerMove(player, dt);
-	player->comp_transform.position = Vector3Add(player->comp_transform.position, Vector3Scale(player->comp_transform.velocity, 100 * dt));
-	*/
-	
-	
-	// Track previous y velocity,
-	// needed to check if player landed on groun this frame
-	//y_vel_prev = player->comp_transform.velocity.y;
 	land_frame = false;
 
 	// Update position + velocity
 	pm_Move(&player->comp_transform, ptr_input, dt);
 	if(land_frame) {
 		//printf("land frame!\n");
-		//if(y_vel_prev < -600) player->comp_health.amount--;
 		if(y_vel_prev < -FALLDAMAGE_THRESHOLD) player->comp_health.amount -= (short)(y_vel_prev * FALLDAMAGE_MULTIPLIER);
 	}
 
@@ -824,5 +780,20 @@ void OnHitPlayer(Entity *ent, short damage) {
 	comp_Transform *ct = &ent->comp_transform;
 
 	health->amount -= damage; 
+}
+
+void SpawnPlayer(Entity *ent, Vector3 position) {
+	ent->comp_transform.position = position;
+
+	ent->comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
+	ent->comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
+	ent->comp_transform.on_ground = true;
+
+	ent->comp_health.amount = 100;
+	ent->comp_health.on_hit = 0;
+
+	ent->comp_ai.component_valid = false;
+
+	ent->flags = (ENT_ACTIVE | ENT_COLLIDERS);
 }
 

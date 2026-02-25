@@ -103,27 +103,19 @@ void GameRenderSetup(Game *game) {
 void GameLoadTestScene1(Game *game, char *path) {
 	SpawnList spawn_list = (SpawnList) {0}; 
 	game->test_section = BuildMapSect(path, &spawn_list);
+	game->test_section.navgraphs = malloc(sizeof(NavGraph) * 32);
 
-	game->test_section.navgraphs = malloc(sizeof(NavGraph) * 16);
-	
-	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data, &game->ent_handler);
-	Entity player = (Entity) {
-		.comp_transform = (comp_Transform) {0},
-		.comp_health = (comp_Health) {0},
-		.comp_weapon = (comp_Weapon) {0},
-		.type = 0,
-		.flags = (ENT_ACTIVE)
-	};
-	player.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
-	player.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
-	player.comp_transform.on_ground = true;
+	// ----------------------------------------------------------------------------------------
+	Entity player = (Entity) {0};
+	player.type = ENT_PLAYER;
+	player.flags |= ENT_ACTIVE;
 
-	player.comp_health = (comp_Health) {0};
-	player.comp_health.amount = 100;
-	game->ent_handler.count = 0;
-	game->ent_handler.ents[0] = player;
+	Entity bug = (Entity) {0};
+	bug.type = ENT_DISRUPTOR;
+	bug.flags |= ENT_ACTIVE;
 
-	//InitNavGraph(&game->test_section);
+	// ----------------------------------------------------------------------------------------
+
 	game->test_section.base_navgraph = (NavGraph) {
 		.nodes = calloc(128, sizeof(NavNode)),
 		.edges = calloc(128, sizeof(NavEdge)),
@@ -131,10 +123,27 @@ void GameLoadTestScene1(Game *game, char *path) {
 		.node_count = 0, .edge_count = 0
 	};
 
-	//game->ent_handler.count = spawn_list.count;
-	//game->ent_handler.count = 0;
+	game->ent_handler.count = 0;
 	for(int i = 0; i < spawn_list.count; i++) 
 		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.base_navgraph);
+
+	player.id = game->ent_handler.player_id;
+	game->ent_handler.ents[game->ent_handler.player_id] = player;
+	bug.id = game->ent_handler.bug_id;
+	game->ent_handler.ents[game->ent_handler.bug_id] = bug;
+
+	PlayerInit(&game->camera, &game->input_handler, &game->test_section, &player_data, &game->ent_handler);
+
+	game->player_gun = (PlayerGun) {0};
+	PlayerGunInit(
+		&game->player_gun,
+		&game->ent_handler.ents[game->ent_handler.player_id],
+		&game->ent_handler,
+		&game->test_section,
+		&game->effect_manager
+	);
+
+	BugInit(&game->ent_handler.ents[game->ent_handler.bug_id], &game->ent_handler, &game->test_section);
 
 	BuildNavEdges(&game->test_section.base_navgraph);
 
@@ -146,26 +155,16 @@ void GameLoadTestScene1(Game *game, char *path) {
 	};
 	game->test_section.navgraphs[0].nodes = calloc(game->test_section.navgraphs[0].node_count, sizeof(NavNode));
 	game->test_section.navgraphs[0].edges = calloc(game->test_section.navgraphs[0].edge_count, sizeof(NavEdge));
+
 	SubdivideNavGraph(&game->test_section, &game->test_section.base_navgraph);
-
-	player.comp_transform.position = game->ent_handler.player_start;
-
-	game->player_gun = (PlayerGun) {0};
-	PlayerGunInit(&game->player_gun, &game->ent_handler.ents[0], &game->ent_handler, &game->test_section, &game->effect_manager);
-
 	AiNavSetup(&game->ent_handler, &game->test_section);
-
-	Entity bug = (Entity) {0};
-	bug.type = ENT_DISRUPTOR;
-	bug.flags |= ENT_ACTIVE;
-
-	game->ent_handler.bug_id = game->ent_handler.count++;
-	bug.id = game->ent_handler.bug_id;
-	game->ent_handler.ents[game->ent_handler.bug_id] = bug;
-	BugInit(&game->ent_handler.ents[game->ent_handler.bug_id], &game->ent_handler, &game->test_section);
 
 	SpawnPlayer(&game->ent_handler.ents[game->ent_handler.player_id], game->ent_handler.player_start);
 
+	//printf("%d\n", game->ent_handler.player_id);
+	//printf("%d\n", game->ent_handler.bug_id);
+
+	printf("%d\n", game->ent_handler.ents[4].type);
 }
 
 void GameUpdate(Game *game, float dt) {

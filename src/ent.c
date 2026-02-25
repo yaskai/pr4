@@ -263,7 +263,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 		switch(ent->type) {
 			case ENT_TURRET: 
-				//TurretUpdate(ent, handler, sect, dt);
+				TurretUpdate(ent, handler, sect, dt);
 				break;
 
 			case ENT_MAINTAINER:
@@ -391,6 +391,11 @@ void RenderEntities(EntityHandler *handler, float dt) {
 		DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
 		DrawBoundingBox(cell->aabb, GREEN);
 		*/
+
+		if(i != 4)
+			continue;
+
+		DrawBoundingBox(ent->comp_transform.bounds, RED);
 	}
 }
 
@@ -420,14 +425,25 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 	if(!strcmp(spawn_point->tag, "player_start")) {
 		handler->player_start = spawn_point->position;
 		handler->player_start.y += BODY_VOLUME_MEDIUM.y * 0.5f;
+
+		u16 player_id = handler->count++;
+		handler->player_id = player_id;
+
+		u16 bug_id = handler->count++;
+		handler->bug_id = bug_id;
+
+		return;
+	}
+
+	if(!strcmp(spawn_point->tag, "func_group")) {
+		puts("skip func_group");
 		return;
 	}
 
 	if(!spawn_point->ent_type)
 		return;
 
-
-	handler->ents[++handler->count] = SpawnEntity(spawn_point, handler);
+	handler->ents[handler->count] = SpawnEntity(spawn_point, handler);
 }
 
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
@@ -443,10 +459,11 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	*/
 
 	ent.comp_transform.start_angle = spawn_point->angle;
+	float rad = (spawn_point->angle) * DEG2RAD;
 
-	ent.comp_transform.forward.x = -cosf(spawn_point->angle + 90 * DEG2RAD);
+	ent.comp_transform.forward.x = sinf(rad);
 	ent.comp_transform.forward.y = 0;
-	ent.comp_transform.forward.z = sinf(spawn_point->angle * DEG2RAD);
+	ent.comp_transform.forward.z = -cosf(rad);
 	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
 
 	ent.comp_ai = (comp_Ai) {0};
@@ -462,18 +479,15 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 		case ENT_TURRET: {
 			ent.model = base_ent_models[ENT_TURRET];
 
+			//ent.comp_transform.position.y -= 20;
+			ent.comp_transform.position.y -= 12;
+
 			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
-			ent.comp_transform.bounds.max.y -= 10;
-
 			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
-			ent.comp_transform.bounds.min.y += 10;
-
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
-			
-			float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
 
-			//angle = 90 * DEG2RAD;
-			ent.model.transform = MatrixRotateY(angle);
+			float angle = atan2f(ent.comp_transform.forward.z, ent.comp_transform.forward.x);
+			ent.model.transform = MatrixRotateY(-(angle+90)*DEG2RAD);
 
 			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.35f;
@@ -547,6 +561,8 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	ent.comp_ai.speed = 50;
 	ent.comp_ai.wish_dir = Vector3Zero();
 
+	handler->count++;
+
 	return ent;
 }
 
@@ -558,7 +574,7 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 		float angle = sinf(GetTime()) * 1.25f;
 		angle = Clamp(angle, angle_min, angle_max);
 
-		angle = angle + ent->comp_transform.start_angle;
+		//angle = angle + ent->comp_transform.start_angle;
 
 		//if(ent->comp_ai.disrupt_timer > 0)
 		if(ent->comp_weapon.ammo > 0)
@@ -580,17 +596,39 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 void TurretDraw(Entity *ent) {
 	comp_Transform *ct = &ent->comp_transform;
 
-	float yaw = atan2f(-ct->forward.x, -ct->forward.z);
+	float yaw = atan2f(ct->forward.x, ct->forward.z);
+
+	float xz_len = Vector2Length( (Vector2) { ct->forward.x, ct->forward.z } );
+	float pitch = atan2f(-ct->forward.y, xz_len);
 
 	Matrix mat_base = MatrixMultiply(ent->model.transform, MatrixTranslate(ct->position.x, ct->position.y, ct->position.z));
+
+	Matrix mat_gun = MatrixMultiply(MatrixRotateX(pitch), MatrixRotateY(yaw));
+	mat_gun = MatrixMultiply(mat_gun, MatrixTranslate(ct->position.x, ct->position.y, ct->position.z));
+
+	/*
+	Matrix mat_gun = MatrixMultiply(
+		mat_base,
+		MatrixMultiply(MatrixRotateY(yaw), MatrixRotateX(pitch))
+	);
+	*/
+
+	DrawMesh(ent->model.meshes[1], ent->model.materials[1], mat_gun);
+	DrawMesh(ent->model.meshes[0], ent->model.materials[1], mat_base);
+
+	/*
+	comp_Transform *ct = &ent->comp_transform;
+
+	float yaw = atan2f(-ct->forward.x, -ct->forward.z);
+
+	Matrix mat_base = MatrixTranslate(ct->position.x, ct->position.y, ct->position.z);
 	Matrix mat_gun = MatrixRotateY(yaw);
 
 	Vector3 right = Vector3CrossProduct(ct->start_forward, UP);
 
-	Vector2 xz = (Vector2) { ct->forward.x, ct->forward.z };
-	xz = Vector2Normalize(xz);
+	Vector2 xz = (Vector2) { -ct->forward.x, -ct->forward.z };
 	float xz_len = Vector2Length(xz);
-
+	xz = Vector2Normalize(xz);
 	float pitch = atan2f(-ct->forward.y, xz_len);
 
 	mat_gun = MatrixMultiply(MatrixRotate(right, pitch), mat_gun);
@@ -598,13 +636,17 @@ void TurretDraw(Entity *ent) {
 
 	DrawMesh(ent->model.meshes[1], ent->model.materials[1], mat_base);
 	DrawMesh(ent->model.meshes[0], ent->model.materials[1], mat_gun);
+	*/
 
+	/*
 	Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	Vector3 forward = ent->comp_transform.forward;
 
 	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 60)), PURPLE);
-
 	DrawBoundingBox(ct->bounds, RED);
+	*/
+	
+	//DrawModel(ent->model, ent->comp_transform.position, 1, WHITE);
 }
 
 void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
@@ -633,8 +675,8 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	}
 
 	Vector3 trace_start = ct->position;
-	trace_start.y -= 7;
-	trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 20));
+	trace_start.y += 12;
+	//trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 24));
 
 	Vector3 dir = ct->forward;
 	float offset = GetRandomValue(-10, 10) * 0.001f;	
@@ -650,7 +692,8 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	bool hit = false;
 	Vector3 bullet_dest = TraceBullet(handler, sect, ct->position, dir, ent->id, &hit);
 
-	Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
+	//Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
+	Vector3 trail_start = trace_start;
 
 	Vector3 trail_end = bullet_dest;
 	if(!hit) {
@@ -1631,15 +1674,6 @@ void OnHitMaintainer(Entity *ent, short damage) {
 }
 
 void OnHitRegulator(Entity *ent, short damage) {
-}
-
-void SpawnPlayer(Entity *ent, Vector3 position) {
-	ent->comp_transform.position = position;
-
-	ent->comp_health.amount = 100;
-	ent->comp_health.on_hit = 0;
-
-	ent->flags = (ENT_ACTIVE | ENT_COLLIDERS);
 }
 
 void DoFix(Entity *ent) {

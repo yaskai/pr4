@@ -19,7 +19,7 @@ Matrix mat = {0};
 #define DISRUPTOR_REST (Vector3) {  -1.75f, -1.35f, 6.25f  }
 #define DISRUPTOR_REST_ANGLE_REST 2.5f
 
-#define DISRUPTOR_THROW_FORCE 300.0f
+#define DISRUPTOR_THROW_FORCE 350.0f
 
 float recoil = 0;
 bool recoil_add = false;

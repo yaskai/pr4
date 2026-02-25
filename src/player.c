@@ -96,6 +96,8 @@ void PlayerUpdate(Entity *player, float dt) {
 		player->comp_transform.velocity = Vector3Zero();
 		player->comp_transform.on_ground = true;
 	} 
+
+	player->comp_health.damage_cooldown -= dt;
 }
 
 void PlayerDraw(Entity *player) {
@@ -790,7 +792,7 @@ void SpawnPlayer(Entity *ent, Vector3 position) {
 	ent->comp_transform.on_ground = true;
 
 	ent->comp_health.amount = 100;
-	ent->comp_health.on_hit = 0;
+	ent->comp_health.on_hit = -1;
 
 	ent->comp_ai.component_valid = false;
 

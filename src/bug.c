@@ -5,7 +5,7 @@
 #include "ent.h"
 #include "pm.h"
 
-#define BUG_MAX_BOUNCES 7
+#define BUG_MAX_BOUNCES 8
 
 u8 bug_bounce = 0;
 float launch_timer = 0;
@@ -54,8 +54,8 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 			if(!enemy_ai->component_valid)
 				continue;
 
-			//if(enemy_ai->input_mask & AI_INPUT_SELF_GLITCHED)
-				//continue;
+			if(enemy_ai->input_mask & AI_INPUT_SELF_GLITCHED)
+				continue;
 
 			Vector3 to_enemy = Vector3Subtract(
 				Vector3Add(
@@ -89,7 +89,6 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 		return;
 
 	Entity *enemy_ent = &handler->ents[enemy_id];
-	printf("target: entity[%d]\n", enemy_id);
 
 	Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	
 	Vector3 to_bug = Vector3Subtract(ct->position, enemy_ent->comp_transform.position);	
@@ -111,14 +110,18 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 	ct->velocity.x = to_enemy.x * d;	
 	ct->velocity.z = to_enemy.z * d;	
 
-	ct->velocity.y += (d*0.005f);
+	ct->velocity.y += (d*0.05f);
 
 	if(d <= 250.0f) {
-		ct->velocity.y += 300-(d*0.85f);
+		ct->velocity.y += 300-(d*0.93f);
 
 		if(*bounce >= BUG_MAX_BOUNCES - 1 && !big_bounce_used) {
 			(*bounce)--;
 			big_bounce_used = true;
+		}
+		
+		if(fabsf(enemy_ent->comp_transform.position.y - ct->position.y) <= 16) {
+			ct->position.y = enemy_ent->comp_transform.position.y;
 		}
 	}
 }

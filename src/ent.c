@@ -38,25 +38,7 @@ void LoadEntityBaseAnims() {
 	base_ent_anims[ENT_MAINTAINER] = LoadModelAnimations(TextFormat("%s/enemies/maintainer.glb", prefix), &base_ent_anims_count[ENT_MAINTAINER]);	 
 }
 
-short CheckCeiling(comp_Transform *comp_transform, MapSection *sect, BvhTree *bvh) {
-	if(comp_transform->velocity.y < 0) return 0;
-
-	Ray ray = (Ray) { .position = comp_transform->position, .direction = UP };
-	
-	BvhTraceData tr = TraceDataEmpty();	
-	//BvhBoxSweepNoInvert(ray, sect, bvh, 0, &comp_transform->bounds, &tr);
-
-	if(tr.distance > EPSILON)
-		return 0;
-
-	float dot = Vector3DotProduct(tr.normal, UP);
-	if(dot > 0.0f) return 0;
-
-	comp_transform->position.y = tr.point.y;
-	comp_transform->velocity.y *= -0.5f;
-
-	return 1;
-}
+Model projectile_models[4];
 
 void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager) {
 	handler->count = 0;
@@ -72,6 +54,9 @@ void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager) {
 	EntGridInit(handler);
 
 	handler->effect_manager = effect_manager;
+
+	handler->projectile_capacity = 128;
+	handler->projectiles = calloc(handler->projectile_capacity, sizeof(Projectile));
 }
 
 void EntHandlerClose(EntityHandler *handler) {
@@ -86,6 +71,9 @@ void EntHandlerClose(EntityHandler *handler) {
 
 	if(handler->ents) 
 		free(handler->ents);
+
+	if(handler->projectiles)
+		free(handler->projectiles);
 
 	if(handler->grid.cells)
 		free(handler->grid.cells);
@@ -280,6 +268,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			Vector3Add(ent->comp_transform.position, ent->comp_health.bug_point)	
 		);
 
+		ent->comp_health.damage_cooldown -= dt;
 
 		// * NOTE: 
 		// Commmenting this out, using same system as player for entities that move
@@ -360,6 +349,8 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 		handler->ai_tick = 0.0333f;
 	}
 
+	ManageProjectiles(handler, sect, dt);
+
 	UpdateGrid(handler);
 }
 
@@ -397,6 +388,8 @@ void RenderEntities(EntityHandler *handler, float dt) {
 
 		DrawBoundingBox(ent->comp_transform.bounds, RED);
 	}
+
+	RenderProjectiles(handler);
 }
 
 void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_graph) {
@@ -518,7 +511,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.curr_anim = 0;
 			//ent.anim_frame = GetRandomValue(0, 200);
 
-			ent.comp_transform.position.y -= 4;
+			ent.comp_transform.position.y += 20;
 
 			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
@@ -530,10 +523,13 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.25f;
 			//ent.comp_ai.curr_schedule = SCHED_CHASE_PLAYER;
-			ent.comp_ai.curr_schedule = SCHED_PATROL;
-			ent.comp_ai.task_data.task_id = TASK_MAKE_PATROL_PATH;
+			//ent.comp_ai.curr_schedule = SCHED_PATROL;
+			//ent.comp_ai.task_data.task_id = TASK_MAKE_PATROL_PATH;
 			//ent.comp_ai.task_data.task_id = TASK_WAIT_TIME;
 			//ent.comp_ai.task_data.timer = 0.1f;
+
+			ent.comp_ai.curr_schedule = SCHED_MAINTAINER_ATTACK;
+			ent.comp_ai.task_data.task_id = TASK_WAIT_TIME;
 
 			ent.comp_health.amount = 3;
 			ent.comp_health.on_hit = 2;
@@ -695,7 +691,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	//Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
 	Vector3 trail_start = trace_start;
 
-	Vector3 trail_end = bullet_dest;
+	Vector3 trail_end = Vector3Add(trail_start, Vector3Scale(dir, Vector3Distance(trail_start, bullet_dest)));
 	if(!hit) {
 		trail_end = Vector3Add(trail_start, Vector3Scale(ct->forward, 2000.0f));
 	}
@@ -882,6 +878,10 @@ void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai
 
 		case SCHED_CHASE_PLAYER:
 			AiChasePlayerSchedule(ent, handler, sect, dt);
+			break;
+
+		case SCHED_MAINTAINER_ATTACK:
+			AiMaintainerAttackSchedule(ent, handler, sect, dt);
 			break;
 	}
 	
@@ -1382,6 +1382,26 @@ void AiChasePlayerSchedule(Entity *ent, EntityHandler *handler, MapSection *sect
 	}
 }
 
+void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
+	comp_Transform *ct = &ent->comp_transform;
+
+	comp_Ai *ai = &ent->comp_ai;
+	Ai_TaskData *task = &ai->task_data;
+
+	if(task->task_id == TASK_THROW_PROJECTILE) {
+		ProjectileThrow(ent, ct->position, ct->forward, 700, 0, handler);
+
+		task->task_id = TASK_WAIT_TIME;
+		task->timer = 100;
+
+		return;
+	}
+
+	if(task->task_id == TASK_WAIT_TIME) {
+		task->task_id = TASK_THROW_PROJECTILE;
+	}
+}
+
 EntTraceData EntTraceDataEmpty() {
 	return (EntTraceData) {
 		.point = Vector3Zero(),
@@ -1645,9 +1665,15 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
 
 void OnHitEnt(Entity *ent, short damage) {
 	comp_Health *health = &ent->comp_health;
-	comp_Ai *ai = &ent->comp_ai;
+	
+	if(health->damage_cooldown > 0)
+		return;
 
 	health->amount -= damage;
+	health->damage_cooldown = 0.1f;
+
+	comp_Ai *ai = &ent->comp_ai;
+
 	if(health->amount <= 0) {
 		ent->comp_ai.state = STATE_DEAD;
 		ent->comp_ai.curr_schedule = SCHED_DEAD;
@@ -1730,5 +1756,239 @@ void EntMove(Entity *ent, MapSection *sect, EntityHandler *handler, float dt) {
 	ct->velocity = move_data.end_vel;
 
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
+}
+
+void proj_TraceMove(Projectile *proj, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt, MapSection *sect, short bvh_id) {
+	comp_Transform *ct = &proj->ct;
+	comp_Health *health = &proj->health;
+
+	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0, .fraction = 1.0f };
+
+	// Check if inside solid before starting trace
+	Ray start_ray = (Ray) { .position = start, .direction = Vector3Normalize(wish_vel) };
+	BvhTraceData start_tr = TraceDataEmpty();
+	
+	float trace_max_dist = Vector3LengthSqr(wish_vel);
+	trace_max_dist = Clamp(trace_max_dist, 0.33f, 2000.0f);
+
+	BvhTracePointEx(start_ray, sect, &sect->bvh[bvh_id], 0, &start_tr, trace_max_dist);
+	if(start_tr.hit) {
+		pm->start_in_solid = start_tr.hull_id;
+	}
+
+	Vector3 dest = start;
+	Vector3 vel = wish_vel;
+
+	pm->start_vel = wish_vel;
+
+	float t_remain = dt;
+
+	// Tracked clip planes
+	Vector3 clips[MAX_CLIPS] = {0};
+	u8 num_clips = 0;
+
+	for(short i = 0; i < MAX_BUMPS; i++) {
+		// End slide trace if velocity too low
+		if(Vector3LengthSqr(vel) <= STOP_EPS)
+			break;
+		
+		// Scale slide movement by time remaining
+		Vector3 move = Vector3Scale(vel, t_remain);
+
+		// Upate ray
+		Ray ray = (Ray) { .position = dest, .direction = Vector3Normalize(move) };
+
+		// Trace geometry 
+		BvhTraceData tr = TraceDataEmpty();
+		BvhTracePointEx(ray, sect, &sect->bvh[bvh_id], 0, &tr, FLT_MAX);
+
+		// Determine how much of movement was obstructed
+		float fraction = (tr.distance / Vector3Length(move));
+		fraction = Clamp(fraction, 0.0f, 1.0f);
+		pm->fraction = fraction;
+
+		// Update destination
+		dest = Vector3Add(dest, Vector3Scale(move, fraction));
+
+		if(fraction < 1.0f) {
+			pm->end_in_solid = (tr.hit) ? pm_CheckHull(dest, tr.hull_id) : -1;
+
+			health->amount -= Vector3Length(vel) * 0.5f;
+		}
+
+		// No obstruction, do full movement 
+		if(fraction >= 1.0f) 
+			break;
+
+		// Add clip plane
+		if(num_clips + 1 < MAX_CLIPS) {
+			clips[num_clips++] = tr.normal;
+
+			// Update velocity by each clip plane
+			for(short j = 0; j < num_clips; j++) {
+				float into = Vector3DotProduct(vel, clips[j]);
+
+				if(into < 0) 
+					pm_ClipVelocity(vel, clips[j], &vel, 1.5005f, pm->block);
+			}
+
+		} else 
+			break;
+
+		// Add small offset to prevent tunneling through surfaces
+		dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.01f));
+
+		// Update remaining time
+		t_remain *= (1 - fraction);
+	}
+
+	pm->move_dist = Vector3Distance(start, dest);
+	pm->end_vel = vel;
+	pm->end_pos = dest;
+}
+
+u8 proj_CheckGround(comp_Transform *ct, Vector3 position, MapSection *sect, short bvh_id) {
+	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
+
+	BvhTraceData tr = TraceDataEmpty();	
+	BvhTracePointEx(ray, sect, &sect->bvh[bvh_id], 0, &tr, 1 + 0.001f);
+	
+	if(!tr.hit) {
+		ct->ground_normal = Vector3Zero();
+		return 0;
+	}
+
+	ct->ground_normal = tr.normal;
+	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.00001f, 0);
+	if(fabsf(ct->velocity.y) < STOP_EPS) ct->velocity.y = 0;
+
+	return 1;
+}
+
+void ProjectileUpdate(Projectile *projectile, EntityHandler *handler, MapSection *sect, float dt) {
+	if(projectile->health.amount <= 0) {
+		projectile->active = false;
+		return;
+	}
+
+	comp_Transform *ct = &projectile->ct;
+
+	ct->bounds = BoxTranslate(ct->bounds, ct->position);
+
+	EntGrid *grid = &handler->grid;
+	Coords coords = Vec3ToCoords(ct->position, grid);
+
+	Coords cell_coords[] = {
+		coords,
+		(Coords) { coords.c - 1, coords.r, coords.t - 1 },
+		(Coords) { coords.c + 0, coords.r, coords.t - 1 },
+		(Coords) { coords.c + 1, coords.r, coords.t - 1 },
+		(Coords) { coords.c - 1, coords.r, coords.t + 0 },
+		(Coords) { coords.c + 1, coords.r, coords.t + 0 },
+		(Coords) { coords.c - 1, coords.r, coords.t + 1 },
+		(Coords) { coords.c + 0, coords.r, coords.t + 1 },
+		(Coords) { coords.c + 1, coords.r, coords.t + 1 },
+	};
+	short adj_count = sizeof(cell_coords) / sizeof(cell_coords[0]);
+
+	for(short i = 0; i < adj_count; i++) {
+		EntGridCell *cell = &grid->cells[CellCoordsToId(cell_coords[i], grid)];
+
+		for(short j = 0; j < cell->ent_count; j++) {
+			i16 ent_id = cell->ents[j]; 
+			Entity *ent = &handler->ents[ent_id];
+
+			if(ent->id == projectile->sender)
+				continue;
+
+			if(CheckCollisionBoxes(ct->bounds, ent->comp_transform.bounds)) {
+				// Impact entity
+				ProjectileImpact(projectile, handler, ent_id);
+			}
+		}
+	}
+
+	ct->velocity.y -= 800.0f * dt;
+
+	pmTraceData pm = (pmTraceData) {0};
+	proj_TraceMove(projectile, ct->position, ct->velocity, &pm, dt, sect, BVH_BOX_SMALL);
+
+	ct->position = pm.end_pos;
+	ct->velocity = pm.end_vel;
+}
+
+void ProjectileDraw(Projectile *projectile) {
+	DrawCubeV(projectile->ct.position, (Vector3) { 8, 8, 8 }, RED);	
+	//DrawBoundingBox(projectile->ct.bounds, RED);
+}
+
+void ProjectileThrow(Entity *ent, Vector3 pos, Vector3 dir, float force, u8 type, EntityHandler *handler) {
+	Projectile projectile = (Projectile) {0};
+
+	projectile.type = type;
+	projectile.sender = ent->id;
+	
+	comp_Transform *ct = &projectile.ct;
+	ct->position = pos;
+
+	ct->bounds = (BoundingBox) { .min = Vector3Scale(Vector3One(), -8), .max = Vector3Scale(Vector3One(), 8) };
+	ct->bounds = BoxTranslate(ct->bounds, ct->position);
+	
+	Vector3 vel = Vector3Scale(dir, force);
+	vel.y += 200;
+	ct->velocity = vel;
+
+	projectile.health.amount = 100;
+
+	projectile.active = true;
+
+	u16 slot = 0;
+	for(u16 i = 0; i < handler->projectile_capacity; i++) {
+		Projectile *p = &handler->projectiles[i];
+		if(!p->active) {
+			slot = i;
+			break;
+		}
+	}
+
+	handler->projectiles[slot] = projectile;
+}
+
+void ProjectileImpact(Projectile *projectile, EntityHandler *handler, i16 ent_id) {
+	if(ent_id == -1) {
+		*projectile = (Projectile) {0};
+		return;
+	}
+
+	Entity *ent = &handler->ents[ent_id];
+	
+	float damage = Vector3Length(projectile->ct.velocity) * 0.01f;
+	damage = Clamp(damage, 0, 100);
+
+	OnHitEnt(ent, (short)damage);
+
+	*projectile = (Projectile) {0};
+}
+
+void ManageProjectiles(EntityHandler *handler, MapSection *sect, float dt) {
+	for(u16 i = 0; i < handler->projectile_capacity; i++) {
+		Projectile *projectile = &handler->projectiles[i];
+
+		if(!projectile->active) 
+			continue;
+
+		ProjectileUpdate(projectile, handler, sect, dt);
+	}
+}
+
+void RenderProjectiles(EntityHandler *handler) {
+	for(u16 i = 0; i < handler->projectile_capacity; i++) {
+		Projectile *projectile = &handler->projectiles[i];
+
+		if(!projectile->active)
+			continue;
+
+		ProjectileDraw(projectile);
+	}
 }
 

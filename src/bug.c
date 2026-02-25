@@ -35,6 +35,9 @@ void BugBounce(comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 
 	i16 enemy_id = -1;
 
 	for(u8 j = 0; j < adj_count; j++) {
+		if(!CoordsInBounds(cell_coords[j], grid))
+			continue;
+
 		i16 cell_id = CellCoordsToId(cell_coords[j], grid);
 		EntGridCell *cell = &grid->cells[cell_id];
 

@@ -883,8 +883,11 @@ void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai
 		case SCHED_MAINTAINER_ATTACK:
 			AiMaintainerAttackSchedule(ent, handler, sect, dt);
 			break;
+
+		case SCHED_MAINTAINER_MAKE_NEW:
+			AiMaintainerMakeNewSchedule(ent, handler, sect, dt);
+			break;
 	}
-	
 }
 
 void AiDoState(Entity *ent, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
@@ -1402,6 +1405,13 @@ void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection 
 	}
 }
 
+void AiMaintainerMakeNewSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
+	comp_Ai *ai = &ent->comp_ai;
+
+	ai->curr_schedule = ai->prev_schedule;
+	ai->prev_schedule = ai->curr_schedule;
+}
+
 EntTraceData EntTraceDataEmpty() {
 	return (EntTraceData) {
 		.point = Vector3Zero(),
@@ -1892,6 +1902,9 @@ void ProjectileUpdate(Projectile *projectile, EntityHandler *handler, MapSection
 	short adj_count = sizeof(cell_coords) / sizeof(cell_coords[0]);
 
 	for(short i = 0; i < adj_count; i++) {
+		if(!CoordsInBounds(cell_coords[i], grid))
+			continue;
+
 		EntGridCell *cell = &grid->cells[CellCoordsToId(cell_coords[i], grid)];
 
 		for(short j = 0; j < cell->ent_count; j++) {
@@ -1934,8 +1947,8 @@ void ProjectileThrow(Entity *ent, Vector3 pos, Vector3 dir, float force, u8 type
 	ct->bounds = (BoundingBox) { .min = Vector3Scale(Vector3One(), -8), .max = Vector3Scale(Vector3One(), 8) };
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 	
-	Vector3 vel = Vector3Scale(dir, force);
-	vel.y += 200;
+	Vector3 vel = Vector3Scale(dir, force + GetRandomValue(-60, 60));
+	vel.y += 200 + GetRandomValue(-50, 50);
 	ct->velocity = vel;
 
 	projectile.health.amount = 100;
@@ -1966,6 +1979,11 @@ void ProjectileImpact(Projectile *projectile, EntityHandler *handler, i16 ent_id
 	damage = Clamp(damage, 0, 100);
 
 	OnHitEnt(ent, (short)damage);
+
+	Vector3 knockback = (Vector3) { projectile->ct.velocity.x, 0, projectile->ct.velocity.z };
+	knockback = Vector3Scale(knockback, 0.33f);
+
+	ent->comp_transform.velocity = Vector3Add(ent->comp_transform.velocity, knockback);
 
 	*projectile = (Projectile) {0};
 }

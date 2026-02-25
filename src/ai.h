@@ -72,6 +72,7 @@ enum AI_SCHEDULES : u8 {
 	SCHED_DEAD,
 	SCHED_CHASE_PLAYER,
 	SCHED_MAINTAINER_ATTACK,
+	SCHED_MAINTAINER_MAKE_NEW
 };
 
 enum AI_TASKS : u8 {
@@ -117,7 +118,10 @@ typedef struct {
 	float speed;
 
 	u32 input_mask;
+
 	u32 curr_schedule;
+	u32 prev_schedule;
+	u32 next_schedule;
 
 	int curr_navnode_id;
 

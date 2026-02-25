@@ -303,6 +303,7 @@ void AiSentryDisruptionSchedule(Entity *ent, EntityHandler *handler, MapSection 
 void AiChasePlayerSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
+void AiMaintainerMakeNewSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 // **** Bullets ****

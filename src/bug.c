@@ -5,7 +5,7 @@
 #include "ent.h"
 #include "pm.h"
 
-#define BUG_MAX_BOUNCES 8
+#define BUG_MAX_BOUNCES 14
 
 u8 bug_bounce = 0;
 float launch_timer = 0;

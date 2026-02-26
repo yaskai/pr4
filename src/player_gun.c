@@ -74,6 +74,9 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 2;
 	player_gun->current_gun = gun_refs.player->comp_weapon.id;
 
+	if(gun_refs.player->comp_ai.state == STATE_DEAD)
+		return;
+
 	switch(player_gun->current_gun) {
 		case WEAP_PISTOL:
 			PlayerGunUpdatePistol(player_gun, dt);
@@ -157,6 +160,9 @@ void PlayerGunUpdateDisruptor(PlayerGun *player_gun, float dt) {
 }
 
 void PlayerGunDraw(PlayerGun *player_gun) {
+	if(gun_refs.player->comp_ai.state == STATE_DEAD)
+		return;
+
 	Entity *bug_ent = &gun_refs.handler->ents[gun_refs.handler->bug_id];
 	bool skip_draw = false;
 

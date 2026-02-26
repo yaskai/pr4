@@ -72,6 +72,9 @@ void EntHandlerClose(EntityHandler *handler) {
 	if(handler->ents) 
 		free(handler->ents);
 
+	if(handler->spawn_list.arr)
+		free(handler->spawn_list.arr);
+
 	if(handler->projectiles)
 		free(handler->projectiles);
 
@@ -89,7 +92,7 @@ void EntGridInit(EntityHandler *handler) {
 
 	EntGrid grid = (EntGrid) {0};
 
-	grid.size = (Coords) { .c = 16, .r = 6, .t = 16 };
+	grid.size = (Coords) { .c = 24, .r = 8, .t = 24 };
 
 	grid.cell_count = grid.size.c * grid.size.r * grid.size.t;
 	grid.cells = calloc(grid.cell_count, sizeof(EntGridCell));
@@ -233,6 +236,11 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 	Entity *player_ent = &handler->ents[handler->player_id];
 	PlayerUpdate(player_ent, dt);
+
+	if(player_ent->comp_ai.state == STATE_DEAD && player_ent->comp_ai.task_data.timer >= 2) {
+		ReloadEntities(handler);
+		return;
+	}
 
 	render_list.count = 0;
 	Vector3 view_dir = player_ent->comp_transform.forward;
@@ -397,22 +405,24 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 		return;
 	}
 
-	if(!strcmp(spawn_point->tag, "nav_node")) {
-		if(nav_graph->node_count + 1 >= nav_graph->node_cap) {
-			nav_graph->node_cap = nav_graph->node_cap << 1;
-			nav_graph->nodes = realloc(nav_graph->nodes, sizeof(NavNode) * nav_graph->node_cap);
+	if(nav_graph) {
+		if(!strcmp(spawn_point->tag, "nav_node")) {
+			if(nav_graph->node_count + 1 >= nav_graph->node_cap) {
+				nav_graph->node_cap = nav_graph->node_cap << 1;
+				nav_graph->nodes = realloc(nav_graph->nodes, sizeof(NavNode) * nav_graph->node_cap);
+			}
+
+			NavNode node = (NavNode) {
+				.position = spawn_point->position,
+				.id = nav_graph->node_count,
+				.edge_count = 0
+			};
+			memset(node.edges, 0, sizeof(u16) * MAX_EDGES_PER_NODE);
+			nav_graph->nodes[nav_graph->node_count] = node;
+			nav_graph->node_count++;
+
+			return;
 		}
-
-		NavNode node = (NavNode) {
-			.position = spawn_point->position,
-			.id = nav_graph->node_count,
-			.edge_count = 0
-		};
-		memset(node.edges, 0, sizeof(u16) * MAX_EDGES_PER_NODE);
-		nav_graph->nodes[nav_graph->node_count] = node;
-		nav_graph->node_count++;
-
-		return;
 	}
 
 	if(!strcmp(spawn_point->tag, "player_start")) {
@@ -1501,7 +1511,6 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	// 1. Trace surfaces of the level 
 	// 2. Trace Entities
 	// Lowest distance between the two traces is the destination of the bullet 
-
 	Vector3 dest = Vector3Add(origin, Vector3Scale(dir, FLT_MAX));
 
 	Ray ray = (Ray) { .position = origin, .direction = dir };
@@ -1605,7 +1614,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 
 	if(*hit && ent_hit_id > -1) {
 		Entity *hit_ent = &handler->ents[ent_hit_id];
-		OnHitEnt(hit_ent, 1);
+		OnHitEnt(hit_ent, 5);
 	}
 
 	return dest;
@@ -2008,5 +2017,15 @@ void RenderProjectiles(EntityHandler *handler) {
 
 		ProjectileDraw(projectile);
 	}
+}
+
+void ReloadEntities(EntityHandler *handler) {
+	handler->count = 0;
+
+	for(u16 i = 0; i < handler->spawn_list.count; i++) 
+		ProcessEntity(&handler->spawn_list.arr[i], handler, NULL);
+
+	SpawnPlayer(&handler->ents[handler->player_id], handler->player_start);
+	handler->ents[handler->bug_id].comp_ai.state = 0;	
 }
 

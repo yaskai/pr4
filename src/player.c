@@ -37,7 +37,7 @@ short nudged_this_frame = 0;
 #define PLAYER_AIR_FRICTION 0.75f
 #define PLAYER_HURT_FRICTION 40.0f
 
-#define PLAYER_BASE_JUMP_FORCE 420.0f
+#define PLAYER_BASE_JUMP_FORCE 620.0f
 
 Vector2 FlatVec2(Vector3 vec3) { return (Vector2) { vec3.x, vec3.z }; }
 Vector3 clipY(Vector3 vec) { return Vector3Normalize((Vector3) { vec.x, 0, vec.z }); }
@@ -65,6 +65,9 @@ pmTraceData last_pm = { .start_in_solid = -1, .end_in_solid = -1 };
 Vector3 debug_vel_full;
 Vector3 debug_vel_clipped;
 
+bool player_dead = false;
+float death_timer = 0;
+
 // **
 // -----------------------------------------------------------------------------
 
@@ -77,6 +80,18 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 }
 
 void PlayerUpdate(Entity *player, float dt) {
+	player_dead = (player->comp_health.amount <= 0);
+	if(player_dead)	{
+		player->comp_ai.state = STATE_DEAD;
+		
+		death_timer += dt;
+
+		if(death_timer > 3) 
+			death_timer = 3;
+
+		player->comp_ai.task_data.timer = death_timer;
+	}
+
 	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
 	land_frame = false;
 
@@ -88,14 +103,17 @@ void PlayerUpdate(Entity *player, float dt) {
 	}
 
 	// Update camera
-	cam_Adjust(&player->comp_transform, dt);
+	if(!player_dead)
+		cam_Adjust(&player->comp_transform, dt);
 
+	/*
 	if(IsKeyPressed(KEY_R)) {
 		//player->comp_transform.position = (Vector3) { 0, 60, 0 };
 		player->comp_transform.position = ptr_ent_handler->player_start;
 		player->comp_transform.velocity = Vector3Zero();
 		player->comp_transform.on_ground = true;
 	} 
+	*/
 
 	player->comp_health.damage_cooldown -= dt;
 }
@@ -175,7 +193,11 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	ct->on_ground = pm_CheckGround(ct, ct->position);
 	
 	// 2. Get wishdir
-	Vector3 wish_dir = pm_GetWishDir(ct, input);
+	Vector3 wish_dir = Vector3Zero();
+
+	if(!player_dead)
+		wish_dir = pm_GetWishDir(ct, input);
+
 	//float wish_speed = PLAYER_SPEED;
 	float wish_speed = (ct->on_ground) ? PLAYER_GROUND_SPEED : PLAYER_AIR_SPEED;
 	if(wish_speed > PLAYER_MAX_SPEED) {
@@ -795,7 +817,12 @@ void SpawnPlayer(Entity *ent, Vector3 position) {
 	ent->comp_health.on_hit = -1;
 
 	ent->comp_ai.component_valid = false;
+	ent->comp_ai.state = STATE_IDLE;
+	ent->comp_ai.task_data.timer = 0;
 
 	ent->flags = (ENT_ACTIVE | ENT_COLLIDERS);
+
+	death_timer = 0;
+	player_dead = false;
 }
 

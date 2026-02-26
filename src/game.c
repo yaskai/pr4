@@ -126,7 +126,7 @@ void GameLoadTestScene1(Game *game, char *path) {
 	game->ent_handler.count = 0;
 	for(int i = 0; i < spawn_list.count; i++) 
 		ProcessEntity(&spawn_list.arr[i], &game->ent_handler, &game->test_section.base_navgraph);
-
+	
 	player.id = game->ent_handler.player_id;
 	game->ent_handler.ents[game->ent_handler.player_id] = player;
 	bug.id = game->ent_handler.bug_id;
@@ -164,7 +164,9 @@ void GameLoadTestScene1(Game *game, char *path) {
 	//printf("%d\n", game->ent_handler.player_id);
 	//printf("%d\n", game->ent_handler.bug_id);
 
-	printf("%d\n", game->ent_handler.ents[4].type);
+	game->ent_handler.spawn_list.count = spawn_list.count;
+	game->ent_handler.spawn_list.arr = calloc(spawn_list.count, sizeof(EntSpawn));
+	memcpy(game->ent_handler.spawn_list.arr, spawn_list.arr, sizeof(EntSpawn) * spawn_list.count);
 }
 
 void GameUpdate(Game *game, float dt) {
@@ -189,9 +191,12 @@ void GameUpdate(Game *game, float dt) {
 u8 debug_draw_flags = (0);
 
 void GameDraw(Game *game, float dt) {
+	Entity *player_ent = &game->ent_handler.ents[game->ent_handler.player_id];
+
 	// 3D Rendering, main
 	BeginDrawing();
 	BeginTextureMode(game->render_target3D);
+	
 	ClearBackground(BLACK);
 		BeginMode3D(game->camera);
 
@@ -258,6 +263,12 @@ void GameDraw(Game *game, float dt) {
 		EndMode3D();
 
 		//DebugDrawNavGraphsText(&game->test_section, game->camera_debug, (Vector2) {VIRT_W, VIRT_H} );
+
+		if(player_ent->comp_ai.state == STATE_DEAD) {
+			float deathscreen_alpha = player_ent->comp_ai.task_data.timer*0.5f;
+			if(deathscreen_alpha > 1) deathscreen_alpha = 1;
+			DrawRectangleRec((Rectangle) { 0, 0, VIRT_W, VIRT_H } , ColorAlpha(BLACK, player_ent->comp_ai.task_data.timer*0.5f));
+		}
 
 	EndTextureMode();
 

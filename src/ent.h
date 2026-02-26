@@ -199,6 +199,7 @@ typedef struct {
 	Projectile *projectiles;
 
 	EntGrid grid;
+	SpawnList spawn_list;
 
 	vEffect_Manager *effect_manager;
 
@@ -379,5 +380,7 @@ void ManageProjectiles(EntityHandler *handler, MapSection *sect, float dt);
 void RenderProjectiles(EntityHandler *handler);
 
 // ----------------------------------------------------------------------------------------------------------------------------
+
+void ReloadEntities(EntityHandler *handler);
 
 #endif

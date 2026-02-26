@@ -102,7 +102,7 @@ typedef struct {
 
 	u32 interrupt_mask;
 
-	u16 target_entity;
+	i16 target_entity;
 
 	bool path_set;
 

@@ -291,7 +291,7 @@ int FindClosestNavNode(Vector3 position, MapSection *sect);
 void AiNavSetup(EntityHandler *handler, MapSection *sect);
 
 int FindClosestNavNodeInGraph(Vector3 position, NavGraph *graph);
-bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id);
+bool MakeNavPath(Entity *ent, NavGraph *graph, i16 target_id);
 
 bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id);
 void AiPatrol(Entity *ent, MapSection *sect, float dt);
@@ -345,7 +345,7 @@ void BugInit(Entity *ent, EntityHandler *handler, MapSection *sect);
 void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);
 void BugDraw(Entity *ent);
 
-void DisruptEntity(EntityHandler *handler, u16 ent_id);
+void DisruptEntity(EntityHandler *handler, u16 ent_id, MapSection *sect);
 void AlertMaintainers(EntityHandler *handler, u16 disrupted_id);
 
 // ----------------------------------------------------------------------------------------------------------------------------

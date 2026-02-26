@@ -556,8 +556,8 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	}
 
 	ent.comp_health.bug_box = (BoundingBox) {
-		.min = Vector3Scale(BODY_VOLUME_SMALL, -0.5f),	
-		.max = Vector3Scale(BODY_VOLUME_SMALL,  0.5f)
+		.min = Vector3Scale(BODY_VOLUME_SMALL, -0.75f),	
+		.max = Vector3Scale(BODY_VOLUME_SMALL,  0.75f)
 	};
 
 	ent.comp_transform.start_forward = ent.comp_transform.forward;
@@ -574,10 +574,13 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 
 void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
 	if((ent->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)) {
+		ent->comp_ai.task_data.timer = 0;
+		ent->comp_ai.task_data.task_id = TASK_FIRE_WEAPON;
+
 		float angle_min = -70;
 		float angle_max =  70;
 		
-		float angle = sinf(GetTime()) * 1.25f;
+		float angle = sinf(GetTime() * 1.5f);
 		angle = Clamp(angle, angle_min, angle_max);
 
 		//angle = angle + ent->comp_transform.start_angle;
@@ -588,7 +591,7 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 		else {
 			ent->comp_transform.targ_look = ent->comp_transform.forward;		
 			ent->comp_ai.task_data.task_id = TASK_WAIT_TIME;
-			ent->comp_ai.state = STATE_DEAD;
+			
 		}
 
 	} else
@@ -664,7 +667,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	if(weap->cooldown > 0)
 		return; 
 
-	if(!(ai->input_mask & AI_INPUT_SELF_GLITCHED)) {
+	if( (ai->input_mask & AI_INPUT_SELF_GLITCHED) == 0) {
 		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
 			Entity *targ_ent = &handler->ents[ai->task_data.target_entity];
 
@@ -673,7 +676,18 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 
 			Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
 			ct->targ_look = targ;
+		} else {
+			Entity *targ_ent = &handler->ents[ai->task_data.target_entity];
+
+			Vector3 look_point = ai->task_data.known_target_position;
+			look_point = Vector3Add(look_point, Vector3Scale(targ_ent->comp_transform.velocity, 10*dt));
+
+			Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
+			ct->targ_look = targ;
 		}
+	} else {
+		if(ent->comp_ai.disrupt_timer >= 99.9f)
+			weap->ammo = 60;
 	}
 
 	if(weap->ammo <= 0) {
@@ -714,7 +728,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	if(weap->ammo < 60)
 		vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
 	
-	weap->cooldown = 0.15f;
+	weap->cooldown = 0.085f;
 	weap->ammo--;
 }
 
@@ -971,7 +985,10 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 }
 
 #define NULL_NODE -1
-bool MakeNavPath(Entity *ent, NavGraph *graph, u16 target_id) {
+bool MakeNavPath(Entity *ent, NavGraph *graph, i16 target_id) {
+	if(target_id == -1)	
+		return false;
+	
 	bool dest_found = false;
 
 	comp_Ai *ai = &ent->comp_ai;
@@ -1401,17 +1418,20 @@ void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection 
 	comp_Ai *ai = &ent->comp_ai;
 	Ai_TaskData *task = &ai->task_data;
 
-	if(task->task_id == TASK_THROW_PROJECTILE) {
-		ProjectileThrow(ent, ct->position, ct->forward, 700, 0, handler);
+	if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
+		task->known_target_position = handler->ents[handler->player_id].comp_transform.position;
 
-		task->task_id = TASK_WAIT_TIME;
-		task->timer = 100;
+		if(task->task_id == TASK_THROW_PROJECTILE) {
+			ProjectileThrow(ent, ct->position, ct->forward, 700, 0, handler);
 
-		return;
-	}
+			task->task_id = TASK_WAIT_TIME;
+			task->timer = 80;
 
-	if(task->task_id == TASK_WAIT_TIME) {
-		task->task_id = TASK_THROW_PROJECTILE;
+			return;
+		} else {
+			task->task_id = TASK_THROW_PROJECTILE;
+			task->timer = 30;
+		}
 	}
 }
 

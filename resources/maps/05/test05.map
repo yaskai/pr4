@@ -3110,7 +3110,7 @@
 // entity 4
 {
 "classname" "maintainer_spawn"
-"origin" "-1328 -2976 376"
+"origin" "-1328 -2704 376"
 "enum_id" "2"
 "angle" "90"
 }
@@ -3638,210 +3638,358 @@
 // entity 81
 {
 "classname" "nav_node"
-"origin" "-1038 -2878 370"
+"origin" "1758 -514 50"
 "_tb_layer" "1"
 }
 // entity 82
 {
 "classname" "nav_node"
-"origin" "1758 -514 50"
+"origin" "1758 -482 50"
 "_tb_layer" "1"
 }
 // entity 83
 {
 "classname" "nav_node"
-"origin" "1758 -482 50"
+"origin" "1758 -450 50"
 "_tb_layer" "1"
 }
 // entity 84
 {
 "classname" "nav_node"
-"origin" "1758 -450 50"
+"origin" "1758 -418 50"
 "_tb_layer" "1"
 }
 // entity 85
 {
 "classname" "nav_node"
-"origin" "1758 -418 50"
+"origin" "1758 -386 50"
 "_tb_layer" "1"
 }
 // entity 86
 {
 "classname" "nav_node"
-"origin" "1758 -386 50"
+"origin" "1758 -354 50"
 "_tb_layer" "1"
 }
 // entity 87
 {
 "classname" "nav_node"
-"origin" "1758 -354 50"
+"origin" "1758 -322 50"
 "_tb_layer" "1"
 }
 // entity 88
 {
 "classname" "nav_node"
-"origin" "1758 -322 50"
+"origin" "1758 -290 50"
 "_tb_layer" "1"
 }
 // entity 89
 {
 "classname" "nav_node"
-"origin" "1758 -290 50"
+"origin" "1758 -258 50"
 "_tb_layer" "1"
 }
 // entity 90
 {
 "classname" "nav_node"
-"origin" "1758 -258 50"
+"origin" "1790 -258 50"
 "_tb_layer" "1"
 }
 // entity 91
 {
 "classname" "nav_node"
-"origin" "1790 -258 50"
+"origin" "1822 -258 50"
 "_tb_layer" "1"
 }
 // entity 92
 {
 "classname" "nav_node"
-"origin" "1822 -258 50"
+"origin" "1822 -290 50"
 "_tb_layer" "1"
 }
 // entity 93
 {
 "classname" "nav_node"
-"origin" "1822 -290 50"
+"origin" "1822 -322 50"
 "_tb_layer" "1"
 }
 // entity 94
 {
 "classname" "nav_node"
-"origin" "1822 -322 50"
+"origin" "1822 -354 50"
 "_tb_layer" "1"
 }
 // entity 95
 {
 "classname" "nav_node"
-"origin" "1822 -354 50"
+"origin" "1822 -386 50"
 "_tb_layer" "1"
 }
 // entity 96
 {
 "classname" "nav_node"
-"origin" "1822 -386 50"
+"origin" "1822 -418 50"
 "_tb_layer" "1"
 }
 // entity 97
 {
 "classname" "nav_node"
-"origin" "1822 -418 50"
+"origin" "1822 -450 50"
 "_tb_layer" "1"
 }
 // entity 98
 {
 "classname" "nav_node"
-"origin" "1822 -450 50"
+"origin" "1822 -482 50"
 "_tb_layer" "1"
 }
 // entity 99
 {
 "classname" "nav_node"
-"origin" "1822 -482 50"
+"origin" "1822 -514 50"
 "_tb_layer" "1"
 }
 // entity 100
 {
 "classname" "nav_node"
-"origin" "1822 -514 50"
+"origin" "1822 -546 50"
 "_tb_layer" "1"
 }
 // entity 101
 {
 "classname" "nav_node"
-"origin" "1822 -546 50"
+"origin" "1822 -578 50"
 "_tb_layer" "1"
 }
 // entity 102
 {
 "classname" "nav_node"
-"origin" "1822 -578 50"
+"origin" "1790 -578 50"
 "_tb_layer" "1"
 }
 // entity 103
 {
 "classname" "nav_node"
-"origin" "1790 -578 50"
+"origin" "1758 -578 50"
 "_tb_layer" "1"
 }
 // entity 104
 {
 "classname" "nav_node"
-"origin" "1758 -578 50"
+"origin" "1758 -546 50"
 "_tb_layer" "1"
 }
 // entity 105
 {
 "classname" "nav_node"
-"origin" "1758 -546 50"
+"origin" "-1326 -2942 370"
 "_tb_layer" "1"
 }
 // entity 106
 {
 "classname" "nav_node"
-"origin" "-1358 -2974 370"
+"origin" "-1230 -2974 370"
 "_tb_layer" "1"
 }
 // entity 107
 {
 "classname" "nav_node"
-"origin" "-1230 -2974 370"
+"origin" "-1198 -2974 370"
 "_tb_layer" "1"
 }
 // entity 108
 {
 "classname" "nav_node"
-"origin" "-1198 -2974 370"
+"origin" "-1166 -2974 370"
 "_tb_layer" "1"
 }
 // entity 109
 {
 "classname" "nav_node"
-"origin" "-1166 -2974 370"
+"origin" "-1134 -2974 370"
 "_tb_layer" "1"
 }
 // entity 110
 {
 "classname" "nav_node"
-"origin" "-1134 -2974 370"
+"origin" "-1102 -2974 370"
 "_tb_layer" "1"
 }
 // entity 111
 {
 "classname" "nav_node"
-"origin" "-1102 -2974 370"
+"origin" "-1070 -2974 370"
 "_tb_layer" "1"
 }
 // entity 112
 {
 "classname" "nav_node"
-"origin" "-1070 -2974 370"
+"origin" "-1070 -2942 370"
 "_tb_layer" "1"
 }
 // entity 113
 {
 "classname" "nav_node"
-"origin" "-1070 -2942 370"
+"origin" "-1070 -2910 370"
 "_tb_layer" "1"
 }
 // entity 114
 {
 "classname" "nav_node"
-"origin" "-1070 -2910 370"
+"origin" "-1022 -2878 370"
 "_tb_layer" "1"
 }
 // entity 115
 {
+"classname" "maintainer_spawn"
+"origin" "1168 -720 344"
+"angle" "-90"
+"enum_id" "2"
+"_tb_layer" "1"
+}
+// entity 116
+{
+"classname" "maintainer_spawn"
+"origin" "848 -720 248"
+"enum_id" "2"
+"angle" "0"
+"_tb_layer" "1"
+}
+// entity 117
+{
 "classname" "nav_node"
-"origin" "-1006 -2878 370"
+"origin" "-1230 -2942 370"
+"_tb_layer" "1"
+}
+// entity 118
+{
+"classname" "nav_node"
+"origin" "-1198 -2926 370"
+"_tb_layer" "1"
+}
+// entity 119
+{
+"classname" "nav_node"
+"origin" "-1166 -2910 370"
+"_tb_layer" "1"
+}
+// entity 120
+{
+"classname" "nav_node"
+"origin" "-1134 -2894 370"
+"_tb_layer" "1"
+}
+// entity 121
+{
+"classname" "nav_node"
+"origin" "-1086 -2894 370"
+"_tb_layer" "1"
+}
+// entity 122
+{
+"classname" "nav_node"
+"origin" "-1326 -2910 370"
+"_tb_layer" "1"
+}
+// entity 123
+{
+"classname" "nav_node"
+"origin" "-1326 -2878 370"
+"_tb_layer" "1"
+}
+// entity 124
+{
+"classname" "nav_node"
+"origin" "-1326 -2846 370"
+"_tb_layer" "1"
+}
+// entity 125
+{
+"classname" "nav_node"
+"origin" "-1326 -2814 370"
+"_tb_layer" "1"
+}
+// entity 126
+{
+"classname" "nav_node"
+"origin" "-1326 -2782 370"
+"_tb_layer" "1"
+}
+// entity 127
+{
+"classname" "nav_node"
+"origin" "-1326 -2750 370"
+"_tb_layer" "1"
+}
+// entity 128
+{
+"classname" "nav_node"
+"origin" "-1326 -2718 370"
+"_tb_layer" "1"
+}
+// entity 129
+{
+"classname" "nav_node"
+"origin" "-1326 -2686 370"
+"_tb_layer" "1"
+}
+// entity 130
+{
+"classname" "nav_node"
+"origin" "-1310 -2718 370"
+"_tb_layer" "1"
+}
+// entity 131
+{
+"classname" "nav_node"
+"origin" "-1294 -2734 370"
+"_tb_layer" "1"
+}
+// entity 132
+{
+"classname" "nav_node"
+"origin" "-1278 -2750 370"
+"_tb_layer" "1"
+}
+// entity 133
+{
+"classname" "nav_node"
+"origin" "-1262 -2766 370"
+"_tb_layer" "1"
+}
+// entity 134
+{
+"classname" "nav_node"
+"origin" "-1246 -2782 370"
+"_tb_layer" "1"
+}
+// entity 135
+{
+"classname" "nav_node"
+"origin" "-1230 -2782 370"
+"_tb_layer" "1"
+}
+// entity 136
+{
+"classname" "nav_node"
+"origin" "-1214 -2798 370"
+"_tb_layer" "1"
+}
+// entity 137
+{
+"classname" "nav_node"
+"origin" "-1198 -2814 370"
+"_tb_layer" "1"
+}
+// entity 138
+{
+"classname" "nav_node"
+"origin" "-1182 -2830 370"
+"_tb_layer" "1"
+}
+// entity 139
+{
+"classname" "nav_node"
+"origin" "-1166 -2846 370"
 "_tb_layer" "1"
 }

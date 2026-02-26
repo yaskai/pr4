@@ -62,7 +62,7 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 	gun_refs.handler = handler;
 	gun_refs.effect_manager = effect_manager;
 
-	player->comp_weapon.id = WEAP_REVOLVER;
+	player->comp_weapon.id = WEAP_DISRUPTOR;
 	player_gun->current_gun = player->comp_weapon.id;
 
 	player_gun->model = models[player_gun->current_gun];

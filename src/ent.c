@@ -92,7 +92,7 @@ void EntGridInit(EntityHandler *handler) {
 
 	EntGrid grid = (EntGrid) {0};
 
-	grid.size = (Coords) { .c = 32, .r = 8, .t = 32 };
+	grid.size = (Coords) { .c = 34, .r = 12, .t = 34 };
 
 	grid.cell_count = grid.size.c * grid.size.r * grid.size.t;
 	grid.cells = calloc(grid.cell_count, sizeof(EntGridCell));
@@ -345,6 +345,9 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 		if(i == handler->bug_id)
 			visible = 3;
 
+		// ******* remove later!!! ********
+		visible = 3;
+
 		if(visible <= 0)
 			continue;
 
@@ -394,7 +397,7 @@ void RenderEntities(EntityHandler *handler, float dt) {
 		if(i != 4)
 			continue;
 
-		DrawBoundingBox(ent->comp_transform.bounds, RED);
+		//DrawBoundingBox(ent->comp_transform.bounds, RED);
 	}
 
 	RenderProjectiles(handler);

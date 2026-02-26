@@ -16,6 +16,9 @@ void VirtCameraControls(Camera3D *cam, float dt, Vector3 target_point);
 #define VIRT_W (1920)
 #define VIRT_H (1080)
 
+bool show_qr = false;
+Texture2D qr_img;
+
 float *plr_accel;
 
 Color colors[] = {
@@ -58,7 +61,6 @@ void GameClose(Game *game) {
 		UnloadRenderTexture(game->render_target2D);
 }
 
-
 void GameRenderSetup(Game *game) {
 	// Initalize 3D camera
 	game->camera = (Camera3D) {
@@ -98,6 +100,8 @@ void GameRenderSetup(Game *game) {
 	mat_default.maps[MATERIAL_MAP_DIFFUSE].color = ColorAlpha(BLUE, 0.25f);
 
 	sphere_model = LoadModelFromMesh(GenMeshSphere(2, 16, 8));
+	
+	qr_img = LoadTexture("resources/qr.png");
 }
 
 void GameLoadTestScene1(Game *game, char *path) {
@@ -279,8 +283,8 @@ void GameDraw(Game *game, float dt) {
 		PlayerGunDraw(&game->player_gun);
 	EndTextureMode();
 
-	if(IsKeyPressed(KEY_Z))
-		debug_draw_flags ^= DEBUG_ENABLE;
+	//if(IsKeyPressed(KEY_Z))
+		//debug_draw_flags ^= DEBUG_ENABLE;
 
 	if(debug_draw_flags & DEBUG_ENABLE) {
 		// 3D Rendering, debug
@@ -364,6 +368,10 @@ void GameDraw(Game *game, float dt) {
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;
 
+	if(IsKeyPressed(KEY_P)) {
+		show_qr = !show_qr;
+	} 
+
 	/*
 	Vector2 debug_wh = (debug_draw_flags & DEBUG_DRAW_BIG) 
 		? (Vector2) { 1920, 1080 } 
@@ -381,8 +389,12 @@ void GameDraw(Game *game, float dt) {
 		DrawTexturePro(game->render_target_debug.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 	}
 
-	int fps = GetFPS();
-	DrawText(TextFormat("fps: %d", fps), 4, 4, 32, RAYWHITE);
+	if(show_qr) {
+		DrawTexture(qr_img, 0, 0, WHITE);
+	}
+
+	//int fps = GetFPS();
+	//DrawText(TextFormat("fps: %d", fps), 4, 4, 32, RAYWHITE);
 
 	//EntDebugText();
 

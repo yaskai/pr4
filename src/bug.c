@@ -17,6 +17,8 @@ float bug_cooldown = 0;
 
 bool bug_target_picked = false;
 
+float bug_y_vel_prev = 0;
+
 void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHandler *handler, u8 *bounce, float dt) {
 	EntGrid *grid = &handler->grid;
 
@@ -74,7 +76,7 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 
 				float dist = Vector3Length(to_enemy);
 
-				if(dist > 300.0f)
+				if(dist > 250.0f)
 					continue;
 
 				if(dist < closest) {
@@ -97,15 +99,18 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 	float angle = GetRandomValue(-70, 70);
 	ct->forward = Vector3RotateByAxisAngle(ct->forward, UP, angle*DEG2RAD);
 
-	if(bug_ent->comp_ai.task_data.target_entity <= -1) 
+	if(!bug_target_picked) 
 		return;
 
 	Entity *enemy_ent = &handler->ents[bug_ent->comp_ai.task_data.target_entity];
 
+	/*
 	Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	
 	Vector3 to_bug = Vector3Subtract(ct->position, enemy_ent->comp_transform.position);	
 	float ndot = Vector3DotProduct(Vector3Normalize(enemy_ent->comp_transform.velocity), to_bug);
+	*/
 	
+	/*
 	if(ndot < 0) {
 		to_enemy = Vector3Subtract(
 			Vector3Add(
@@ -114,7 +119,9 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 			ct->position
 		);	
 	}
+	*/
 
+	Vector3 to_enemy = Vector3Subtract( enemy_ent->comp_transform.position, ct->position );	
 	float d = Vector3Length(to_enemy);
 	to_enemy.y = 0;
 	to_enemy = Vector3Normalize(to_enemy);
@@ -124,10 +131,10 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 
 	ct->velocity.y += (d*0.05f);
 
-	if(d <= 200.0f) {
-		ct->velocity.y += 300-(d*0.93f);
+	if(d <= 250.0f) {
+		ct->velocity.y += 300;
 
-		if(*bounce >= BUG_MAX_BOUNCES - 1 && !big_bounce_used) {
+		if(*bounce >= BUG_MAX_BOUNCES && !big_bounce_used) {
 			(*bounce)--;
 			big_bounce_used = true;
 		}
@@ -149,8 +156,11 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 		return 0;
 	}
 
-	if(ct->velocity.y <= -1000)
+	if(handler->ents[handler->player_id].comp_transform.position.y - ct->position.y > 1000) {
 		ent->comp_health.amount = 0;
+		ent->comp_ai.state = BUG_DEFAULT;
+		return 0;
+	}
 
 	ct->ground_normal = tr.normal;
 	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.50001f, 0);
@@ -268,6 +278,8 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	comp_Transform *ct = &ent->comp_transform;
 	comp_Ai *ai = &ent->comp_ai;
 
+	bug_y_vel_prev = ct->velocity.y;
+
 	if(ai->state == BUG_DEFAULT) {
 		ct->position = player_ent->comp_transform.position;
 		ct->velocity = Vector3Zero();
@@ -319,12 +331,20 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			if(enemy_ent->type == ENT_DISRUPTOR)
 				continue;
 
+			if(enemy_ent->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)
+				continue;
+
+			if(enemy_ent->comp_ai.state == STATE_DEAD)
+				continue;
+
 			if(CheckCollisionBoxes(ct->bounds, enemy_ent->comp_transform.bounds)) {
 				ct->on_ground = true;
 				ct->position = BoxCenter(enemy_ent->comp_health.bug_box);
 				ai->task_data.target_entity = enemy_ent->id;
 				ct->forward = enemy_ent->comp_transform.forward;
 				ent->comp_health.damage_cooldown = 10;
+				ct->velocity = Vector3Zero();
+
 				break;
 			}
 		}
@@ -412,6 +432,7 @@ void DisruptEntity(EntityHandler *handler, u16 ent_id, MapSection *sect) {
 	//printf("dirsrupted entity [%d]\n", ent_id);
 	Entity *ent = &handler->ents[ent_id];
 	comp_Ai *ai = &ent->comp_ai;	
+	comp_Transform *ct = &ent->comp_transform;
 
 	if(ai->input_mask & AI_INPUT_SELF_GLITCHED)
 		return;
@@ -428,10 +449,14 @@ void DisruptEntity(EntityHandler *handler, u16 ent_id, MapSection *sect) {
 			ent->comp_weapon.cooldown = 0;
 			ai->task_data.task_id = TASK_FIRE_WEAPON;
 
+			ct->forward = ct->start_forward;
+			ai->task_data.known_target_position = Vector3Add(ct->position, ct->forward);
+			ai->task_data.target_position = Vector3Add(ct->position, ct->forward);
+
 		} break;
 	}
 
-	AiDoSchedule(ent, handler, sect, ai, &ai->task_data, 1);
+	//AiDoSchedule(ent, handler, sect, ai, &ai->task_data, 1);
 
 	AlertMaintainers(handler, ent_id);
 }

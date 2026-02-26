@@ -167,6 +167,8 @@ void GameLoadTestScene1(Game *game, char *path) {
 	game->ent_handler.spawn_list.count = spawn_list.count;
 	game->ent_handler.spawn_list.arr = calloc(spawn_list.count, sizeof(EntSpawn));
 	memcpy(game->ent_handler.spawn_list.arr, spawn_list.arr, sizeof(EntSpawn) * spawn_list.count);
+
+	ReloadEntities(&game->ent_handler, &game->test_section);
 }
 
 void GameUpdate(Game *game, float dt) {

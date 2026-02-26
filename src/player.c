@@ -28,7 +28,7 @@ float cam_input_forward, cam_input_side;
 bool land_frame = false;
 float y_vel_prev;
 
-#define FALLDAMAGE_THRESHOLD 500.0f
+#define FALLDAMAGE_THRESHOLD 800.0f
 #define FALLDAMAGE_MULTIPLIER -0.095f
 
 short nudged_this_frame = 0;

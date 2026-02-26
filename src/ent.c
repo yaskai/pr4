@@ -92,7 +92,7 @@ void EntGridInit(EntityHandler *handler) {
 
 	EntGrid grid = (EntGrid) {0};
 
-	grid.size = (Coords) { .c = 24, .r = 8, .t = 24 };
+	grid.size = (Coords) { .c = 32, .r = 8, .t = 32 };
 
 	grid.cell_count = grid.size.c * grid.size.r * grid.size.t;
 	grid.cells = calloc(grid.cell_count, sizeof(EntGridCell));
@@ -238,7 +238,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 	PlayerUpdate(player_ent, dt);
 
 	if(player_ent->comp_ai.state == STATE_DEAD && player_ent->comp_ai.task_data.timer >= 2) {
-		ReloadEntities(handler);
+		ReloadEntities(handler, sect);
 		return;
 	}
 
@@ -493,7 +493,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.model.transform = MatrixRotateY(-(angle+90)*DEG2RAD);
 
 			ent.comp_ai.component_valid = true;
-			ent.comp_ai.sight_cone = 0.35f;
+			ent.comp_ai.sight_cone = 0.55f;
 
 			ent.comp_ai.curr_schedule = SCHED_SENTRY;
 			ent.comp_ai.task_data.task_id = TASK_LOOK_AT_ENTITY;
@@ -745,6 +745,16 @@ void MaintainerUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 			break;
 	}
 
+	if((ai->input_mask & AI_INPUT_SELF_GLITCHED) && ai->state != STATE_DEAD) {
+		ai->curr_schedule = SCHED_IDLE;
+		float angle = sinf(GetTime()*20) * PI;
+		ent->comp_transform.forward = Vector3RotateByAxisAngle(ent->comp_transform.forward, UP, angle);
+		ent->model.transform = MatrixRotateY(angle); 
+	}
+
+	if(ai->input_mask & AI_INPUT_SEE_GLITCHED)
+		ai->curr_schedule = SCHED_FIX_FRIEND;
+
 	EntMove(ent, sect, handler, dt);
 	//ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
 }
@@ -961,8 +971,8 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 				ai->curr_navnode_id = closest_node;
 
 				NavNode *node = &graph->nodes[closest_node];
-				ct->position.x = node->position.x;
-				ct->position.z = node->position.z;
+				//ct->position.x = node->position.x;
+				//ct->position.z = node->position.z;
 
 				break;
 			}
@@ -988,10 +998,11 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 bool MakeNavPath(Entity *ent, NavGraph *graph, i16 target_id) {
 	if(target_id == -1)	
 		return false;
-	
+
 	bool dest_found = false;
 
 	comp_Ai *ai = &ent->comp_ai;
+
 	NavPath *path = &ai->task_data.path;
 
 	path->count = 0;
@@ -1218,7 +1229,7 @@ void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, 
 
 	// **
 	// Move to target entity
-	if(task->task_id == TASK_GOTO_POINT) {
+	if(task->task_id == TASK_GOTO_POINT && (friend->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)) {
 		if(friend->comp_ai.navgraph_id != ai->navgraph_id)
 			return;
 
@@ -1238,17 +1249,46 @@ void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, 
 		}
 
 		Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
-		if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) {
+		if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS || CheckCollisionBoxes(ct->bounds, friend->comp_transform.bounds) ) { 
 			if(!AiMoveToNode(ent, graph, path->curr++)) {
 				ct->velocity = Vector3Zero();
 
 				task->task_id = TASK_DO_FIX;
-				task->timer = 10;
+				task->timer = 100;
+				
+				return;
+			}
+		}
+
+		if(CheckCollisionBoxes(ct->bounds, friend->comp_transform.bounds)) {
+			ct->velocity = Vector3Zero();
+
+			task->task_id = TASK_DO_FIX;
+			task->timer = 100;
+			
+			return;
+		}
+	} else if (task->task_id == TASK_GOTO_POINT && !(friend->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)) {
+		if(Vector3Length(ct->velocity) == 0 && task->task_id == TASK_GOTO_POINT && path->curr == 0) {
+			AiMoveToNode(ent, graph, path->curr++);
+			task->task_id = TASK_GOTO_POINT;
+
+			ai->state = STATE_MOVE;
+			return;
+		}
+
+		Vector3 to_targ = (Vector3Subtract(task->target_position, ct->position));
+		if(Vector3LengthSqr(to_targ) <= NODE_REACH_RADIUS) { 
+			if(!AiMoveToNode(ent, graph, path->curr++)) {
+				ct->velocity = Vector3Zero();
+
+				ai->curr_schedule = SCHED_MAINTAINER_ATTACK;
 				
 				return;
 			}
 		}
 	}
+
 	// **
 
 	// Fix friend
@@ -1258,7 +1298,18 @@ void AiFixFriendSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, 
 			DoFix(&handler->ents[task->target_entity]);
 
 			// End schedule
-			ai->curr_schedule = SCHED_PATROL;	
+			//ai->curr_schedule = SCHED_PATROL;	
+			//ai->curr_schedule = SCHED_MAINTAINER_ATTACK;
+
+			// Backoff
+			task->task_id = TASK_GOTO_POINT;
+			task->path_set = false;
+
+			ai->input_mask &= ~AI_INPUT_SEE_GLITCHED;
+
+			Vector3 targ_point = Vector3Subtract(ct->position, Vector3Scale(ct->forward, 128)); 
+			i16 targ_node = FindClosestNavNodeInGraph(targ_point, graph);
+			MakeNavPath(ent, graph, targ_node);
 		}
 	}
 }
@@ -1288,7 +1339,7 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 			ent->comp_weapon.ammo = 40;
 			ent->comp_weapon.cooldown = 10.45f;
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 0.1f;
+			task->timer = 1.1f;
 			printf("reload done\n");
 		}
 
@@ -1425,14 +1476,21 @@ void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection 
 			ProjectileThrow(ent, ct->position, ct->forward, 700, 0, handler);
 
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 80;
+			task->timer = 50;
 
 			return;
-		} else {
-			task->task_id = TASK_THROW_PROJECTILE;
-			task->timer = 30;
 		}
+
+		ct->forward = (Vector3Subtract(task->known_target_position, ct->position));
+		ct->forward.y = 0;
+		ct->forward = Vector3Normalize(ct->forward);
+
+		float angle = atan2f(ct->forward.x, ct->forward.z);
+		ent->model.transform = MatrixRotateY(angle+90*DEG2RAD);
 	}
+
+	task->task_id = TASK_THROW_PROJECTILE;
+	task->timer = 30;
 }
 
 void AiMaintainerMakeNewSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
@@ -1634,7 +1692,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 
 	if(*hit && ent_hit_id > -1) {
 		Entity *hit_ent = &handler->ents[ent_hit_id];
-		OnHitEnt(hit_ent, 5);
+		OnHitEnt(hit_ent, 3);
 	}
 
 	return dest;
@@ -1665,6 +1723,8 @@ void DebugDrawEntText(EntityHandler *handler, Camera3D cam) {
 // in the future I'll probably use actual ai inputs for this...
 // Sound, sight, etc.
 void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
+	puts("AlertMaintainers");
+
 	Entity *disrupted_ent = &handler->ents[disrupted_id];
 	comp_Ai *disrupted_ai = &disrupted_ent->comp_ai;
 
@@ -1687,16 +1747,18 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
 		if(ai->navgraph_id != disrupted_ai->navgraph_id)	
 			continue;
 
-		ai->input_mask |= AI_INPUT_SEE_GLITCHED;
 
 		if(ent->type != ENT_MAINTAINER)
 			continue;
 
 		if(ent->id == disrupted_id)
 			continue;
-				
+
+		ai->task_data.timer = 0;
+		ai->input_mask |= AI_INPUT_SEE_GLITCHED;
 		ai->curr_schedule = SCHED_FIX_FRIEND;
 		ai->task_data.schedule_id = SCHED_FIX_FRIEND;
+		ai->task_data.task_id = TASK_GOTO_POINT;
 		ai->task_data.target_entity = disrupted_id;
 		ai->task_data.path_set = false;
 	}
@@ -2039,7 +2101,7 @@ void RenderProjectiles(EntityHandler *handler) {
 	}
 }
 
-void ReloadEntities(EntityHandler *handler) {
+void ReloadEntities(EntityHandler *handler, MapSection *sect) {
 	handler->count = 0;
 
 	for(u16 i = 0; i < handler->spawn_list.count; i++) 
@@ -2047,5 +2109,7 @@ void ReloadEntities(EntityHandler *handler) {
 
 	SpawnPlayer(&handler->ents[handler->player_id], handler->player_start);
 	handler->ents[handler->bug_id].comp_ai.state = 0;	
+
+	AiNavSetup(handler, sect);
 }
 

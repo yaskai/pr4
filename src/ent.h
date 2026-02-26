@@ -381,6 +381,6 @@ void RenderProjectiles(EntityHandler *handler);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-void ReloadEntities(EntityHandler *handler);
+void ReloadEntities(EntityHandler *handler, MapSection *sect);
 
 #endif

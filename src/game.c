@@ -235,13 +235,15 @@ void GameDraw(Game *game, float dt) {
 			if(debug_draw_flags & DEBUG_DRAW_HULLS) { 
 				for(u16 j = 0; j < game->test_section.bvh[1].tris.count; j++) {
 					Tri *tri = &game->test_section.bvh[1].tris.arr[j];
-					//Color color = colors[tri->hull_id % 7];
+					Color color = colors[tri->hull_id % 7];
+					/*
 					Color color = {
 						.r = tri->normal.x * 255,
 						.g = tri->normal.y * 255,
 						.b = tri->normal.z * 255,
 						255
 					};
+					*/
 					DrawTriangle3D(tri->vertices[0], tri->vertices[1], tri->vertices[2], ColorAlpha(color, 0.25f));
 
 					Vector3 c = TriCentroid(*tri);
@@ -249,8 +251,8 @@ void GameDraw(Game *game, float dt) {
 				}
 
 				/*
-				for(u16 j = 0; j < game->test_section._hulls[1].count; j++) {
-					Hull *hull = &game->test_section._hulls[1].arr[j];
+				for(u16 j = 0; j < game->test_section._hulls[2].count; j++) {
+					Hull *hull = &game->test_section._hulls[2].arr[j];
 					DrawBoundingBox(hull->aabb, colors[j % 7]);
 
 					for(short k = 0; k < hull->plane_count; k++) {
@@ -283,8 +285,8 @@ void GameDraw(Game *game, float dt) {
 		PlayerGunDraw(&game->player_gun);
 	EndTextureMode();
 
-	//if(IsKeyPressed(KEY_Z))
-		//debug_draw_flags ^= DEBUG_ENABLE;
+	if(IsKeyPressed(KEY_Z))
+		debug_draw_flags ^= DEBUG_ENABLE;
 
 	if(debug_draw_flags & DEBUG_ENABLE) {
 		// 3D Rendering, debug

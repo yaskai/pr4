@@ -335,7 +335,7 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 
 	BvhTraceData tr = TraceDataEmpty();	
-	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 1 + GROUND_EPS);
+	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 2 + GROUND_EPS);
 	
 	if(!tr.hit) {
 		ct->ground_normal = Vector3Zero();
@@ -410,7 +410,8 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 	float trace_max_dist = Vector3LengthSqr(wish_vel);
 	trace_max_dist = Clamp(trace_max_dist, MIN_TRACE_DIST, MAX_TRACE_DIST);
 
-	BvhTracePointEx(start_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &start_tr, trace_max_dist);
+	//BvhTracePointEx(start_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &start_tr, trace_max_dist);
+	BvhSphereSweep(start_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &start_tr, trace_max_dist, 2);
 	if(start_tr.hit) {
 		pm->start_in_solid = start_tr.hull_id;
 	}
@@ -439,10 +440,12 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 		// Trace geometry 
 		BvhTraceData tr = TraceDataEmpty();
-		BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, FLT_MAX);
+		//BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, Vector3Length(wish_vel));
+		BvhSphereSweep(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, Vector3Length(wish_vel), 2);
 
 		// Determine how much of movement was obstructed
-		float fraction = (tr.distance / Vector3Length(move));
+		//float fraction = (tr.distance / Vector3Length(move));
+		float fraction = (tr.contact_dist / Vector3Length(move));
 		fraction = Clamp(fraction, 0.0f, 1.0f);
 		pm->fraction = fraction;
 

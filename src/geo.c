@@ -691,7 +691,7 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 		u16 tri_id = bvh->tris.ids[node->first_tri + i];
 		Tri tri = bvh->tris.arr[tri_id];
 
-		if(Vector3DotProduct(ray.direction, tri.normal) > 0) continue;
+		//if(Vector3DotProduct(ray.direction, tri.normal) > 0) continue;
 		//if(Vector3DotProduct(ray.direction, tri.normal) > 0) Vector3Negate(tri.normal);
 		
 		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
@@ -701,7 +701,7 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 		if(coll.distance > max_dist) 
 			return;
 
-		if(coll.distance > data->distance)
+		if(coll.distance + EPSILON > data->distance)
 			return;
 
 		data->point = coll.point;
@@ -737,6 +737,73 @@ void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTr
 
 	BvhTracePointEx(ray, sect, bvh, node->child_rgt, data, max_dist);
 	BvhTracePointEx(ray, sect, bvh, node->child_lft, data, max_dist);
+}
+
+void BvhSphereSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data, float max_dist, float radius) {
+	BvhNode *node = &bvh->nodes[node_id];
+
+	RayCollision coll;
+
+	if(node_id == 0) {
+		coll = GetRayCollisionBox(ray, node->bounds);
+
+		if(!coll.hit)
+			return;
+
+		if(coll.distance > data->distance)
+			return;
+	};
+
+	for(u16 i = 0; i < node->tri_count; i++) {
+		u16 tri_id = bvh->tris.ids[node->first_tri + i];
+		Tri tri = bvh->tris.arr[tri_id];
+
+		//if(Vector3DotProduct(ray.direction, tri.normal) > 0) continue;
+		//if(Vector3DotProduct(ray.direction, tri.normal) > 0) Vector3Negate(tri.normal);
+		
+		coll = GetRayCollisionTriangle(ray, tri.vertices[0], tri.vertices[1], tri.vertices[2]);
+		if(!coll.hit) 
+			continue;
+		
+		if(coll.distance > max_dist) 
+			return;
+
+		if(coll.distance + EPSILON > data->distance)
+			return;
+
+		data->point = coll.point;
+		data->normal = coll.normal;
+		data->distance = coll.distance;
+		data->hit = true;
+
+		data->tri_id = tri_id;
+		data->node_id = node_id;
+
+		data->hull_id = tri.hull_id;
+
+		data->contact_dist = coll.distance - radius;
+		data->contact = Vector3Scale(ray.direction, data->contact_dist);
+	}
+
+	bool leaf = (node->tri_count > 0);
+	if(leaf) return;
+
+	RayCollision hit_l = GetRayCollisionBox(ray, bvh->nodes[node->child_lft].bounds);	
+	RayCollision hit_r = GetRayCollisionBox(ray, bvh->nodes[node->child_rgt].bounds);
+
+	if(!(hit_l.hit || hit_r.hit)) return;
+
+	float dl = (hit_l.hit) ? hit_l.distance : FLT_MAX;
+	float dr = (hit_r.hit) ? hit_r.distance : FLT_MAX;
+
+	if(dl < dr) {
+		BvhSphereSweep(ray, sect, bvh, node->child_lft, data, max_dist, radius);
+		BvhSphereSweep(ray, sect, bvh, node->child_rgt, data, max_dist, radius);
+		return;
+	}
+
+	BvhSphereSweep(ray, sect, bvh, node->child_rgt, data, max_dist, radius);
+	BvhSphereSweep(ray, sect, bvh, node->child_lft, data, max_dist, radius);
 }
 
 void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox box, BvhTraceData *data) {

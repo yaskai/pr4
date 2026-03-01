@@ -31,9 +31,9 @@ void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float
 // Player movement trace data struct
 // Needed for tracking certain values persistently 
 //
-#define MAX_CLIPS 8
-#define MAX_BUMPS 12
-#define STOP_EPS  0.1f
+#define MAX_CLIPS 64
+#define MAX_BUMPS 4
+#define STOP_EPS  0.0001f
 typedef struct {
 	Vector3 clips[MAX_CLIPS];	// Clip planes hit 
 	

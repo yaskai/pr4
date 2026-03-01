@@ -1,0 +1,114 @@
+---- qbsp / ericw-tools 2.0.0-alpha10 ----
+
+--- Options Summary ---
+
+Input file: /home/kai/projects/disruptor/resources/maps/05/test05.map
+Output file: /home/kai/projects/disruptor/resources/maps/05/test05.bsp
+
+INFO: using built-in palette.
+WARNING: No wad or _wad key exists in the worldmodel
+    136 entities
+     14 unique textures
+    270 texinfos
+    550 unique planes
+
+INFO: world extents calculated to 6600 units
+      309 brushes
+    1,903 sides
+       21 side bevels
+
+            0 texture frames added
+WARNING: unable to find texture skip
+WARNING: unable to find texture tiles_diffuse
+WARNING: unable to find texture conc_slabs01_c
+WARNING: unable to find texture metal_01
+WARNING: unable to find texture conc_strange
+WARNING: unable to find texture metal_00
+WARNING: unable to find texture ft_conc01_c
+WARNING: unable to find texture 02intonacopr_nt3.jpg.preview
+WARNING: texture 02intonacopr_nt3.jpg.preview name too long for Quake miptex
+WARNING: unable to find texture mtl_trim01_c
+WARNING: unable to find texture mtl01_c
+WARNING: unable to find texture wall_stone03_c
+WARNING: unable to find texture tiles_01
+WARNING: unable to find texture ft_broken01_c
+WARNING: unable to find texture metall003-new
+Processing hull 0...
+    309 SOLID brushes
+    309 brushes total
+    1,903 visible sides
+INFO: calculating BSP for 309 brushes with 1903 sides
+      309 brushes
+    1,903 visible faces
+    3,897 nodes
+    2,969 expensive split nodes
+      928 mid-split nodes
+    3,898 leaves
+    1,919 SOLID leafs
+    1,979 EMPTY leafs
+    3,898 leafs total
+    22 max tree height
+    15 avg tree height
+    15,413 tree portals
+    963 outside leaves
+    0 detail filled leafs
+      309 brushes
+      759 visible faces
+    1,144 non-visible faces
+    942 nodes
+    387 non-visible nodes
+    942 expensive split nodes
+    943 leaves
+    448 SOLID leafs
+    495 EMPTY leafs
+    943 leafs total
+    22 max tree height
+    12 avg tree height
+    4,606 tree portals
+    249 outside leaves
+    0 detail filled leafs
+    4,606 tree portals
+    2,674 sides visible
+    1,337 makefaces
+      281 merged
+    2,314 subdivided
+    418 nodes pruned
+    246 player-occupiable leaves
+    246 clusters of leaves
+    488 vis portals
+    246 EMPTY leafs
+    279 SOLID leafs
+    525 leafs total
+    22 max tree height
+    13 avg tree height
+    2,325 edges added by tjunctions
+    3,312 faces optimized through MWT
+    8,948 triangles computed from MWT
+      486 faces created via optimization of MWT triangles
+    8,359 edges
+    3,856 faces
+Processing hull 1...
+Processing hull 2...
+Writing /home/kai/projects/disruptor/resources/maps/05/test05.bsp as Quake BSP bsp29
+Wrote /home/kai/projects/disruptor/resources/maps/05/test05.bsp
+
+count   lump name    byte size 
+      1 models               64
+    510 planes            10200
+   4409 vertexes          52908
+    524 nodes             12576
+    159 texinfos           6360
+   3856 faces             77120
+   1552 clipnodes         12416
+    247 leafs              6916
+   4202 marksurfaces       8404
+   8360 edges             33440
+  16718 surfedges         66872
+     14 textures             60
+        lightdata             0
+        visdata               0
+        entdata            7760
+
+0.323s seconds elapsed
+
+

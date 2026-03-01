@@ -62,6 +62,8 @@ typedef struct  {
 	Vector3 ground_normal;
 	Vector3 prev_pos;
 
+	Vector3 last_safe_pos;
+
 	float start_angle;
 	float radius;
 

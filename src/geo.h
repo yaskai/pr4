@@ -156,6 +156,8 @@ typedef struct {
 	u16 plane_count;
 	u16 vert_count;
 
+	u16 id;
+
 } Hull;
 
 typedef struct {
@@ -226,8 +228,8 @@ typedef struct {
 	Vector3 contact;
 
 	float distance;
-
 	float contact_dist;
+	float fraction;
 
 	u16 node_id;
 	u16 tri_id;
@@ -246,8 +248,11 @@ void BvhTraceNodes(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float s
 void BvhTracePoint(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, float *smallest_dist, Vector3 *point, bool skip_root);
 
 void BvhTracePointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data, float max_dist);
+void BvhSweepPointEx(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data, float max_dist);
 
-void BvhSphereSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data, float max_dist, float radius);
+void BvhHullSweep(Vector3 start, Vector3 delta, Hull *hull, BvhTraceData *tr);
+
+void BvhSphereSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BvhTraceData *data, float max_dist, float radius, short v_id);
 
 void BvhBoxSweep(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox box, BvhTraceData *data);
 void BvhBoxSweepNoInvert(Ray ray, MapSection *sect, BvhTree *bvh, u16 node_id, BoundingBox *box, BvhTraceData *data);
@@ -284,6 +289,8 @@ typedef struct {
 IntersectData IntersectDataEmpty();
 
 void BvhBoxIntersect(BoundingBox box, MapSection *sect, BvhTree *bvh, u16 node_id, IntersectData *data);
+
+bool IsPointInHull(Vector3 point, Hull *hull);
 
 #endif
 

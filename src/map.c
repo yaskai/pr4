@@ -56,9 +56,9 @@ short ThreePlaneIntersect(Plane a, Plane b, Plane c, Vector3 *v) {
 	float denom = Vector3DotProduct(a.normal, Vector3CrossProduct(b.normal, c.normal));
 	if(fabsf(denom) < PLANE_EPS) return 0;
 
-	Vector3 tA = Vector3Scale(Vector3CrossProduct(b.normal, c.normal), a.d);
-	Vector3 tB = Vector3Scale(Vector3CrossProduct(c.normal, a.normal), b.d);
-	Vector3 tC = Vector3Scale(Vector3CrossProduct(a.normal, b.normal), c.d);
+	Vector3 tA = Vector3Scale(Vector3CrossProduct(b.normal, c.normal), -a.d);
+	Vector3 tB = Vector3Scale(Vector3CrossProduct(c.normal, a.normal), -b.d);
+	Vector3 tC = Vector3Scale(Vector3CrossProduct(a.normal, b.normal), -c.d);
 
 	*v = Vector3Scale(Vector3Add(Vector3Add(tA, tB), tC), 1.0f / denom);
 	return 1;
@@ -80,7 +80,7 @@ Vector3 *CollectTriplets(Brush *brush, u8 *t_count) {
 					i8 in = true;
 					for(u8 p = 0; p < brush->plane_count; p++) {
 						Plane plane = brush->planes[p];
-						if(Vector3DotProduct(plane.normal, v) - plane.d > 0) {
+						if(Vector3DotProduct(plane.normal, v) + plane.d > 0.1f) {
 							in = 0;
 							break;
 						}
@@ -88,7 +88,7 @@ Vector3 *CollectTriplets(Brush *brush, u8 *t_count) {
 					if(in) {
 						bool unique = true;
 						for(u8 t = 0; t < count; t++) {
-							if(Vector3Distance(vertices[t], v) < 0.01f) {
+							if(Vector3Distance(vertices[t], v) < EPSILON) {
 								unique = false;
 								break;
 							}
@@ -103,7 +103,7 @@ Vector3 *CollectTriplets(Brush *brush, u8 *t_count) {
 
 	*t_count = count;
 	return vertices;
-};
+}
 
 void BrushGetVertices(Brush *brush) {
 	// Collect triple-plane intersections
@@ -126,7 +126,7 @@ void BrushGetVertices(Brush *brush) {
 				if(ThreePlaneIntersect(*pl_A, *pl_B, brush->planes[k], &v)) {
 					i8 in = true;
 					for(u8 p = 0; p < brush->plane_count; p++) {
-						if(Vector3DotProduct(brush->planes[p].normal, v) - brush->planes[p].d > PLANE_EPS) {
+						if(Vector3DotProduct(brush->planes[p].normal, v) + brush->planes[p].d > PLANE_EPS) {
 							in = false;
 							break;
 						}
@@ -135,7 +135,7 @@ void BrushGetVertices(Brush *brush) {
 					if(in) {
 						bool unique = true;
 						for(u8 t = 0; t < count; t++) {
-							if(Vector3Distance(vertices[t], v) < 0.1f) {
+							if(Vector3Distance(vertices[t], v) < 0.001f) {
 								unique = false;
 								break;
 							}
@@ -225,21 +225,47 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			char *last_par = strrchr(line, ')') + 1;
 			*last_par = '\0';
 			
+			// Get points
 			Vector3 points[3] = {0};
 			sscanf(
 				points_str, 
 				"( %f %f %f ) ( %f %f %f ) ( %f %f %f )", 
-				&points[0].x, &points[0].z, &points[0].y,
-				&points[1].x, &points[1].z, &points[1].y,
-				&points[2].x, &points[2].z, &points[2].y
+				&points[0].x, &points[0].y, &points[0].z,
+				&points[1].x, &points[1].y, &points[1].z,
+				&points[2].x, &points[2].y, &points[2].z
 			);
 
-			for(short i = 0; i < 3; i++) {
-				points[i].z *= -1.0f; 
-				Vector3 n = Vector3Negate(points[i]);
+			// Adjust points for +Y = up
+			for(short j = 0; j < 3; j++) {
+				Matrix mat;
+				mat = MatrixRotateX(-90 * DEG2RAD);
+				points[j] = Vector3Transform(points[j], mat);
 			}
 
-			Plane plane = BuildPlane(points[0], points[1], points[2]);
+			// Get texture name
+			char *tex_str = last_par + 1;
+			char *space = strchr(tex_str, ' ');
+			*space = '\0';
+			memcpy(brush->tex_name, tex_str, strlen(tex_str));
+			//printf("%s\n", brush->tex_name);
+
+			char *uv_str = space + 1;
+			//printf("%s\n", uv_str);
+
+			int u = 0, v = 0, r = 0, scale_x = 0, scale_y = 0;
+			sscanf(
+				uv_str,
+				"%d %d %d %d %d",
+				&u, &v, &r, &scale_x, &scale_y
+			);
+
+			brush->uv = (Vector2) { .x = u, .y = v };
+			brush->uv_scale = (Vector2) { .x = scale_x, .y = scale_y };
+			brush->uv_rot = r;
+			//printf("%.01f %.01f %.01f %.01f %.01f\n", brush->uv.x, brush->uv.y, brush->uv_rot, brush->uv_scale.x, brush->uv_scale.y);
+			
+			// Make plane
+			Plane plane = BuildPlane(points[1], points[0], points[2]);
 			brush->planes[brush->plane_count++] = plane;
 		}
 
@@ -262,10 +288,15 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 
 			if(streq(key, "origin")) {
 				int x, y, z;
-				sscanf(val, "%d %d %d", &x, &z, &y);
-				z *= -1;
+				//sscanf(val, "%d %d %d", &x, &z, &y);
+				//z *= -1;
+
+				sscanf(val, "%d %d %d", &x, &y, &z);
 
 				curr_entspawn->position = (Vector3) { x, y, z }; 
+				Matrix mat;
+				mat = MatrixRotateX(-90 * DEG2RAD);
+				curr_entspawn->position = Vector3Transform(curr_entspawn->position, mat);
 
 				//sscanf(val, "%d %d %d", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
 				//curr_entspawn->position.z *= -1;
@@ -290,9 +321,11 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 		// -x, -z, -y
 		// 1.
 		// Adjust planes 
+		/*
 		for(u16 j = 0; j < brush->plane_count; j++) {
 			brush->planes[j].normal = Vector3Negate(brush->planes[j].normal);
 		}
+		*/
 		// 2.
 		// Build vertices, AABBs
 		BrushGetVertices(brush);
@@ -334,7 +367,8 @@ BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents) {
 			Plane *plane = &brush->planes[j];
 
 			float diff = MinkowskiDiff(plane->normal, half_extents);
-			plane->d += diff;
+			//plane->d += diff;
+			plane->d -= diff;
 		}
 
 		// 2. Rebuild vertices, AABBs
@@ -349,7 +383,7 @@ BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents) {
 }
 
 Tri *BrushToTris(Brush *brush, u16 *count, u16 brush_id) {
-	Tri *tris = calloc(32, sizeof(Tri));
+	Tri *tris = calloc(128, sizeof(Tri));
 	u16 tri_count = 0;
 
 	for(u8 i = 0; i < brush->plane_count; i++) {
@@ -361,7 +395,7 @@ Tri *BrushToTris(Brush *brush, u16 *count, u16 brush_id) {
 		for(u8 j = 0; j < brush->vert_count; j++) {
 			Vector3 v = brush->verts[j];
 
-			bool in = (fabsf(Vector3DotProduct(plane->normal, v) - plane->d) <= 0.01f);
+			bool in = (fabsf(Vector3DotProduct(plane->normal, v) + plane->d) <= 0.01f);
 			if(!in) continue;
 
 			face_verts[fv_count++].p = v;
@@ -410,20 +444,6 @@ Tri *BrushToTris(Brush *brush, u16 *count, u16 brush_id) {
 	}
 	
 	*count = tri_count;
-
-	/*
-	for(short i = 0; i < tri_count; i++) {
-		printf("\ntri[%d]\n", i);
-
-		for(short j = 0; j < 3; j++) {
-			float x = tris[i].vertices[j].x, y = tris[i].vertices[j].y, z = tris[i].vertices[j].z;
-			//printf("vtx[%d]: { %f, %f, %f } \n", j, x, y, z);
-		}
-
-		float nx = tris[i].normal.x, ny = tris[i].normal.y, nz = tris[i].normal.z;
-		//printf("normal: { %f, %f, %f }\n", nx, ny, nz);
-	}
-	*/
 
  	if(tri_count)
 		tris = realloc(tris, sizeof(Tri) * tri_count);
@@ -558,7 +578,11 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 			bvh->tris.ids[j] = sect._tris[i].ids[j];
 		}
 
-		BvhConstruct(&sect, &sect.bvh[i], Vector3Zero(), &sect._tris[i]);
+		Vector3 volume = Vector3Zero();
+		if(i == 1)
+			volume = BODY_VOLUME_MEDIUM;
+
+		BvhConstruct(&sect, &sect.bvh[i], volume, &sect._tris[i]);
 		if(GetLogState()) printf("bvh[%d] node count: %d\n", i, sect.bvh->count);
 	}
 
@@ -594,7 +618,8 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 				.aabb = brush->bounds,
 				.center = brush->center,
 				.plane_count = brush->plane_count,
-				.vert_count = brush->vert_count
+				.vert_count = brush->vert_count,
+				.id = j
 			};
 
 			memcpy(hull.planes, brush->planes, sizeof(Plane) * brush->plane_count);

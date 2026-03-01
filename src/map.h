@@ -23,12 +23,18 @@ typedef struct {
 } rMeshCollection;
 
 typedef struct {
-	BoundingBox bounds;
+	char tex_name[128];
 
 	Vector3 verts[24];
 	Plane planes[18];
 
+	BoundingBox bounds;
+
 	Vector3 center;
+
+	Vector2 uv;
+	Vector2 uv_scale;
+	float uv_rot;
 
 	u16 vert_count;
 	u16 plane_count;

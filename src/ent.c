@@ -1750,6 +1750,8 @@ void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
 		if(ai->navgraph_id != disrupted_ai->navgraph_id)	
 			continue;
 
+		if(ai->navgraph_id == -1)
+			continue;
 
 		if(ent->type != ENT_MAINTAINER)
 			continue;

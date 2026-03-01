@@ -256,9 +256,24 @@ void pm_Move(comp_Transform *ct, InputHandler *input, float dt) {
 	debug_vel_clipped = pm.end_vel;
 
 	ct->velocity = pm.end_vel;
-	ct->position = pm.end_pos;	
+	ct->position = pm.end_pos;
 
-	nudged_this_frame = 0;
+	/*
+	if(pm.start_in_solid > -1) {
+		ct->velocity = Vector3Subtract(ct->last_safe_pos, ct->position);
+		ct->position = ct->last_safe_pos;
+		puts("correction");
+	} else if(pm.end_in_solid > -1) {
+		ct->velocity = Vector3Subtract(ct->last_safe_pos, ct->position);
+		ct->position = ct->last_safe_pos;
+		puts("correction");
+	} else if (pm.start_in_solid > -1 && pm.end_in_solid > -1) {
+		ct->velocity = Vector3Subtract(ct->last_safe_pos, ct->position);
+		ct->position = ct->last_safe_pos;
+		puts("correction");
+	} else
+		ct->last_safe_pos = ct->position;
+	*/
 
 	land_frame = (ct->on_ground == 1 && last_pm.start_vel.y <= -300);
 	y_vel_prev = last_pm.start_vel.y;
@@ -335,7 +350,7 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 
 	BvhTraceData tr = TraceDataEmpty();	
-	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 2 + GROUND_EPS);
+	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 1 + GROUND_EPS);
 	
 	if(!tr.hit) {
 		ct->ground_normal = Vector3Zero();
@@ -343,7 +358,8 @@ u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	}
 
 	ct->ground_normal = tr.normal;
-	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.00001f, 0);
+	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.00001f, 0);
+	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
 	if(fabsf(ct->velocity.y) < STOP_EPS) ct->velocity.y = 0;
 
 	return 1;
@@ -401,20 +417,28 @@ void pm_ApplyGravity(comp_Transform *ct, float dt) {
 #define MIN_TRACE_DIST (0.0333f)
 #define MAX_TRACE_DIST (2000.0f)
 void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt) {
-	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0 };
+	BvhTree *bvh = &ptr_sect->bvh[BVH_BOX_MED];	
 
-	// Check if inside solid before starting trace
-	Ray start_ray = (Ray) { .position = start, .direction = Vector3Normalize(wish_vel) };
-	BvhTraceData start_tr = TraceDataEmpty();
-	
-	float trace_max_dist = Vector3LengthSqr(wish_vel);
-	trace_max_dist = Clamp(trace_max_dist, MIN_TRACE_DIST, MAX_TRACE_DIST);
+	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0, .clip_count = 0 };
 
-	//BvhTracePointEx(start_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &start_tr, trace_max_dist);
-	BvhSphereSweep(start_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &start_tr, trace_max_dist, 2);
-	if(start_tr.hit) {
-		pm->start_in_solid = start_tr.hull_id;
+	/*
+	IntersectData it = IntersectDataEmpty();
+	BvhBoxIntersect(ct->bounds, ptr_sect, bvh, 0, &it);
+
+	for(u16 i = 0; i < it.count; i++) {
+		BvhNode *node = &bvh->nodes[it.nodes[i]];
+			
+		for(u16 j = 0; j < node->tri_count; j++) {
+			Tri *tri = &bvh->tris.arr[bvh->tris.ids[node->first_tri + j]];
+			Hull *hull = &ptr_sect->_hulls[1].arr[tri->hull_id];
+
+			if(IsPointInHull(start, hull)) {
+				pm->start_in_solid = tri->hull_id;
+				break;
+			}	
+		}
 	}
+	*/
 
 	Vector3 dest = start;
 	Vector3 vel = wish_vel;
@@ -426,6 +450,8 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 	// Tracked clip planes
 	Vector3 clips[MAX_CLIPS] = {0};
 	u8 num_clips = 0;
+
+	Hull hulls[MAX_CLIPS] = {0};
 
 	for(short i = 0; i < MAX_BUMPS; i++) {
 		// End slide trace if velocity too low
@@ -440,61 +466,61 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 		// Trace geometry 
 		BvhTraceData tr = TraceDataEmpty();
-		//BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, Vector3Length(wish_vel));
-		BvhSphereSweep(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, Vector3Length(wish_vel), 2);
+		BvhTracePointEx(ray, ptr_sect, bvh, 0, &tr, Vector3Length(move));
+		//BvhSphereSweep(ray, ptr_sect, bvh, 0, &tr, Vector3Length(move), 2, 1);
 
 		// Determine how much of movement was obstructed
-		//float fraction = (tr.distance / Vector3Length(move));
-		float fraction = (tr.contact_dist / Vector3Length(move));
+		float fraction = (tr.distance / Vector3Length(move));
 		fraction = Clamp(fraction, 0.0f, 1.0f);
 		pm->fraction = fraction;
 
 		// Update destination
-		dest = Vector3Add(dest, Vector3Scale(move, fraction));
-
-		if(fraction < 1.0f)
-			pm->end_in_solid = (tr.hit) ? pm_CheckHull(dest, tr.hull_id) : -1;
+		dest = Vector3Add(dest, Vector3Scale(move, fraction - 0.01f));
 
 		// No obstruction, do full movement 
 		if(fraction >= 1.0f) 
 			break;
 
 		// Add clip plane
-		if(num_clips + 1 < MAX_CLIPS) {
-			clips[num_clips++] = tr.normal;
-
-			// Update velocity by each clip plane
-			for(short j = 0; j < num_clips; j++) {
-				float into = Vector3DotProduct(vel, clips[j]);
-
-				if(into < 0) 
-					pm_ClipVelocity(vel, clips[j], &vel, 1.0005f, pm->block);
-			}
-
+		if(num_clips < MAX_CLIPS) {
+			clips[num_clips] = tr.normal;
+			hulls[num_clips] = ptr_sect->_hulls[1].arr[tr.hull_id];
+			num_clips++;
 		} else 
 			break;
 
+		// Update velocity by each clip plane
+		for(short j = 0; j < num_clips; j++) {
+			float into = Vector3DotProduct(vel, clips[j]);
+
+			if(into < 0) {
+				pm_ClipVelocity(vel, clips[j], &vel, 1.0005f, pm->block);
+			}
+		}
+
 		// Add small offset to prevent tunneling through surfaces
-		dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.01f));
+		//dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.01f)); 
 
 		// Update remaining time
 		t_remain *= (1 - fraction);
 	}
 
-	/*
-	float y_vel = vel.y;
-	float new_speed = Vector3Length(vel);
-	if(new_speed > PLAYER_MAX_SPEED)
-		new_speed = PLAYER_MAX_SPEED;
-
-	vel = Vector3Normalize(vel);
-	vel = Vector3Scale(vel, new_speed);
-	vel.y = y_vel;
-	*/
-
 	pm->move_dist = Vector3Distance(start, dest);
 	pm->end_vel = vel;
 	pm->end_pos = dest;
+
+	pm->clip_count = num_clips;
+	memcpy(pm->clips, clips, sizeof(Vector3) * num_clips);
+
+	/*
+	for(short i = 0; i < num_clips; i++) {
+		Hull hull = hulls[i];
+
+		if(IsPointInHull(dest, &hull)) {
+			pm->end_in_solid = hull.id;
+		}
+	}
+	*/
 }
 
 void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel) {
@@ -658,42 +684,54 @@ int pm_CheckHull(Vector3 point, u16 hull_id) {
 	return hull_id;
 }
 
-#define CORRECTION_STEPS 32
+#define CORRECTION_STEPS 16
 #define NUDGE_EPS 0.001f
-#define MAX_NUDGE 0.1f
 short pm_NudgePosition(comp_Transform *ct, u16 hull_id) {
-	Hull *hull = &ptr_sect->_hulls[BVH_BOX_MED].arr[hull_id];
+	puts("--------------------------");
+	puts("pm_NudgePosition()");
 
+	Hull *hull = &ptr_sect->_hulls[BVH_BOX_MED].arr[hull_id];
 	short moved = 0;
 
 	for(short i = 0; i < CORRECTION_STEPS; i++) {
-		float deepest_pen = 0;
-		Plane plane = {0};
-		float nudge = 0; 
+		float best_pen = 1.0f;
+		Plane *best_plane = NULL;
 
 		for(short j = 0; j < hull->plane_count; j++) {
 			Plane *pl = &hull->planes[j];
+			float dist = PlaneDistance(*pl, ct->position);
 
-			float dist = Vector3DotProduct(pl->normal, ct->position) - pl->d;
-			//if(dist > 0) continue;
+			if(dist > 0)
+				continue;
 
-			if(fabsf(dist) > deepest_pen) {
-				plane = (Plane) { .normal = pl->normal, .d = pl->d } ;
-				deepest_pen = dist;
+			if(dist < best_pen) {
+				best_pen = dist;
+				best_plane = pl;
 			}
 		}
 
-		if(!deepest_pen) return 0;
+		if(!best_plane) {
+			puts("no best plane");
+			return moved;
+		}
+
+		printf("best plane: \n");
+		printf("normal: { %f %f %f }\n", best_plane->normal.x, best_plane->normal.y, best_plane->normal.z);
+
+		Vector3 push = Vector3Scale(best_plane->normal, -(best_pen + NUDGE_EPS));
+		printf("push: { %f %f %f }\n", push.x, push.y, push.z);
+
+		ct->position = Vector3Add(ct->position, push);
 		
-		//if(deepest_pen > 0) 
-			//continue;
+		/*
+		while(PlaneDistance(*best_plane, ct->position) > 0) {
+			Vector3 push = Vector3Scale(best_plane->normal, best_pen + NUDGE_EPS);
+			ct->position = Vector3Subtract(ct->position, push);
 
-		float push = (-deepest_pen);
-		//push = Clamp(push, -MAX_NUDGE, 0);
-
-		//ct->position = Vector3Add(ct->position, Vector3Scale(plane.normal, push));
-
-		moved = 1;
+			if(PlaneDistance(*best_plane, ct->position) > 0)
+				break;
+		}
+		*/
 	}
 
 	return moved;

@@ -16,6 +16,7 @@
 #define STEP_SIZE 8.0f
 
 Vector3 debug_bullet_dest;
+Vector3 debug_bullet_norm;
 
 typedef void (*OnHitFunc)(Entity *ent, short damage);
 OnHitFunc on_hit_funcs[] = {
@@ -402,7 +403,8 @@ void RenderEntities(EntityHandler *handler, float dt) {
 		//DrawBoundingBox(ent->comp_transform.bounds, RED);
 	}
 
-	DrawSphere(debug_bullet_dest, 10, RED);
+	//DrawSphere(debug_bullet_dest, 10, RED);
+	DrawLine3D(debug_bullet_dest, Vector3Add(debug_bullet_dest, Vector3Scale(debug_bullet_norm, 20)), PURPLE);
 
 	RenderProjectiles(handler);
 }
@@ -1592,6 +1594,7 @@ Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sende
 }
 
 Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit) {
+	/*
 	// Two steps: 
 	// 1. Trace surfaces of the level 
 	// 2. Trace Entities
@@ -1703,6 +1706,27 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	}
 
 	debug_bullet_dest = dest;
+
+	return dest;
+	*/
+
+	Vector3 dest = Vector3Add(origin, Vector3Scale(dir, 8912.0f));
+	/*
+	Vector3 trace_point = origin;
+	*hit = Bsp_RecursiveTrace(&sect->bsp[0], sect->bsp[0].first_node, origin, dest, &dest);
+	debug_bullet_dest = dest;
+	*/
+	
+	Bsp_TraceData trace = Bsp_TraceDataEmpty();
+	Bsp_RecursiveTraceEx(&sect->bsp[0], sect->bsp[0].first_node, 0, 1, origin, dest, &trace);
+	*hit = trace.fraction < 1;
+
+	if(*hit) dest = trace.point;
+	
+	debug_bullet_dest = dest;
+
+	trace.normal = (Vector3) { trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2] };
+	debug_bullet_norm = trace.normal;
 
 	return dest;
 }

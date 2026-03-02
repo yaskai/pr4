@@ -640,6 +640,30 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 		free(bp->brushes);
 	}
 
+	Message("Loading bsp", ANSI_BLUE);
+	short bsp_id = -1;
+	for(short i = 0; i < path_list.count; i++) if(strcmp(GetFileExtension(path_list.paths[i]), ".bsp") == 0) bsp_id = i;
+
+	if(bsp_id == -1) { 
+		MessageError("Missing .bsp file", NULL);
+		return sect;
+	}
+
+	Bsp_Data data = LoadBsp(path_list.paths[bsp_id], false);
+
+	for(short i = 0; i < 4; i++)
+		sect.bsp[i] = Bsp_BuildHull(&data, i);
+
+	/*
+	for(int i = 0; i < sect.bsp[1].last_node - 1; i++) {
+		Bsp_ClipNode *node = &sect.bsp[1].nodes[i];
+		puts("-------------------------");
+		printf("planenum: %d\n", node->planenum);
+		printf("front: %d\n", node->children[0]);
+		printf("back: %d\n", node->children[1]);
+	}
+	*/
+
 	return sect;
 }
 

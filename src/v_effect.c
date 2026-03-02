@@ -39,11 +39,8 @@ void vEffectsRun(vEffect_Manager *manager, float dt) {
 		float angle = 0;
 		QuaternionToAxisAngle(trail->q, &axis, &angle);
 	
-		//Vector3 scale = (Vector3) { 0.7f, trail->length, 0.7f };
-		Vector3 scale = (Vector3) { 0.7f, 0.7f, trail->length };
-
-		Vector3 center = Vector3Scale(Vector3Add(trail->point_A, trail->point_B), 0.5f);
-		DrawModelEx(manager->trail_model, center, axis, angle*RAD2DEG, scale, ColorAlpha(RAYWHITE, alpha));
+		Vector3 scale = (Vector3) { 0.7f, trail->length, 0.7f };
+		DrawModelEx(manager->trail_model, trail->point_A, axis, angle*RAD2DEG, scale, ColorAlpha(RAYWHITE, alpha));
 	}
 
 	for(u8 i = 0; i < V_EFFECT_MAX_IMPACT_DECALS; i++) {
@@ -77,7 +74,7 @@ void vEffectsAddTrail(vEffect_Manager *manager, Vector3 start, Vector3 end) {
 	float length = Vector3Length(d);	
 	new_trail.length = length;
 	Vector3 dir = Vector3Normalize(d);
-	new_trail.q = QuaternionFromVector3ToVector3(UP, dir);
+	new_trail.q = QuaternionFromVector3ToVector3( (Vector3) { 0, 1, 0 }, dir);
 
 	manager->trails[id] = new_trail;
 	manager->trail_count++;

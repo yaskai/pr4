@@ -1594,7 +1594,6 @@ Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sende
 }
 
 Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit) {
-	/*
 	// Two steps: 
 	// 1. Trace surfaces of the level 
 	// 2. Trace Entities
@@ -1708,15 +1707,10 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	debug_bullet_dest = dest;
 
 	return dest;
-	*/
 
-	Vector3 dest = Vector3Add(origin, Vector3Scale(dir, 8912.0f));
+	// *NOTE:
+	// BVH is still more accurate for point traces so I'll continue using it for now...
 	/*
-	Vector3 trace_point = origin;
-	*hit = Bsp_RecursiveTrace(&sect->bsp[0], sect->bsp[0].first_node, origin, dest, &dest);
-	debug_bullet_dest = dest;
-	*/
-	
 	Bsp_TraceData trace = Bsp_TraceDataEmpty();
 	Bsp_RecursiveTraceEx(&sect->bsp[0], sect->bsp[0].first_node, 0, 1, origin, dest, &trace);
 	*hit = trace.fraction < 1;
@@ -1729,6 +1723,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 	debug_bullet_norm = trace.normal;
 
 	return dest;
+	*/
 }
 
 void DebugDrawEntText(EntityHandler *handler, Camera3D cam) {

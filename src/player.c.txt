@@ -13,7 +13,7 @@
 #define PLAYER_MAX_PITCH (89.0f * DEG2RAD)
 #define PLAYER_SPEED 265.0f
 #define PLAYER_MAX_SPEED 300.0f
-#define PLAYER_MAX_VEL 300.5f
+#define PLAYER_MAX_VEL 200.5f
 
 #define PLAYER_GROUND_SPEED 256.0f
 #define PLAYER_AIR_SPEED	270.0f
@@ -37,7 +37,7 @@ short nudged_this_frame = 0;
 #define PLAYER_AIR_FRICTION 0.75f
 #define PLAYER_HURT_FRICTION 40.0f
 
-#define PLAYER_BASE_JUMP_FORCE 1420.0f
+#define PLAYER_BASE_JUMP_FORCE 620.0f
 
 Vector2 FlatVec2(Vector3 vec3) { return (Vector2) { vec3.x, vec3.y }; }
 Vector3 clipZ(Vector3 vec) { return Vector3Normalize((Vector3) { vec.x, vec.y, 0 }); }
@@ -349,28 +349,17 @@ Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
 u8 pm_CheckGround(comp_Transform *ct, Vector3 position) {
 	Ray ray = (Ray) { .position = ct->position, .direction = DOWN };	
 
-	//BvhTraceData tr = TraceDataEmpty();	
-	//BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 1 + GROUND_EPS);
-
-	Bsp_TraceData tr = Bsp_TraceDataEmpty();
-	Bsp_RecursiveTraceEx(
-		&ptr_sect->bsp[1],
-		ptr_sect->bsp[1].first_node,
-		0,
-		1,
-		ct->position,
-		Vector3Add(ct->position, Vector3Scale(DOWN, 1 + GROUND_EPS)),
-		&tr
-	);
-
-	if(tr.fraction >= 1) {
+	BvhTraceData tr = TraceDataEmpty();	
+	BvhTracePointEx(ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, 1 + GROUND_EPS);
+	
+	if(!tr.hit) {
 		ct->ground_normal = Vector3Zero();
 		return 0;
 	}
 
-	ct->ground_normal = (Vector3) { tr.plane.normal[0], tr.plane.normal[1], tr.plane.normal[2] };
+	ct->ground_normal = tr.normal;
 	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.00001f, 0);
-	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
+	pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.0f, 0);
 	if(fabsf(ct->velocity.z) < STOP_EPS) ct->velocity.z = 0;
 
 	return 1;
@@ -416,7 +405,7 @@ void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float
 	ct->velocity = Vector3Add(ct->velocity, Vector3Scale(wish_dir, accel_speed));
 }
 
-#define PLAYER_GRAV 600.0f
+#define PLAYER_GRAV 680.0f
 void pm_ApplyGravity(comp_Transform *ct, float dt) {
 	if(ct->on_ground) {
 		//ct->velocity.y = 0;
@@ -428,9 +417,28 @@ void pm_ApplyGravity(comp_Transform *ct, float dt) {
 #define MIN_TRACE_DIST (0.0333f)
 #define MAX_TRACE_DIST (2000.0f)
 void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt) {
-	Bsp_Hull *bsp = &ptr_sect->bsp[1];
+	BvhTree *bvh = &ptr_sect->bvh[BVH_BOX_MED];	
 
 	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0, .clip_count = 0 };
+
+	/*
+	IntersectData it = IntersectDataEmpty();
+	BvhBoxIntersect(ct->bounds, ptr_sect, bvh, 0, &it);
+
+	for(u16 i = 0; i < it.count; i++) {
+		BvhNode *node = &bvh->nodes[it.nodes[i]];
+			
+		for(u16 j = 0; j < node->tri_count; j++) {
+			Tri *tri = &bvh->tris.arr[bvh->tris.ids[node->first_tri + j]];
+			Hull *hull = &ptr_sect->_hulls[1].arr[tri->hull_id];
+
+			if(IsPointInHull(start, hull)) {
+				pm->start_in_solid = tri->hull_id;
+				break;
+			}	
+		}
+	}
+	*/
 
 	Vector3 dest = start;
 	Vector3 vel = wish_vel;
@@ -439,8 +447,11 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 	float t_remain = dt;
 
+	// Tracked clip planes
 	Vector3 clips[MAX_CLIPS] = {0};
 	u8 num_clips = 0;
+
+	Hull hulls[MAX_CLIPS] = {0};
 
 	for(short i = 0; i < MAX_BUMPS; i++) {
 		// End slide trace if velocity too low
@@ -454,17 +465,17 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 		Ray ray = (Ray) { .position = dest, .direction = Vector3Normalize(move) };
 
 		// Trace geometry 
-		Bsp_TraceData tr = Bsp_TraceDataEmpty();
-		Bsp_RecursiveTraceEx(bsp, bsp->first_node, 0, 1, dest, Vector3Add(dest, move), &tr);
+		BvhTraceData tr = TraceDataEmpty();
+		BvhTracePointEx(ray, ptr_sect, bvh, 0, &tr, Vector3Length(move));
+		//BvhSphereSweep(ray, ptr_sect, bvh, 0, &tr, Vector3Length(move), 2, 1);
 
 		// Determine how much of movement was obstructed
-		float fraction = tr.fraction;
+		float fraction = (tr.distance / Vector3Length(move));
 		fraction = Clamp(fraction, 0.0f, 1.0f);
 		pm->fraction = fraction;
 
 		// Update destination
-		//dest = Vector3Add(dest, Vector3Scale(move, fraction - 0.01f));
-		dest = Vector3Add(dest, Vector3Scale(move, fraction));
+		dest = Vector3Add(dest, Vector3Scale(move, fraction - 0.01f));
 
 		// No obstruction, do full movement 
 		if(fraction >= 1.0f) 
@@ -472,7 +483,8 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 		// Add clip plane
 		if(num_clips < MAX_CLIPS) {
-			clips[num_clips] = (Vector3) { tr.plane.normal[0], tr.plane.normal[1], tr.plane.normal[2] };
+			clips[num_clips] = tr.normal;
+			hulls[num_clips] = ptr_sect->_hulls[1].arr[tr.hull_id];
 			num_clips++;
 		} else 
 			break;
@@ -487,7 +499,7 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 		}
 
 		// Add small offset to prevent tunneling through surfaces
-		//dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.1f)); 
+		//dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.01f)); 
 
 		// Update remaining time
 		t_remain *= (1 - fraction);
@@ -499,6 +511,16 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 
 	pm->clip_count = num_clips;
 	memcpy(pm->clips, clips, sizeof(Vector3) * num_clips);
+
+	/*
+	for(short i = 0; i < num_clips; i++) {
+		Hull hull = hulls[i];
+
+		if(IsPointInHull(dest, &hull)) {
+			pm->end_in_solid = hull.id;
+		}
+	}
+	*/
 }
 
 void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel) {
@@ -744,7 +766,7 @@ int pm_CheckHullEx(Vector3 point, u16 node_id) {
 
 #define TILT_MAX 0.1f
 void cam_Adjust(comp_Transform *ct, float dt) {
-	ptr_cam->position = Vector3Add(ct->position, Vector3Scale(UP, 8.0f));
+	ptr_cam->position = Vector3Add(ct->position, Vector3Scale(UP, 0.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
 
 	// Apply camera motion effects (bob, tilt) 

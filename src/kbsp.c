@@ -222,56 +222,6 @@ bool Bsp_RecursiveTrace(Bsp_Hull *hull, int node_num, Vector3 point_A, Vector3 p
 }
 
 #define	DIST_EPSILON	(0.03125)
-/*
-bool Bsp_RecursiveTraceEx(Bsp_Hull *hull, int node_num, float p1_frac, float p2_frac, Vector3 p1, Vector3 p2, Bsp_TraceData *trace) {
-	Bsp_ClipNode *node;
-	Bsp_Plane *plane;
-	float t1, t2;
-	float fraction;
-	
-	// Handle leaves	
-	if(node_num < 0) {
-		if(node_num == CONTENTS_SOLID) {
-			trace->point = p1;
-			return true;
-		}
-		return false;
-	}
-
-	node = &hull->nodes[node_num];
-	plane = &hull->planes[node->planenum];
-
-	t1 = Vector3DotProduct( (Vector3) { plane->normal[0], plane->normal[1], plane->normal[2] }, p1 ) - plane->dist;	
-	t2 = Vector3DotProduct( (Vector3) { plane->normal[0], plane->normal[1], plane->normal[2] }, p2 ) - plane->dist;	
-
-	// Handle cases where the line falls entirely within a single child
-	if(t1 >= 0 && t2 >= 0)
-		return Bsp_RecursiveTrace(hull, node->children[0], p1, p2, &trace->point);
-
-	if(t1 < 0 && t2 < 0)
-		return Bsp_RecursiveTrace(hull, node->children[1], p1, p2, &trace->point);
-
-	// Find point of intersection with split plane
-	fraction = t1 / (t1 - t2);
-	fraction = Clamp(fraction, 0.0f, 1.0f);
-
-	float3 m = {0};
-	float3 a = Vector3ToFloatV(p1);
-	float3 b = Vector3ToFloatV(p2);
-
-	for(short i = 0; i < 3; i++)
-		m.v[i] = a.v[i] + fraction*(b.v[i] - a.v[i]);
-
-	Vector3 mid = (Vector3) { m.v[0], m.v[1], m.v[2] };
-
-	short side = (t1 >= 0) ? 0 : 1;
-	if(Bsp_RecursiveTrace(hull, node->children[side], p1, mid, &trace->point))
-		return true;
-
-	return Bsp_RecursiveTrace(hull, node->children[1 - side], mid, p2, &trace->point);
-}
-*/
-
 Bsp_TraceData Bsp_TraceDataEmpty() {
 	Bsp_TraceData data = {0};
 	data.all_solid = true;
@@ -313,8 +263,21 @@ bool Bsp_RecursiveTraceEx(Bsp_Hull *hull, int node_num, float p1_frac, float p2_
 	plane = &hull->planes[node->planenum];
 
 	Vector3 norm = (Vector3) { plane->normal[0], plane->normal[1], plane->normal[2] };
-	t1 = Vector3DotProduct(norm, p1) - plane->dist;
-	t2 = Vector3DotProduct(norm, p2) - plane->dist;
+	if(plane->type < 3) {
+		float3 p1_f3 = Vector3ToFloatV(p1);
+		float3 p2_f3 = Vector3ToFloatV(p2);
+
+		t1 =  p1_f3.v[plane->type] - plane->dist;
+		t2 =  p2_f3.v[plane->type] - plane->dist;
+
+		p1 = (Vector3) { p1_f3.v[0], p1_f3.v[1], p1_f3.v[2] };
+		p2 = (Vector3) { p2_f3.v[0], p2_f3.v[1], p2_f3.v[2] };
+
+	} else {
+
+		t1 = Vector3DotProduct(norm, p1) - plane->dist;
+		t2 = Vector3DotProduct(norm, p2) - plane->dist;
+	}
 
 	if(t1 >= 0 && t2 >= 0)
 		return Bsp_RecursiveTraceEx(hull, node->children[0], p1_frac, p2_frac, p1, p2, trace);
@@ -332,7 +295,7 @@ bool Bsp_RecursiveTraceEx(Bsp_Hull *hull, int node_num, float p1_frac, float p2_
 	if(frac > 1)
 		frac = 1;
 
-	mid_frac = p1_frac + (p1_frac - p2_frac) * frac; 
+	mid_frac = p1_frac + (p2_frac - p1_frac) * frac; 
 
 	float3 m = {0};
 	float3 p1_f3 = Vector3ToFloatV(p1);

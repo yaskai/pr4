@@ -649,10 +649,10 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 		return sect;
 	}
 
-	Bsp_Data data = LoadBsp(path_list.paths[bsp_id], false);
+	sect.bsp_data = LoadBsp(path_list.paths[bsp_id], false);
 
 	for(short i = 0; i < 4; i++)
-		sect.bsp[i] = Bsp_BuildHull(&data, i);
+		sect.bsp[i] = Bsp_BuildHull(&sect.bsp_data, i);
 
 	/*
 	for(int i = 0; i < sect.bsp[1].last_node - 1; i++) {

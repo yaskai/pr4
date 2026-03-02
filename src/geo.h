@@ -175,6 +175,7 @@ typedef struct {
 	HullPool _hulls[4];
 
 	Bsp_Hull bsp[4];
+	Bsp_Data bsp_data;
 
 	NavGraph base_navgraph;
 	NavGraph *navgraphs;

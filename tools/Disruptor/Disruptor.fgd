@@ -8,6 +8,20 @@
 ]
 //
 
+// Navigation node
+@baseclass size(-4 -4 -4, 4 4 4) color(0 0 255) = NavNodeClass []
+@PointClass base(NavNodeClass) = nav_node : "nav_node" [
+	flag(integer) : "flag" : 0 
+]
+//
+
+// Checkpoint
+@baseclass size(-16 -16 -24, 16 16 32) color(158 128 0) = CheckPointClass []
+@PointClass base(CheckPointClass) = checkpoint : "checkpoint" [
+	enum_id(integer) : "enum_id" : 0 
+]
+//
+
 // Turret
 @baseclass 
 	size(-12 -12 -24, 12 12 18)

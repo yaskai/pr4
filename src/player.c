@@ -106,15 +106,6 @@ void PlayerUpdate(Entity *player, float dt) {
 	if(!player_dead)
 		cam_Adjust(&player->comp_transform, dt);
 
-	/*
-	if(IsKeyPressed(KEY_R)) {
-		//player->comp_transform.position = (Vector3) { 0, 60, 0 };
-		player->comp_transform.position = ptr_ent_handler->player_start;
-		player->comp_transform.velocity = Vector3Zero();
-		player->comp_transform.on_ground = true;
-	} 
-	*/
-
 	player->comp_health.damage_cooldown -= dt;
 }
 
@@ -744,7 +735,7 @@ int pm_CheckHullEx(Vector3 point, u16 node_id) {
 
 #define TILT_MAX 0.1f
 void cam_Adjust(comp_Transform *ct, float dt) {
-	ptr_cam->position = Vector3Add(ct->position, Vector3Scale(UP, 8.0f));
+	ptr_cam->position = Vector3Add(ct->position, Vector3Scale(UP, 12.0f));
 	ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
 
 	// Apply camera motion effects (bob, tilt) 

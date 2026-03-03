@@ -2841,841 +2841,855 @@
 }
 // entity 2
 {
+"classname" "turret_spawn"
+"origin" "1036 -164 446"
+"enum_id" "1"
+"angle" "-90"
+}
+// entity 3
+{
+"classname" "turret_spawn"
+"origin" "860 -28 46"
+"angle" "90"
+"enum_id" "1"
+}
+// entity 4
+{
 "classname" "func_group"
 "_tb_type" "_tb_layer"
 "_tb_name" "NavLayer"
 "_tb_id" "1"
 "_tb_layer_sort_index" "0"
 }
-// entity 3
+// entity 5
 {
 "classname" "nav_node"
 "origin" "1170 -206 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 4
+// entity 6
 {
 "classname" "nav_node"
 "origin" "1170 -110 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 5
+// entity 7
 {
 "classname" "nav_node"
 "origin" "1170 -78 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 6
+// entity 8
 {
 "classname" "nav_node"
 "origin" "1122 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 7
+// entity 9
 {
 "classname" "nav_node"
 "origin" "1058 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 8
+// entity 10
 {
 "classname" "nav_node"
 "origin" "986 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 9
+// entity 11
 {
 "classname" "nav_node"
 "origin" "946 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 10
+// entity 12
 {
 "classname" "nav_node"
 "origin" "850 -30 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 11
+// entity 13
 {
 "classname" "nav_node"
 "origin" "850 -78 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 12
+// entity 14
 {
 "classname" "nav_node"
 "origin" "850 -126 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 13
+// entity 15
 {
 "classname" "nav_node"
 "origin" "866 -174 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 14
+// entity 16
 {
 "classname" "nav_node"
 "origin" "898 -190 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 15
+// entity 17
 {
 "classname" "nav_node"
 "origin" "946 -206 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 16
+// entity 18
 {
 "classname" "nav_node"
 "origin" "914 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 17
+// entity 19
 {
 "classname" "nav_node"
 "origin" "882 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 18
+// entity 20
 {
 "classname" "nav_node"
 "origin" "994 -222 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 19
+// entity 21
 {
 "classname" "nav_node"
 "origin" "1042 -238 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 20
+// entity 22
 {
 "classname" "nav_node"
 "origin" "1074 -254 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 21
+// entity 23
 {
 "classname" "nav_node"
 "origin" "1106 -238 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 22
+// entity 24
 {
 "classname" "nav_node"
 "origin" "1138 -222 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 23
+// entity 25
 {
 "classname" "nav_node"
 "origin" "786 82 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 24
+// entity 26
 {
 "classname" "nav_node"
 "origin" "770 114 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 25
+// entity 27
 {
 "classname" "nav_node"
 "origin" "786 146 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 26
+// entity 28
 {
 "classname" "nav_node"
 "origin" "1090 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 27
+// entity 29
 {
 "classname" "nav_node"
 "origin" "1154 -62 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 28
+// entity 30
 {
 "classname" "nav_node"
 "origin" "1170 -158 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 29
+// entity 31
 {
 "classname" "nav_node"
 "origin" "1042 -190 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 30
+// entity 32
 {
 "classname" "nav_node"
 "origin" "1042 -142 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 31
+// entity 33
 {
 "classname" "nav_node"
 "origin" "1042 -94 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 32
+// entity 34
 {
 "classname" "nav_node"
 "origin" "1026 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 33
+// entity 35
 {
 "classname" "nav_node"
 "origin" "1170 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 34
+// entity 36
 {
 "classname" "nav_node"
 "origin" "1218 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 35
+// entity 37
 {
 "classname" "nav_node"
 "origin" "1266 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 36
+// entity 38
 {
 "classname" "nav_node"
 "origin" "1314 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 37
+// entity 39
 {
 "classname" "nav_node"
 "origin" "1362 -46 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 38
+// entity 40
 {
 "classname" "nav_node"
 "origin" "1362 -94 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 39
+// entity 41
 {
 "classname" "nav_node"
 "origin" "1362 -142 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 40
+// entity 42
 {
 "classname" "nav_node"
 "origin" "1362 -190 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 41
+// entity 43
 {
 "classname" "nav_node"
 "origin" "1362 -238 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 42
+// entity 44
 {
 "classname" "nav_node"
 "origin" "1362 -286 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 43
+// entity 45
 {
 "classname" "nav_node"
 "origin" "1314 -286 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 44
+// entity 46
 {
 "classname" "nav_node"
 "origin" "1266 -286 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 45
+// entity 47
 {
 "classname" "nav_node"
 "origin" "1218 -286 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 46
+// entity 48
 {
 "classname" "nav_node"
 "origin" "1170 -286 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 47
+// entity 49
 {
 "classname" "nav_node"
 "origin" "1186 -238 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 48
+// entity 50
 {
 "classname" "nav_node"
 "origin" "946 -6 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 49
+// entity 51
 {
 "classname" "nav_node"
 "origin" "930 26 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 50
+// entity 52
 {
 "classname" "nav_node"
 "origin" "914 58 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 51
+// entity 53
 {
 "classname" "nav_node"
 "origin" "890 90 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 52
+// entity 54
 {
 "classname" "nav_node"
 "origin" "858 122 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 53
+// entity 55
 {
 "classname" "nav_node"
 "origin" "826 138 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 54
+// entity 56
 {
 "classname" "nav_node"
 "origin" "1202 -158 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 55
+// entity 57
 {
 "classname" "nav_node"
 "origin" "1226 -158 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 56
+// entity 58
 {
 "classname" "nav_node"
 "origin" "1250 -158 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 57
+// entity 59
 {
 "classname" "nav_node"
 "origin" "1266 -182 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 58
+// entity 60
 {
 "classname" "nav_node"
 "origin" "1290 -182 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 59
+// entity 61
 {
 "classname" "nav_node"
 "origin" "1314 -182 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 60
+// entity 62
 {
 "classname" "nav_node"
 "origin" "1338 -182 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 61
+// entity 63
 {
 "classname" "nav_node"
 "origin" "818 2 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 62
+// entity 64
 {
 "classname" "nav_node"
 "origin" "802 34 34"
 "flag" "0"
 "_tb_layer" "1"
 }
-// entity 63
+// entity 65
 {
 "classname" "nav_node"
 "origin" "-1102 -2878 370"
 "_tb_layer" "1"
 }
-// entity 64
+// entity 66
 {
 "classname" "nav_node"
 "origin" "-1134 -2878 370"
 "_tb_layer" "1"
 }
-// entity 65
+// entity 67
 {
 "classname" "nav_node"
 "origin" "-1166 -2878 370"
 "_tb_layer" "1"
 }
-// entity 66
+// entity 68
 {
 "classname" "nav_node"
 "origin" "-1198 -2878 370"
 "_tb_layer" "1"
 }
-// entity 67
+// entity 69
 {
 "classname" "nav_node"
 "origin" "-1230 -2878 370"
 "_tb_layer" "1"
 }
-// entity 68
+// entity 70
 {
 "classname" "nav_node"
 "origin" "-1262 -2878 370"
 "_tb_layer" "1"
 }
-// entity 69
+// entity 71
 {
 "classname" "nav_node"
 "origin" "-1262 -2910 370"
 "_tb_layer" "1"
 }
-// entity 70
+// entity 72
 {
 "classname" "nav_node"
 "origin" "-1262 -2942 370"
 "_tb_layer" "1"
 }
-// entity 71
+// entity 73
 {
 "classname" "nav_node"
 "origin" "-1262 -2974 370"
 "_tb_layer" "1"
 }
-// entity 72
+// entity 74
 {
 "classname" "nav_node"
 "origin" "-1294 -2974 370"
 "_tb_layer" "1"
 }
-// entity 73
+// entity 75
 {
 "classname" "nav_node"
 "origin" "-1326 -2974 370"
 "_tb_layer" "1"
 }
-// entity 74
+// entity 76
 {
 "classname" "nav_node"
 "origin" "-1070 -2878 370"
 "_tb_layer" "1"
 }
-// entity 75
+// entity 77
 {
 "classname" "nav_node"
 "origin" "1758 -514 50"
 "_tb_layer" "1"
 }
-// entity 76
+// entity 78
 {
 "classname" "nav_node"
 "origin" "1758 -482 50"
 "_tb_layer" "1"
 }
-// entity 77
+// entity 79
 {
 "classname" "nav_node"
 "origin" "1758 -450 50"
 "_tb_layer" "1"
 }
-// entity 78
+// entity 80
 {
 "classname" "nav_node"
 "origin" "1758 -418 50"
 "_tb_layer" "1"
 }
-// entity 79
+// entity 81
 {
 "classname" "nav_node"
 "origin" "1758 -386 50"
 "_tb_layer" "1"
 }
-// entity 80
+// entity 82
 {
 "classname" "nav_node"
 "origin" "1758 -354 50"
 "_tb_layer" "1"
 }
-// entity 81
+// entity 83
 {
 "classname" "nav_node"
 "origin" "1758 -322 50"
 "_tb_layer" "1"
 }
-// entity 82
+// entity 84
 {
 "classname" "nav_node"
 "origin" "1758 -290 50"
 "_tb_layer" "1"
 }
-// entity 83
+// entity 85
 {
 "classname" "nav_node"
 "origin" "1758 -258 50"
 "_tb_layer" "1"
 }
-// entity 84
+// entity 86
 {
 "classname" "nav_node"
 "origin" "1790 -258 50"
 "_tb_layer" "1"
 }
-// entity 85
+// entity 87
 {
 "classname" "nav_node"
 "origin" "1822 -258 50"
 "_tb_layer" "1"
 }
-// entity 86
+// entity 88
 {
 "classname" "nav_node"
 "origin" "1822 -290 50"
 "_tb_layer" "1"
 }
-// entity 87
+// entity 89
 {
 "classname" "nav_node"
 "origin" "1822 -322 50"
 "_tb_layer" "1"
 }
-// entity 88
+// entity 90
 {
 "classname" "nav_node"
 "origin" "1822 -354 50"
 "_tb_layer" "1"
 }
-// entity 89
+// entity 91
 {
 "classname" "nav_node"
 "origin" "1822 -386 50"
 "_tb_layer" "1"
 }
-// entity 90
+// entity 92
 {
 "classname" "nav_node"
 "origin" "1822 -418 50"
 "_tb_layer" "1"
 }
-// entity 91
+// entity 93
 {
 "classname" "nav_node"
 "origin" "1822 -450 50"
 "_tb_layer" "1"
 }
-// entity 92
+// entity 94
 {
 "classname" "nav_node"
 "origin" "1822 -482 50"
 "_tb_layer" "1"
 }
-// entity 93
+// entity 95
 {
 "classname" "nav_node"
 "origin" "1822 -514 50"
 "_tb_layer" "1"
 }
-// entity 94
+// entity 96
 {
 "classname" "nav_node"
 "origin" "1822 -546 50"
 "_tb_layer" "1"
 }
-// entity 95
+// entity 97
 {
 "classname" "nav_node"
 "origin" "1822 -578 50"
 "_tb_layer" "1"
 }
-// entity 96
+// entity 98
 {
 "classname" "nav_node"
 "origin" "1790 -578 50"
 "_tb_layer" "1"
 }
-// entity 97
+// entity 99
 {
 "classname" "nav_node"
 "origin" "1758 -578 50"
 "_tb_layer" "1"
 }
-// entity 98
+// entity 100
 {
 "classname" "nav_node"
 "origin" "1758 -546 50"
 "_tb_layer" "1"
 }
-// entity 99
+// entity 101
 {
 "classname" "nav_node"
 "origin" "-1326 -2942 370"
 "_tb_layer" "1"
 }
-// entity 100
+// entity 102
 {
 "classname" "nav_node"
 "origin" "-1230 -2974 370"
 "_tb_layer" "1"
 }
-// entity 101
+// entity 103
 {
 "classname" "nav_node"
 "origin" "-1198 -2974 370"
 "_tb_layer" "1"
 }
-// entity 102
+// entity 104
 {
 "classname" "nav_node"
 "origin" "-1166 -2974 370"
 "_tb_layer" "1"
 }
-// entity 103
+// entity 105
 {
 "classname" "nav_node"
 "origin" "-1134 -2974 370"
 "_tb_layer" "1"
 }
-// entity 104
+// entity 106
 {
 "classname" "nav_node"
 "origin" "-1102 -2974 370"
 "_tb_layer" "1"
 }
-// entity 105
+// entity 107
 {
 "classname" "nav_node"
 "origin" "-1070 -2974 370"
 "_tb_layer" "1"
 }
-// entity 106
+// entity 108
 {
 "classname" "nav_node"
 "origin" "-1070 -2942 370"
 "_tb_layer" "1"
 }
-// entity 107
+// entity 109
 {
 "classname" "nav_node"
 "origin" "-1070 -2910 370"
 "_tb_layer" "1"
 }
-// entity 108
+// entity 110
 {
 "classname" "nav_node"
 "origin" "-1022 -2878 370"
 "_tb_layer" "1"
 }
-// entity 109
+// entity 111
 {
 "classname" "nav_node"
 "origin" "-1230 -2942 370"
 "_tb_layer" "1"
 }
-// entity 110
+// entity 112
 {
 "classname" "nav_node"
 "origin" "-1198 -2926 370"
 "_tb_layer" "1"
 }
-// entity 111
+// entity 113
 {
 "classname" "nav_node"
 "origin" "-1166 -2910 370"
 "_tb_layer" "1"
 }
-// entity 112
+// entity 114
 {
 "classname" "nav_node"
 "origin" "-1134 -2894 370"
 "_tb_layer" "1"
 }
-// entity 113
+// entity 115
 {
 "classname" "nav_node"
 "origin" "-1086 -2894 370"
 "_tb_layer" "1"
 }
-// entity 114
+// entity 116
 {
 "classname" "nav_node"
 "origin" "-1326 -2910 370"
 "_tb_layer" "1"
 }
-// entity 115
+// entity 117
 {
 "classname" "nav_node"
 "origin" "-1326 -2878 370"
 "_tb_layer" "1"
 }
-// entity 116
+// entity 118
 {
 "classname" "nav_node"
 "origin" "-1326 -2846 370"
 "_tb_layer" "1"
 }
-// entity 117
+// entity 119
 {
 "classname" "nav_node"
 "origin" "-1326 -2814 370"
 "_tb_layer" "1"
 }
-// entity 118
+// entity 120
 {
 "classname" "nav_node"
 "origin" "-1326 -2782 370"
 "_tb_layer" "1"
 }
-// entity 119
+// entity 121
 {
 "classname" "nav_node"
 "origin" "-1326 -2750 370"
 "_tb_layer" "1"
 }
-// entity 120
+// entity 122
 {
 "classname" "nav_node"
 "origin" "-1326 -2718 370"
 "_tb_layer" "1"
 }
-// entity 121
+// entity 123
 {
 "classname" "nav_node"
 "origin" "-1326 -2686 370"
 "_tb_layer" "1"
 }
-// entity 122
+// entity 124
 {
 "classname" "nav_node"
 "origin" "-1310 -2718 370"
 "_tb_layer" "1"
 }
-// entity 123
+// entity 125
 {
 "classname" "nav_node"
 "origin" "-1294 -2734 370"
 "_tb_layer" "1"
 }
-// entity 124
+// entity 126
 {
 "classname" "nav_node"
 "origin" "-1278 -2750 370"
 "_tb_layer" "1"
 }
-// entity 125
+// entity 127
 {
 "classname" "nav_node"
 "origin" "-1262 -2766 370"
 "_tb_layer" "1"
 }
-// entity 126
+// entity 128
 {
 "classname" "nav_node"
 "origin" "-1246 -2782 370"
 "_tb_layer" "1"
 }
-// entity 127
+// entity 129
 {
 "classname" "nav_node"
 "origin" "-1230 -2782 370"
 "_tb_layer" "1"
 }
-// entity 128
+// entity 130
 {
 "classname" "nav_node"
 "origin" "-1214 -2798 370"
 "_tb_layer" "1"
 }
-// entity 129
+// entity 131
 {
 "classname" "nav_node"
 "origin" "-1198 -2814 370"
 "_tb_layer" "1"
 }
-// entity 130
+// entity 132
 {
 "classname" "nav_node"
 "origin" "-1182 -2830 370"
 "_tb_layer" "1"
 }
-// entity 131
+// entity 133
 {
 "classname" "nav_node"
 "origin" "-1166 -2846 370"

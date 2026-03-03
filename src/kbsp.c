@@ -331,6 +331,7 @@ bool Bsp_RecursiveTraceEx(Bsp_Hull *hull, int node_num, float p1_frac, float p2_
 	}
 
 	// Shouldn't happen but does sometimes
+	/*
 	while(Bsp_PointContents(hull, node_num, mid) == CONTENTS_SOLID) {
 		frac -= 0.1f;
 
@@ -350,6 +351,7 @@ bool Bsp_RecursiveTraceEx(Bsp_Hull *hull, int node_num, float p1_frac, float p2_
 
 		mid = (Vector3) { m.v[0], m.v[1], m.v[2] };
 	}
+	*/
 
 	trace->fraction = mid_frac;
 	trace->point = mid;

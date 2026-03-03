@@ -27,14 +27,14 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 	if(!bug_target_picked) {
 		Coords cell_coords[] = {
 			coords,
-			(Coords) { coords.c - 1, coords.r, coords.t - 1 },
-			(Coords) { coords.c + 0, coords.r, coords.t - 1 },
-			(Coords) { coords.c + 1, coords.r, coords.t - 1 },
-			(Coords) { coords.c - 1, coords.r, coords.t + 0 },
-			(Coords) { coords.c + 1, coords.r, coords.t + 0 },
-			(Coords) { coords.c - 1, coords.r, coords.t + 1 },
-			(Coords) { coords.c + 0, coords.r, coords.t + 1 },
-			(Coords) { coords.c + 1, coords.r, coords.t + 1 },
+			(Coords) { coords.c - 1, coords.r - 1, coords.t, },
+			(Coords) { coords.c + 0, coords.r - 1, coords.t, },
+			(Coords) { coords.c + 1, coords.r - 1, coords.t, },
+			(Coords) { coords.c - 1, coords.r + 0, coords.t, },
+			(Coords) { coords.c + 1, coords.r + 0, coords.t, },
+			(Coords) { coords.c - 1, coords.r + 1, coords.t, },
+			(Coords) { coords.c + 0, coords.r + 1, coords.t, },
+			(Coords) { coords.c + 1, coords.r + 1, coords.t, },
 		};
 		short adj_count = sizeof(cell_coords) / sizeof(cell_coords[0]);
 		
@@ -156,7 +156,7 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 		return 0;
 	}
 
-	if(handler->ents[handler->player_id].comp_transform.position.y - ct->position.y > 1000) {
+	if(handler->ents[handler->player_id].comp_transform.position.z - ct->position.z > 1000) {
 		ent->comp_health.amount = 0;
 		ent->comp_ai.state = BUG_DEFAULT;
 		return 0;
@@ -282,6 +282,8 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	comp_Ai *ai = &ent->comp_ai;
 
 	bug_z_vel_prev = ct->velocity.z;
+
+	//ent->cell_id = CellCoordsToId(Vec3ToCoords(ct->position, &handler->grid), &handler->grid);
 
 	if(ai->state == BUG_DEFAULT) {
 		ct->position = player_ent->comp_transform.position;

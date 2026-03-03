@@ -77,8 +77,8 @@ typedef struct  {
 
 } comp_Transform;
 
-#define BUG_POINT_TURRET (Vector3) { 0, 20, 0 }
-#define BUG_POINT_MAINTAINER (Vector3) { 0, 25, 0 }
+#define BUG_POINT_TURRET (Vector3) { 0, 0, 20 }
+#define BUG_POINT_MAINTAINER (Vector3) { 0, 0, 25 }
 
 typedef struct {
 	BoundingBox hit_box;

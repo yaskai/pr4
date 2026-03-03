@@ -269,7 +269,7 @@ void PlayerShootRevolver(PlayerGun *player_gun, EntityHandler *handler, MapSecti
 	comp_Transform *ct = &gun_refs.player->comp_transform;
 
 	Vector3 trace_start = ct->position;
-	trace_start.z += 8;
+	trace_start.z += 12;
 
 	bool trace_hit = false;
 	Vector3 point = TraceBullet(

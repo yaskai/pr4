@@ -95,7 +95,7 @@ void EntGridInit(EntityHandler *handler) {
 
 	EntGrid grid = (EntGrid) {0};
 
-	grid.size = (Coords) { .c = 34, .r = 34, .t = 12 };
+	grid.size = (Coords) { .c = 48, .r = 48, .t = 12 };
 
 	grid.cell_count = grid.size.c * grid.size.r * grid.size.t;
 	grid.cells = calloc(grid.cell_count, sizeof(EntGridCell));
@@ -155,17 +155,18 @@ void UpdateGrid(EntityHandler *handler) {
 		if(src_id == dest_id)
 			continue;
 
-		if(!CheckCollisionBoxes(src_cell->aabb, ent->comp_transform.bounds)) {
-			for(u8 j = 0; j < src_cell->ent_count; j++) {
-				if(src_cell->ents[j] == ent->id) { 
-					for(u8 n = j; n < src_cell->ent_count-1; n++)
-						src_cell->ents[n] = src_cell->ents[n+1];
+		for(u8 j = 0; j < src_cell->ent_count; j++) {
+			if(src_cell->ents[j] == ent->id) { 
+				for(u8 n = j; n < src_cell->ent_count-1; n++)
+					src_cell->ents[n] = src_cell->ents[n+1];
 
-					src_cell->ent_count--;
-				}
+				src_cell->ent_count--;
+				break;
 			}
-
 		}
+
+		if(dest_cell->ent_count - 1 >= MAX_ENTS_PER_CELL)
+			continue;
 
 		ent->cell_id = dest_id;
 		dest_cell->ents[dest_cell->ent_count++] = ent->id;
@@ -193,9 +194,9 @@ Coords Vec3ToCoords(Vector3 v, EntGrid *grid) {
 	Vector3 local = Vector3Subtract(v, grid->origin);
 
 	return (Coords) {
-		.c = (i16)((local.x) / ENT_GRID_CELL_EXTENTS.x),
-		.r = (i16)((local.y) / ENT_GRID_CELL_EXTENTS.y),
-		.t = (i16)((local.z) / ENT_GRID_CELL_EXTENTS.z)
+		.c = (i16)((local.x + (ENT_GRID_CELL_EXTENTS.x*0.5f)) / ENT_GRID_CELL_EXTENTS.x),
+		.r = (i16)((local.y + (ENT_GRID_CELL_EXTENTS.y*0.5f)) / ENT_GRID_CELL_EXTENTS.y),
+		.t = (i16)((local.z + (ENT_GRID_CELL_EXTENTS.z*0.5f)) / ENT_GRID_CELL_EXTENTS.z)
 	};
 }
 
@@ -407,6 +408,16 @@ void RenderEntities(EntityHandler *handler, float dt) {
 	DrawLine3D(debug_bullet_dest, Vector3Add(debug_bullet_dest, Vector3Scale(debug_bullet_norm, 20)), PURPLE);
 
 	RenderProjectiles(handler);
+
+	/*
+	for(int i = 0; i < grid->cell_count; i++) {
+		EntGridCell *cell = &grid->cells[i];
+		if(cell->ent_count <= 0)
+			continue;
+
+		DrawBoundingBox(cell->aabb, PURPLE);
+	}
+	*/
 }
 
 void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_graph) {
@@ -471,11 +482,11 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	*/
 
 	ent.comp_transform.start_angle = spawn_point->angle;
-	float rad = (spawn_point->angle) * DEG2RAD;
+	float rad = (-spawn_point->angle) * DEG2RAD;
 
 	ent.comp_transform.forward.x = sinf(rad);
-	ent.comp_transform.forward.y = 0;
-	ent.comp_transform.forward.z = -cosf(rad);
+	ent.comp_transform.forward.y = cosf(rad);
+	ent.comp_transform.forward.z = 0;
 	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
 
 	ent.comp_ai = (comp_Ai) {0};
@@ -492,14 +503,18 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.model = base_ent_models[ENT_TURRET];
 
 			//ent.comp_transform.position.y -= 20;
-			ent.comp_transform.position.z -= 12;
+			ent.comp_transform.position.z -= 20;
 
 			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
 			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 
 			float angle = atan2f(ent.comp_transform.forward.z, ent.comp_transform.forward.x);
-			ent.model.transform = MatrixRotateY(-(angle+90)*DEG2RAD);
+			//ent.model.transform = MatrixRotateY(-(angle+90)*DEG2RAD);
+			//ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateX(90*DEG2RAD));
+
+			ent.model.transform = MatrixRotateX(90*DEG2RAD);
+			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateZ(-spawn_point->angle*DEG2RAD));
 
 			ent.comp_ai.component_valid = true;
 			ent.comp_ai.sight_cone = 0.55f;
@@ -614,22 +629,16 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 void TurretDraw(Entity *ent) {
 	comp_Transform *ct = &ent->comp_transform;
 
-	float yaw = atan2f(ct->forward.x, ct->forward.z);
+	float yaw = atan2f(ct->forward.x, -ct->forward.y);
 
-	float xz_len = Vector2Length( (Vector2) { ct->forward.x, ct->forward.z } );
-	float pitch = atan2f(-ct->forward.y, xz_len);
+	float xz_len = Vector2Length( (Vector2) { ct->forward.x, ct->forward.y } );
+	float pitch = atan2f(-ct->forward.z, xz_len);
 
 	Matrix mat_base = MatrixMultiply(ent->model.transform, MatrixTranslate(ct->position.x, ct->position.y, ct->position.z));
 
 	Matrix mat_gun = MatrixMultiply(MatrixRotateX(pitch), MatrixRotateY(yaw));
+	mat_gun = MatrixMultiply(mat_gun, MatrixRotateX(90*DEG2RAD));
 	mat_gun = MatrixMultiply(mat_gun, MatrixTranslate(ct->position.x, ct->position.y, ct->position.z));
-
-	/*
-	Matrix mat_gun = MatrixMultiply(
-		mat_base,
-		MatrixMultiply(MatrixRotateY(yaw), MatrixRotateX(pitch))
-	);
-	*/
 
 	DrawMesh(ent->model.meshes[1], ent->model.materials[1], mat_gun);
 	DrawMesh(ent->model.meshes[0], ent->model.materials[1], mat_base);
@@ -704,7 +713,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	}
 
 	Vector3 trace_start = ct->position;
-	trace_start.y += 12;
+	trace_start.z += 12;
 	//trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 24));
 
 	Vector3 dir = ct->forward;

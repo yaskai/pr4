@@ -33,7 +33,7 @@ void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float
 //
 #define MAX_CLIPS 4
 #define MAX_BUMPS 4
-#define STOP_EPS  0.0001f
+#define STOP_EPS  0.1f
 typedef struct {
 	Vector3 clips[MAX_CLIPS];	// Clip planes hit 
 	

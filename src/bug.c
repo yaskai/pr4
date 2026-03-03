@@ -143,9 +143,11 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 			ct->velocity.z += 150 + (0.1f*(*bounce));
 		}
 		
+		/*
 		if(fabsf(enemy_ent->comp_transform.position.z - ct->position.z) <= 16) {
 			ct->position.z = enemy_ent->comp_transform.position.z;
 		}
+		*/
 	}
 }
 
@@ -199,7 +201,7 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 	return 0;
 }
 
-void bug_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt, MapSection *sect) {
+void bug_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt, MapSection *sect, EntityHandler *handler) {
 	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0 };
 
 	Vector3 dest = start;
@@ -228,47 +230,53 @@ void bug_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceD
 		BvhTraceData tr = TraceDataEmpty();
 		BvhTracePointEx(ray, sect, &sect->bvh[BVH_BOX_SMALL], 0, &tr, FLT_MAX);
 
-		/*
-		Vector3 feet_pos = Vector3Add(dest, Vector3Scale(UP, 17));
-		Bsp_TraceData bsp_tr = Bsp_TraceDataEmpty();
-		Bsp_RecursiveTraceEx(&sect->bsp[0], sect->bsp[0].first_node, 0, 1, feet_pos, Vector3Add(feet_pos, move), &bsp_tr);
-		*/
-
 		// Determine how much of movement was obstructed
 		float fraction = (tr.distance / Vector3Length(move));
 		//float fraction = bsp_tr.fraction;
 		fraction = Clamp(fraction, 0.0f, 1.0f);
 
+		EntTraceData ent_tr = { .dist = Vector3Length(move), .hit_ent = -1, .point = dest, .normal = Vector3Zero() };
+		Vector3 ent_point = TraceEntities(ray, handler, Vector3Length(move), handler->bug_id, &ent_tr);
+
+		float ent_frac = 1.0f ;
+		bool use_ent = (ent_tr.hit_ent > -1 && ent_tr.hit_ent < handler->count);
+		if(use_ent) {
+			ent_frac = (ent_tr.dist / Vector3Length(move));
+			ent_frac = Clamp(ent_frac, 0.0f, 1.0f);
+			fraction = ent_frac;
+		}
+
+		pm->fraction = fraction;
+
 		// Update destination
 		dest = Vector3Add(dest, Vector3Scale(move, fraction));
-
-		/*
-		if(fraction < 1.0f)
-			pm->end_in_solid = (tr.hit) ? pm_CheckHull(dest, tr.hull_id) : -1;
-		*/
 
 		// No obstruction, do full movement 
 		if(fraction >= 1.0f) 
 			break;
 
+		if(use_ent) {
+			fraction -= 0.01f;
+			if(fraction < 0) fraction = 0;
+		}
+
 		// Add clip plane
 		if(num_clips + 1 < MAX_CLIPS) {
-			clips[num_clips++] = tr.normal;
+			//clips[num_clips++] = tr.normal;
 			//clips[num_clips++] = (Vector3) { bsp_tr.plane.normal[0], bsp_tr.plane.normal[1], bsp_tr.plane.normal[2] };
+			clips[num_clips++] = (use_ent) ? ent_tr.normal : tr.normal; 
 
 			// Update velocity by each clip plane
 			for(short j = 0; j < num_clips; j++) {
 				float into = Vector3DotProduct(vel, clips[j]);
+				float clip_bounce = (use_ent && j == num_clips - 1) ? 1.8f : 1.5005f;
 
 				if(into < 0) 
-					pm_ClipVelocity(vel, clips[j], &vel, 1.5005f, pm->block);
+					pm_ClipVelocity(vel, clips[j], &vel, clip_bounce, pm->block);
 			}
 
 		} else 
 			break;
-
-		// Add small offset to prevent tunneling through surfaces
-		//dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.01f));
 
 		// Update remaining time
 		t_remain *= (1 - fraction);
@@ -340,7 +348,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 		//pm_AirFriction(ct, dt);
 	
 		Vector3 prev_pos = ct->position;
-		bug_TraceMove(ct, ct->position, ct->velocity, &pm, dt, sect);
+		bug_TraceMove(ct, ct->position, ct->velocity, &pm, dt, sect, handler);
 		ct->velocity = pm.end_vel;
 		ct->position = pm.end_pos;
 
@@ -363,7 +371,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			if(enemy_ent->comp_ai.state == STATE_DEAD)
 				continue;
 
-			if(CheckCollisionBoxes(ct->bounds, enemy_ent->comp_transform.bounds)) {
+			if(CheckCollisionBoxes(ct->bounds, enemy_ent->comp_transform.bounds) && ct->position.z >= enemy_ent->comp_transform.position.z + 16) {
 				ct->on_ground = true;
 				ct->position = BoxCenter(enemy_ent->comp_health.bug_box);
 				ai->task_data.target_entity = enemy_ent->id;

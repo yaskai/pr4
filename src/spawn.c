@@ -91,8 +91,8 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			//ent.comp_transform.position.y -= 20;
 			ent.comp_transform.position.z -= 20;
 
-			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
-			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
+			ent.comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  1.0f);
+			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -1.0f);
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 
 			// * NOTE:

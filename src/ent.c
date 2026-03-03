@@ -1268,7 +1268,7 @@ Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sende
 				continue;
 
 			Vector3 to_ent = Vector3Subtract(ent->comp_transform.position, ray.position);
-			if(Vector3DotProduct(to_ent, ray.direction) < 0) 
+			if(Vector3DotProduct(to_ent, ray.direction) < EPSILON) 
 				continue;
 			
 			// * NOTE:

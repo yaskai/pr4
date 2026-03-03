@@ -83,6 +83,11 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 
 void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	int scroll = GetMouseWheelMove();
+	if(IsKeyPressed(KEY_Q)) 
+		scroll--;
+	if(IsKeyPressed(KEY_E))
+		scroll++;
+
 	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 2;
 	player_gun->current_gun = gun_refs.player->comp_weapon.id;
 

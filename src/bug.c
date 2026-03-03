@@ -104,6 +104,12 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 		return;
 
 	Entity *enemy_ent = &handler->ents[bug_ent->comp_ai.task_data.target_entity];
+	if(enemy_ent->comp_ai.state == STATE_DEAD) {
+		bug_target_picked = false;
+		bug_ent->comp_ai.task_data.target_entity = -1;
+		*bounce = 0;
+		*bounce = 0;
+	}
 
 	/*
 	Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	

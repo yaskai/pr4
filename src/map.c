@@ -206,12 +206,6 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			} else if(line[3] == 'e') {
 				parse_mode = PARSE_ENT;
 				char *tok = strtok(line, " ");
-				/*
-				while(tok != NULL) {
-					sscanf(tok, "%d", &curr_ent);
-					tok = strtok(NULL, " ");
-				}
-				*/
 				curr_ent++;
 				spawn_list->count++;
 			}
@@ -235,15 +229,6 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 				&points[2].x, &points[2].y, &points[2].z
 			);
 
-			// Adjust points for +Y = up
-			/*
-			for(short j = 0; j < 3; j++) {
-				Matrix mat;
-				mat = MatrixRotateX(-90 * DEG2RAD);
-				points[j] = Vector3Transform(points[j], mat);
-			}
-			*/
-
 			// Get texture name
 			char *tex_str = last_par + 1;
 			char *space = strchr(tex_str, ' ');
@@ -264,7 +249,6 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 			brush->uv = (Vector2) { .x = u, .y = v };
 			brush->uv_scale = (Vector2) { .x = scale_x, .y = scale_y };
 			brush->uv_rot = r;
-			//printf("%.01f %.01f %.01f %.01f %.01f\n", brush->uv.x, brush->uv.y, brush->uv_rot, brush->uv_scale.x, brush->uv_scale.y);
 			
 			// Make plane
 			Plane plane = BuildPlane(points[1], points[0], points[2]);
@@ -290,20 +274,9 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 
 			if(streq(key, "origin")) {
 				int x, y, z;
-				//sscanf(val, "%d %d %d", &x, &z, &y);
-				//z *= -1;
-
 				sscanf(val, "%d %d %d", &x, &y, &z);
 
 				curr_entspawn->position = (Vector3) { x, y, z }; 
-				/*
-				Matrix mat;
-				mat = MatrixRotateX(-90 * DEG2RAD);
-				curr_entspawn->position = Vector3Transform(curr_entspawn->position, mat);
-				*/
-
-				//sscanf(val, "%d %d %d", &curr_entspawn->position.x, &curr_entspawn->position.z, &curr_entspawn->position.y);
-				//curr_entspawn->position.z *= -1;
 			}
 
 			if(streq(key, "enum_id")) {
@@ -320,17 +293,7 @@ void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList 
 
 	for(u16 i = 0; i < brush_pool->count; i++) {
 		Brush *brush = &brush_pool->brushes[i];
-		// Change coordinates to x, y, z 
-		// instead of: 
-		// -x, -z, -y
-		// 1.
-		// Adjust planes 
-		/*
-		for(u16 j = 0; j < brush->plane_count; j++) {
-			brush->planes[j].normal = Vector3Negate(brush->planes[j].normal);
-		}
-		*/
-		// 2.
+	
 		// Build vertices, AABBs
 		BrushGetVertices(brush);
 		for(u16 j = 0; j < brush->vert_count; j++) {
@@ -371,7 +334,6 @@ BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents) {
 			Plane *plane = &brush->planes[j];
 
 			float diff = MinkowskiDiff(plane->normal, half_extents);
-			//plane->d += diff;
 			plane->d -= diff;
 		}
 
@@ -529,10 +491,6 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 	model.transform = MatrixRotateX(90*DEG2RAD);
 	sect.model = model;
 
-	//TriPool tri_pools[3] = {0};
-	//tri_pools[0].arr = ModelToTris(model, &tri_pools[0].count, &tri_pools[0].ids);
-	//tri_pools[0].arr = ModelToTris(model, &tri_pools[0].count, &tri_pools[0].ids);
-	//sect._tris[0].arr = ModelToTris(model, &sect._tris[0].count, &sect._tris[0].ids);
 	if(GetLogState()) printf("model tri_count: %d\n", sect._tris[0].count);
 
 	// 2. Load .map file, collision, physics, ai logic, etc. 
@@ -595,10 +553,11 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 		if(GetLogState()) printf("bvh[%d] node count: %d\n", i, sect.bvh->count);
 	}
 
-	rmeshes_collection.rmeshes = calloc(model.meshCount, sizeof(MapMesh)); 
+	//rmeshes_collection.rmeshes = calloc(model.meshCount, sizeof(MapMesh)); 
 	BoundingBox model_bounds = GetModelBoundingBox(model);
 	Vector3 model_center = BoxCenter(model_bounds);
 
+	/*
 	for(u16 i = 0; i < model.meshCount; i++) {
 		//BoundingBox mesh_bounds = GetMeshBoundingBox(model.meshes[i]);
 
@@ -610,6 +569,7 @@ MapSection BuildMapSect(char *path, SpawnList *spawn_list) {
 			.position = brush_pools[0].brushes[i].center
 		};
 	}
+	*/
 	
 	// 4. Copy/convert brushes to hulls
 	for(short i = 0; i < 3; i++) {
@@ -1018,6 +978,7 @@ void DebugDrawNavGraphsText(MapSection *sect, Camera3D cam, Vector2 window_size)
 	}
 }
 
+/*
 #define MAX_MAP_MESH_RENDERS 128
 typedef struct {
 	u16 ids[MAX_MAP_MESH_RENDERS];
@@ -1025,6 +986,7 @@ typedef struct {
 	
 } rMeshList;
 rMeshList rmesh_list = {0};
+*/
 
 void UpdateMapMeshList(MapSection *sect, Camera3D cam) {
 	/*

@@ -12,7 +12,6 @@
 // ----------------------------------------------------------------------------------------------------------------------------
 void EntDebugText();
 
-
 typedef struct {
 	i16 c;	// x, column
 	i16 r;	// y, row
@@ -203,6 +202,7 @@ typedef struct {
 
 	EntGrid grid;
 	SpawnList spawn_list;
+	CheckPointList checkpoint_list;
 
 	vEffect_Manager *effect_manager;
 
@@ -389,5 +389,6 @@ void RenderProjectiles(EntityHandler *handler);
 // ----------------------------------------------------------------------------------------------------------------------------
 
 void ReloadEntities(EntityHandler *handler, MapSection *sect);
+void ReloadEntitiesPartial(EntityHandler *handler, MapSection *sect);
 
 #endif

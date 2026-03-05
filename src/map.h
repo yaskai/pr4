@@ -70,6 +70,17 @@ typedef struct {
 
 } SpawnList;
 
+typedef struct {
+	Vector3 *points;
+	i16 *cells;
+
+	u16 count;
+	u16 capacity;
+
+	i16 active;
+
+} CheckPointList;
+
 void LoadMapFile(BrushPool *brush_pool, char *path, Model *map_model, SpawnList *spawn_list);
 BrushPool ExpandBrushes(BrushPool *brush_pool, Vector3 aabb_extents);
 

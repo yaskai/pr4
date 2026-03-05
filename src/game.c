@@ -59,6 +59,9 @@ void GameClose(Game *game) {
 
 	if(IsTextureValid(game->render_target2D.texture))
 		UnloadRenderTexture(game->render_target2D);
+
+	MapSectionClose(&game->test_section);
+	EntHandlerClose(&game->ent_handler);
 }
 
 void GameRenderSetup(Game *game) {
@@ -165,14 +168,17 @@ void GameLoadTestScene1(Game *game, char *path) {
 
 	SpawnPlayer(&game->ent_handler.ents[game->ent_handler.player_id], game->ent_handler.player_start);
 
-	//printf("%d\n", game->ent_handler.player_id);
-	//printf("%d\n", game->ent_handler.bug_id);
-
 	game->ent_handler.spawn_list.count = spawn_list.count;
 	game->ent_handler.spawn_list.arr = calloc(spawn_list.count, sizeof(EntSpawn));
 	memcpy(game->ent_handler.spawn_list.arr, spawn_list.arr, sizeof(EntSpawn) * spawn_list.count);
 
 	ReloadEntities(&game->ent_handler, &game->test_section);
+
+	// Setup checkpoints	
+	for(u16 i = 0; i < game->ent_handler.checkpoint_list.count; i++) {
+		game->ent_handler.checkpoint_list.cells[i] = CellCoordsToId(
+			Vec3ToCoords(game->ent_handler.checkpoint_list.points[i], &game->ent_handler.grid), &game->ent_handler.grid);	
+	}
 }
 
 void GameUpdate(Game *game, float dt) {

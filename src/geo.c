@@ -198,7 +198,7 @@ Tri *MeshToTris(Mesh mesh, u16 *tri_count) {
 	Vector3 mesh_center = BoxCenter(GetMeshBoundingBox(mesh));	
 	
 	// Create and populate array
-	Tri *tris = calloc(count, sizeof(Tri));
+	Tri *tris = malloc(count * sizeof(Tri));
 	for(u16 i = 0; i < count; i++) {
 		Tri tri = (Tri) {0};
 
@@ -333,7 +333,7 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_p
 
 	// Allocate memory for nodes
 	bvh->capacity = BVH_TREE_START_CAPACITY;
-	bvh->nodes = calloc(bvh->capacity, sizeof(BvhNode));
+	bvh->nodes = malloc(bvh->capacity * sizeof(BvhNode));
 
 	bvh->shape = volume;
 	Vector3 shape_half = Vector3Scale(bvh->shape, 0.5f);
@@ -349,15 +349,13 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_p
 
 	// Grow bounds of root to contain all section geoemetry  
 	for(u16 i = 0; i < bvh->tris.count; i++) {
-		//Tri tri = sect->tris[sect->tri_ids[i]];
-		//Tri tri = sect->tris[bvh->tri_ids[i]];
 		Tri tri = tri_pool->arr[tri_pool->ids[i]];
 
 		float diff = MinkowskiDiff(tri.normal, shape_half);
 
 		for(short j = 0; j < 3; j++) {
-			//root.bounds = BoxExpandToPoint(root.bounds, tri.vertices[j]);
-			root.bounds = BoxExpandToPoint(root.bounds, Vector3Add(tri.vertices[j], Vector3Scale(tri.normal, diff)));
+			root.bounds = BoxExpandToPoint(root.bounds, tri.vertices[j]);
+			//root.bounds = BoxExpandToPoint(root.bounds, Vector3Add(tri.vertices[j], Vector3Scale(tri.normal, diff)));
 		}
 	}
 
@@ -393,8 +391,6 @@ void BvhClose(BvhTree *bvh) {
 
 	if(bvh->tris.ids)
 		free(bvh->tris.ids);
-
-	bvh->count = 0;
 }
 
 // Compute optimal axis and position for node subdivision  
@@ -405,9 +401,6 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 		float vmin = FLT_MAX, vmax = -FLT_MAX;
 
 		for(u16 i = 0; i < node->tri_count; i++) {
-			//Tri tri = sect->tris[sect->tri_ids[node->first_tri + i]];
-			//Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
-			//Tri tri = bvh->tris.arr[bvh->tri_ids[node->first_tri + i]];
 			u16 tri_id = bvh->tris.ids[node->first_tri + i];
 			Tri tri = bvh->tris.arr[tri_id];
 
@@ -425,8 +418,6 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 		float scale = BVH_BIN_COUNT / (vmax - vmin);
 
 		for(u16 i = 0; i < node->tri_count; i++) {
-			//Tri tri = sect->tris[sect->tri_ids[node->first_tri + i]];
-			//Tri tri = sect->tris[bvh->tri_ids[node->first_tri + i]];
 			Tri tri = bvh->tris.arr[bvh->tris.ids[node->first_tri + i]];
 			float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
@@ -479,10 +470,6 @@ float FindBestSplit(MapSection *sect, BvhTree *bvh, BvhNode *node, short *axis, 
 void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	BvhNode *node = &bvh->nodes[node_id];
 
-	// Base case:
-	// Node has too few tris to continue splitting
-	//if(node->tri_count <= MAX_TRIS_PER_NODE) return;
-
 	// Determine split position and axis
 	short split_axis = -1;
 	float split_pos = 0;
@@ -491,22 +478,22 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	// Base case:
 	// Cost of splitting exceeds cost of leaving as is
 	float parent_cost = BvhNodeCost(node);
-	if(best_cost > parent_cost) return;
-
-	//Vector3 h = Vector3Scale(bvh->shape, 0.5f);
-	//node->bounds.min = Vector3Subtract(node->bounds.min, h);
-	//node->bounds.max = Vector3Add(node->bounds.max, h);
+	if(best_cost > parent_cost)
+		return;
 
 	// In-place partition
 	u16 i = node->first_tri;
 	u16 j = i + node->tri_count - 1;
 	while(i <= j) {
-		Tri tri = bvh->tris.arr[bvh->tris.ids[i]];
+		u16 tri_id = bvh->tris.ids[i];
+		Tri tri = bvh->tris.arr[tri_id];
 
 		float3 centroid = Vector3ToFloatV(TriCentroid(tri));
 
-		if(centroid.v[split_axis] < split_pos) i++;
-		else SwapTriIds(&bvh->tris.ids[i], &bvh->tris.ids[j--]);
+		if(centroid.v[split_axis] < split_pos)
+			i++;
+		else
+			SwapTriIds(&bvh->tris.ids[i], &bvh->tris.ids[j--]);
 	}
 
 	u16 count_lft = i - node->first_tri;
@@ -517,7 +504,7 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 
 	// Resize node array if needed
 	if(bvh->count + 2 >= bvh->capacity) {
-		bvh->capacity = bvh->capacity << 1;
+		bvh->capacity = (bvh->capacity << 1);
 		bvh->nodes = realloc(bvh->nodes, sizeof(BvhNode) * bvh->capacity);
 	}
 
@@ -531,7 +518,7 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 		.child_lft = 0, 
 		.child_rgt = 0
 	};
-	node->child_lft = child_lft;
+	bvh->nodes[node_id].child_lft = child_lft;
 
 	bvh->nodes[child_rgt] = (BvhNode) {
 		.first_tri = i,
@@ -539,10 +526,10 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 		.child_lft = 0,
 		.child_rgt = 0
 	};
-	node->child_rgt = child_rgt;
+	bvh->nodes[node_id].child_rgt = child_rgt;
 
 	// Remove tris from parent node
-	node->tri_count = 0;
+	bvh->nodes[node_id].tri_count = 0;
 
 	// Update child node bounds
 	BvhNodeUpdateBounds(sect, bvh, child_lft);
@@ -574,6 +561,9 @@ void MapSectionClose(MapSection *sect) {
 
 		if(sect->_hulls[i].arr)
 			free(sect->_hulls[i].arr);
+
+		if(sect->_tris[i].arr)
+			free(sect->_tris[i].arr);
 	}
 
 	for(u8 i = 0; i < sect->navgraph_count; i++) {

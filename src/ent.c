@@ -54,6 +54,8 @@ void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager) {
 	handler->ai_tick = 0;
 
 	EntGridInit(handler);
+	handler->checkpoint_list = (CheckPointList) {0}; 
+	handler->checkpoint_list.active = -1;
 
 	handler->effect_manager = effect_manager;
 
@@ -62,15 +64,6 @@ void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager) {
 }
 
 void EntHandlerClose(EntityHandler *handler) {
-	for(u16 i = 0; i < handler->count; i++) {
-		for(u16 j = 0; j < handler->ents[i].anim_count; j++)
-			if(IsModelAnimationValid(handler->ents[i].model, handler->ents[i].animations[j]))
-				UnloadModelAnimation(handler->ents[i].animations[j]);
-
-		if(IsModelValid(handler->ents[i].model))
-			UnloadModel(handler->ents[i].model);
-	}
-
 	if(handler->ents) 
 		free(handler->ents);
 
@@ -83,10 +76,11 @@ void EntHandlerClose(EntityHandler *handler) {
 	if(handler->grid.cells)
 		free(handler->grid.cells);
 
-	for(int i = 0; i < 16; i++) {
-		UnloadModel(handler->base_ent_models[i]);
-		UnloadModelAnimations(base_ent_anims[i], base_ent_anims[i]->frameCount);
-	}
+	if(handler->checkpoint_list.points)
+		free(handler->checkpoint_list.points);
+
+	if(handler->checkpoint_list.cells)
+		free(handler->checkpoint_list.cells);
 }
 
 // **
@@ -289,6 +283,13 @@ void RenderEntities(EntityHandler *handler, float dt) {
 			continue;
 
 		DrawBoundingBox(cell->aabb, PURPLE);
+	}
+	*/
+
+
+	/*
+	for(int i = 0; i < handler->checkpoint_list.count; i++) {
+		DrawSphere(handler->checkpoint_list.points[i], 10, YELLOW);
 	}
 	*/
 }
@@ -1857,6 +1858,9 @@ void ReloadEntities(EntityHandler *handler, MapSection *sect) {
 
 	for(u16 i = 0; i < handler->spawn_list.count; i++) 
 		ProcessEntity(&handler->spawn_list.arr[i], handler, NULL);
+
+	if(handler->checkpoint_list.active > -1)
+		handler->player_start = handler->checkpoint_list.points[handler->checkpoint_list.active];
 
 	SpawnPlayer(&handler->ents[handler->player_id], handler->player_start);
 	handler->ents[handler->bug_id].comp_ai.state = 0;	

@@ -2060,6 +2060,16 @@
 }
 // entity 7
 {
+"classname" "checkpoint"
+"origin" "112 16 40"
+}
+// entity 8
+{
+"classname" "checkpoint"
+"origin" "1008 288 168"
+}
+// entity 9
+{
 "classname" "func_group"
 "_tb_type" "_tb_layer"
 "_tb_name" "NavLayer"

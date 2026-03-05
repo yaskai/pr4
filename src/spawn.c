@@ -12,7 +12,7 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 	if(nav_graph) {
 		if(!strcmp(spawn_point->tag, "nav_node")) {
 			if(nav_graph->node_count + 1 >= nav_graph->node_cap) {
-				nav_graph->node_cap = nav_graph->node_cap << 1;
+				nav_graph->node_cap = (nav_graph->node_cap << 1);
 				nav_graph->nodes = realloc(nav_graph->nodes, sizeof(NavNode) * nav_graph->node_cap);
 			}
 
@@ -27,6 +27,25 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 
 			return;
 		}
+	}
+
+	if(!strcmp(spawn_point->tag, "checkpoint")) {
+		if(handler->checkpoint_list.count + 1 >= handler->checkpoint_list.capacity) {
+
+			if(handler->checkpoint_list.capacity <= 0) {
+				handler->checkpoint_list.capacity = 2;
+				handler->checkpoint_list.points = malloc(sizeof(Vector3) * 2);
+				handler->checkpoint_list.cells = malloc(sizeof(u16) * 2);
+
+			} else {
+				handler->checkpoint_list.capacity = (handler->checkpoint_list.capacity << 1);
+				handler->checkpoint_list.points = realloc(handler->checkpoint_list.points, sizeof(Vector3) * handler->checkpoint_list.capacity);	
+				handler->checkpoint_list.cells = realloc(handler->checkpoint_list.cells, sizeof(u16) * handler->checkpoint_list.capacity);	
+			}
+
+		}
+
+		handler->checkpoint_list.points[handler->checkpoint_list.count++] = spawn_point->position;
 	}
 
 	if(!strcmp(spawn_point->tag, "info_player_start")) {
@@ -49,7 +68,7 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 		return;
 	}
 
-	if(!spawn_point->ent_type)
+	if(spawn_point->ent_type <= 0)
 		return;
 
 	handler->ents[handler->count] = SpawnEntity(spawn_point, handler);
@@ -59,13 +78,6 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 	Entity ent = (Entity) { .id = handler->count, .cell_id = -1 };
 
 	ent.comp_transform.position = spawn_point->position;
-
-	/*
-	ent.comp_transform.forward.x = sinf(-spawn_point->angle * DEG2RAD);
-	ent.comp_transform.forward.y = 0;
-	ent.comp_transform.forward.z = -cosf(-spawn_point->angle * DEG2RAD);
-	ent.comp_transform.forward = Vector3Normalize(ent.comp_transform.forward);
-	*/
 
 	ent.comp_transform.start_angle = spawn_point->angle;
 	float rad = (-spawn_point->angle) * DEG2RAD;
@@ -104,9 +116,6 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_health.hit_box = ent.comp_transform.bounds;
 
 			float angle = atan2f(ent.comp_transform.forward.z, ent.comp_transform.forward.x);
-			//ent.model.transform = MatrixRotateY(-(angle+90)*DEG2RAD);
-			//ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateX(90*DEG2RAD));
-
 			ent.model.transform = MatrixRotateX(90*DEG2RAD);
 			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateZ(-spawn_point->angle*DEG2RAD));
 
@@ -133,11 +142,8 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 
 		case ENT_MAINTAINER: {
 			ent.model = handler->base_ent_models[ENT_MAINTAINER];
-			//ent.model = LoadModelFromMesh(base_ent_models[ENT_MAINTAINER].meshes[0]);
-			//ent.animations = handler->base_ent_anims[ENT_MAINTAINER];
 
 			ent.curr_anim = 0;
-			//ent.anim_frame = GetRandomValue(0, 200);
 
 			ent.comp_transform.position.z += 20;
 
@@ -145,9 +151,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 			ent.comp_transform.bounds = BoxTranslate(ent.comp_transform.bounds, ent.comp_transform.position);
 			
-			//float angle = atan2f(ent.comp_transform.forward.x, ent.comp_transform.forward.z);
 			float angle = (spawn_point->angle-90) * DEG2RAD;
-			//ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateY(angle+90*DEG2RAD));
 			ent.model.transform = MatrixRotateX(90*DEG2RAD);
 			ent.model.transform = MatrixMultiply(ent.model.transform, MatrixRotateZ(angle));
 
@@ -171,8 +175,6 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			// * NOTE:
 			// Modify later as needed
 			ent.comp_health.hit_box = ent.comp_transform.bounds;
-			
-			//ent.comp_ai.wish_dir = (Vector3) { -1, 0, 0 };
 
 		} break;
 

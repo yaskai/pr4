@@ -6,7 +6,7 @@
 #include "pm.h"
 #include "kbsp.h"
 
-#define BUG_MAX_BOUNCES 8
+#define BUG_MAX_BOUNCES 10
 #define BUG_MAX_VEL 500.0f
 #define BUG_GRAV	970.0f
 

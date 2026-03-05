@@ -66,6 +66,8 @@ Vector3 debug_vel_clipped;
 bool player_dead = false;
 float death_timer = 0;
 
+i16 player_curr_checkpoint = -1;
+
 // **
 // -----------------------------------------------------------------------------
 
@@ -368,6 +370,14 @@ void pm_Move(Entity *ent, comp_Transform *ct, InputHandler *input, EntityHandler
 	last_pm = pm;
 
 	ct->on_ground = pm_CheckGround(ct, ct->position);
+
+	for(u16 i = 0; i < handler->checkpoint_list.count; i++) {
+		if(CheckCollisionSpheres(handler->checkpoint_list.points[i], 128, ct->position, 32)) {
+			player_curr_checkpoint = i;
+			handler->checkpoint_list.active = player_curr_checkpoint;
+			break;
+		}
+	}
 }
 
 Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
@@ -878,7 +888,8 @@ void PlayerDebugText(Entity *player) {
 	DrawText(TextFormat("ground_norm: { %f, %f, %f }", ct->ground_normal.x, ct->ground_normal.y, ct->ground_normal.z), 16, 930, 24, RAYWHITE);
 	DrawText(TextFormat("cell_id: %d", player->cell_id), 16, 960, 24, RAYWHITE);
 	DrawText(TextFormat("graph_id: %d", player->comp_ai.navgraph_id), 16, 990, 24, RAYWHITE);
-	DrawText(TextFormat("in hull norm: { %f, %f, %f }", dbg_hull_norm.x, dbg_hull_norm.y, dbg_hull_norm.z), 16, 1020, 24, RAYWHITE);
+	DrawText(TextFormat("checkpoint: %d", player_curr_checkpoint), 16, 1020, 24, RAYWHITE);
+	//DrawText(TextFormat("in hull norm: { %f, %f, %f }", dbg_hull_norm.x, dbg_hull_norm.y, dbg_hull_norm.z), 16, 1020, 24, RAYWHITE);
 }
 
 void pm_AirFriction(comp_Transform *ct, float dt) {

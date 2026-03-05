@@ -131,3 +131,20 @@ ___
 *** (-) integration with config file
 
 ___
+* Visual Effects
+
+** (-) bullet trails
+*** (x) turret 
+*** (-) player guns
+
+** (-) bullet hole decals
+*** (x) struct 
+*** (x) manager
+*** (-) rendering 
+
+** (-) bullet impact particles 
+*** (-) struct 
+*** (-) manager
+*** (-) rendering
+
+___

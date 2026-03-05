@@ -1,0 +1,133 @@
+___
+* Collision Detection & Response
+
+** (x) static level geometry
+** (-) stair stepping 
+** (x) with enemies
+** (-) dynamic level geometry
+** (-) surface/entity collision flags
+** (x) bullet tracing 
+** (x) physical projectile collision
+
+___
+* Checkpoints
+** (x) basic 
+** with save data
+
+___
+* Bug Mechanics
+
+** (x) throw
+** (x) bounce
+** (-) recall (just needs a key bind & logic boundaries)
+** (x) death/cooldown
+
+___
+* Guns
+
+** (-) pistol
+*** (-) model
+*** (-) textures
+*** (x) recoil animation
+*** (-) reload animation
+
+** (-) shotgun
+*** (-) model
+*** (-) textures
+*** (-) recoil animation
+*** (-) reload animation
+
+** (x) revolver 
+*** (x) model
+*** (-) textures
+*** (x) recoil animation
+*** (-) reload animation
+
+** (-) ammo system
+*** (-) pickups
+*** (-) reload mechanic
+
+** (-) camera effects
+*** (-) sway when moving
+*** (-) recoil rotation
+
+___
+* Environment Interactions
+
+** gates & switches
+** force fields
+** breakable boxes
+
+___
+* Audio 
+
+** basic
+** spatial
+** ambient
+
+___
+* BSP Rendering
+
+** (-) Basic: 
+*** (-) mesh generation
+*** (-) texture mapping 
+
+** (-) Lit:
+*** (x) TrenchBroom .fgd setup for lights
+*** (-) import .lit file 
+*** (-) bsp face texture atlas generation
+*** (-) lighting manager/wrapper
+*** (-) write lighting shader
+
+** (-) Optimized:
+*** (-) import .vis file
+*** (-) use portalizer for mesh render list
+
+___
+* UI
+
+** (x) hp counter
+** ammo/clip counter
+** diegetic elements for Bug
+
+___
+* AI
+
+** (-) Cleanup
+*** (-) use interrupt mask properly
+*** (-) move ai functions out of ent.c
+
+** (-) Inputs
+*** (x) see player 
+*** (-) hear player
+*** (x) see disrupted entity
+
+** (-) Navigation
+*** (x) A* pathing
+*** (x) simple graphs & nodes setup
+*** (-) switch to navmesh
+
+** (x) turret behaviour: 
+*** (x) idle 
+*** (x) target player
+*** (x) glitch & power down
+
+** (-) maintainer behaviour
+*** (x) idle
+*** (x) attack (throw projectile)
+*** (-) attack (go to & pickup projectile)
+*** (-) fix disrupted entities (*_navigation system is blocker_*)
+*** (-) disrupted (*_design is blocker_*)
+
+___
+* Menus
+
+** (-) Main Menu
+
+** (-) Pause Menu
+
+** (-) Options Menu
+*** (-) UI layout
+*** (-) integration with config file
+
+___

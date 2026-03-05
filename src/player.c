@@ -372,7 +372,7 @@ void pm_Move(Entity *ent, comp_Transform *ct, InputHandler *input, EntityHandler
 	ct->on_ground = pm_CheckGround(ct, ct->position);
 
 	for(u16 i = 0; i < handler->checkpoint_list.count; i++) {
-		if(CheckCollisionSpheres(handler->checkpoint_list.points[i], 128, ct->position, 32)) {
+		if(ent->cell_id == handler->checkpoint_list.cells[i]) {
 			player_curr_checkpoint = i;
 			handler->checkpoint_list.active = player_curr_checkpoint;
 			break;

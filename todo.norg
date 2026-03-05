@@ -1,5 +1,5 @@
 ___
-* Collision Detection & Response
+* *Collision Detection & Response*
 
 ** (x) static level geometry
 ** (-) stair stepping 
@@ -9,13 +9,19 @@ ___
 ** (x) bullet tracing 
 ** (x) physical projectile collision
 
-___
-* Checkpoints
-** (x) basic 
-** with save data
+** (x) acceleration structures
+*** (x) bvh
+*** (x) clip bsp
+*** (x) static grid
 
 ___
-* Bug Mechanics
+* *Checkpoints*
+
+** (x) basic 
+** with save data (*_serialization is blocker_*)
+
+___
+* *Bug Mechanics*
 
 ** (x) throw
 ** (x) bounce
@@ -23,7 +29,7 @@ ___
 ** (x) death/cooldown
 
 ___
-* Guns
+* *Guns*
 
 ** (-) pistol
 *** (-) model
@@ -52,21 +58,21 @@ ___
 *** (-) recoil rotation
 
 ___
-* Environment Interactions
+* *Environment Interactions*
 
 ** gates & switches
 ** force fields
 ** breakable boxes
 
 ___
-* Audio 
+* *Audio*
 
 ** basic
 ** spatial
 ** ambient
 
 ___
-* BSP Rendering
+* *BSP Rendering*
 
 ** (-) Basic: 
 *** (-) mesh generation
@@ -84,14 +90,14 @@ ___
 *** (-) use portalizer for mesh render list
 
 ___
-* UI
+* *UI*
 
 ** (x) hp counter
 ** ammo/clip counter
 ** diegetic elements for Bug
 
 ___
-* AI
+* *AI*
 
 ** (-) Cleanup
 *** (-) use interrupt mask properly
@@ -120,7 +126,7 @@ ___
 *** (-) disrupted (*_design is blocker_*)
 
 ___
-* Menus
+* *Menus*
 
 ** (-) Main Menu
 
@@ -131,7 +137,7 @@ ___
 *** (-) integration with config file
 
 ___
-* Visual Effects
+* *Visual Effects*
 
 ** (-) bullet trails
 *** (x) turret 
@@ -146,5 +152,30 @@ ___
 *** (-) struct 
 *** (-) manager
 *** (-) rendering
+
+** player damage visual feedback
+
+** enemy damage feedback
+
+** enemy disruption feedback
+
+___
+* *Animation*
+
+  ## !!! Choose Method !!! ##
+
+   options are:
+   - vertex frames (possibly with interpolation)
+   - gpu skinning
+   - procedural through FABRIK
+
+___
+* *Other*
+
+** text box objects (for use in alpha to explain certain missing planned features)
+
+** game state serialization
+
+** iterative map section loading 
 
 ___

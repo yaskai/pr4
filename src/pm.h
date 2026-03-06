@@ -75,7 +75,7 @@ int pm_NudgePositionEx(comp_Transform *ct, u16 node_id);
 
 void pm_AirFriction(comp_Transform *ct, float dt);
 
-#define PM_STEP_Z 14.0f
+#define PM_STEP_Z 16.0f
 
 #define BLOCK_GROUND 	0x01
 #define BLOCK_STEP	 	0x02

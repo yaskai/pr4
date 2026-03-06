@@ -183,11 +183,12 @@ void PlayerUpdate(Entity *player, float dt) {
 	ptr_cam->position.x = player->comp_transform.position.x;
 	ptr_cam->position.y = player->comp_transform.position.y;
 
-	if(!step_frame)
-		ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 100);
-	else {
-		ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 30);
-		if(fabsf(ptr_cam->position.z - (player->comp_transform.position.z + 12)) <= 0.01f) 
+	if(!step_frame) {
+		//ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 100);
+		ptr_cam->position.z = player->comp_transform.position.z + 12;
+	} else {
+		ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 17.5f);
+		if(fabsf(ptr_cam->position.z - (player->comp_transform.position.z + 12)) <= 0.55f) 
 			step_frame = false;
 	}
 
@@ -808,7 +809,10 @@ void cam_Adjust(comp_Transform *ct, float dt) {
 	// * NOTE:
 	// okay for now...
 	float bob_input = (cam_input_forward + (cam_input_side * 0.5f));
-	float bob_targ = (2 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
+	if(step_frame)
+		bob_input *= 0.1f;
+
+	float bob_targ = (5 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
 	cam_bob = Lerp(cam_bob, bob_targ, dt * 10);
 	
 	float tilt_input = cam_input_side * 0.1f;

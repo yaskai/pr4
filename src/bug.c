@@ -6,9 +6,9 @@
 #include "pm.h"
 #include "kbsp.h"
 
-#define BUG_MAX_BOUNCES 10
-#define BUG_MAX_VEL 500.0f
-#define BUG_GRAV	970.0f
+#define BUG_MAX_BOUNCES 	10
+#define BUG_MAX_VEL 		500.0f
+#define BUG_GRAV			975.0f
 
 u8 bug_bounce = 0;
 float launch_timer = 0;
@@ -112,23 +112,6 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 		*bounce = 0;
 		*bounce = 0;
 	}
-
-	/*
-	Vector3 to_enemy = Vector3Subtract(enemy_ent->comp_transform.position, ct->position);	
-	Vector3 to_bug = Vector3Subtract(ct->position, enemy_ent->comp_transform.position);	
-	float ndot = Vector3DotProduct(Vector3Normalize(enemy_ent->comp_transform.velocity), to_bug);
-	*/
-	
-	/*
-	if(ndot < 0) {
-		to_enemy = Vector3Subtract(
-			Vector3Add(
-				Vector3Add(enemy_ent->comp_transform.position, enemy_ent->comp_health.bug_point),
-				Vector3Scale(enemy_ent->comp_transform.velocity, 1)),
-			ct->position
-		);	
-	}
-	*/
 
 	Vector3 to_enemy = Vector3Subtract( enemy_ent->comp_transform.position, ct->position );	
 	float d = Vector3Length(to_enemy);

@@ -636,7 +636,7 @@ void BuildNavGraph(MapSection *sect) {
 	SubdivideNavGraph(sect, navgraph);
 }
 
-#define MAX_EDGE_LENGTH (64.0f*64.0f)
+#define MAX_EDGE_LENGTH (128.0f*128.0f)
 void BuildNavEdges(NavGraph *navgraph) {
 	navgraph->edge_count = 0;
 	navgraph->edge_cap = 128;

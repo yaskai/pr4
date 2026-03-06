@@ -33,7 +33,7 @@ float z_vel_prev;
 
 short nudged_this_frame = 0;
 
-#define PLAYER_FRICTION 14.25f 
+#define PLAYER_FRICTION 11.25f 
 #define PLAYER_AIR_FRICTION 0.75f
 #define PLAYER_HURT_FRICTION 40.0f
 
@@ -67,6 +67,8 @@ bool player_dead = false;
 float death_timer = 0;
 
 i16 player_curr_checkpoint = -1;
+
+bool step_frame = false;
 
 // **
 // -----------------------------------------------------------------------------
@@ -133,11 +135,6 @@ void pm_TraceMoveEx(Entity *ent, Vector3 start, Vector3 wish_vel, pmTraceData *p
 		if(fraction >= 1.0f) 
 			break;
 
-		if(use_ent) {
-			fraction -= 0.01f;
-			if(fraction < 0) fraction = 0;
-		}
-
 		// Add clip plane
 		if(num_clips < MAX_CLIPS) {
 			clips[num_clips] = (use_ent) ? ent_tr.normal : (Vector3) { tr.plane.normal[0], tr.plane.normal[1], tr.plane.normal[2] }; 
@@ -150,18 +147,19 @@ void pm_TraceMoveEx(Entity *ent, Vector3 start, Vector3 wish_vel, pmTraceData *p
 			float into = Vector3DotProduct(vel, clips[j]);
 
 			if(into < 0) {
-				pm_ClipVelocity(vel, clips[j], &vel, 1.0005f, pm->block);
+				u8 block = pm_ClipVelocity(vel, clips[j], &vel, 1.005f, pm->block);
+				pm->block |= block;
 			}
 		}
-
-		// Add small offset to prevent tunneling through surfaces
-		//dest = Vector3Add(dest, Vector3Scale(tr.normal, 0.1f)); 
 
 		// Update remaining time
 		t_remain *= (1 - fraction);
 	}
 
+
 	pm->move_dist = Vector3Distance(start, dest);
+	pm->fraction = (pm->move_dist / Vector3Length(wish_vel));
+
 	pm->end_vel = vel;
 	pm->end_pos = dest;
 
@@ -178,6 +176,23 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 }
 
 void PlayerUpdate(Entity *player, float dt) {
+	// Update camera
+	//if(!player_dead)
+		//cam_Adjust(&player->comp_transform, dt);
+
+	ptr_cam->position.x = player->comp_transform.position.x;
+	ptr_cam->position.y = player->comp_transform.position.y;
+
+	if(!step_frame)
+		ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 100);
+	else {
+		ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 30);
+		if(fabsf(ptr_cam->position.z - (player->comp_transform.position.z + 12)) <= 0.01f) 
+			step_frame = false;
+	}
+
+	cam_Adjust(&player->comp_transform, dt);
+
 	player_dead = (player->comp_health.amount <= 0);
 	if(player_dead)	{
 		player->comp_ai.state = STATE_DEAD;
@@ -199,10 +214,6 @@ void PlayerUpdate(Entity *player, float dt) {
 		//printf("land frame!\n");
 		if(z_vel_prev < -FALLDAMAGE_THRESHOLD) player->comp_health.amount -= (short)(z_vel_prev * FALLDAMAGE_MULTIPLIER);
 	}
-
-	// Update camera
-	if(!player_dead)
-		cam_Adjust(&player->comp_transform, dt);
 
 	player->comp_health.damage_cooldown -= dt;
 }
@@ -315,55 +326,17 @@ void pm_Move(Entity *ent, comp_Transform *ct, InputHandler *input, EntityHandler
 	// 6. Movement tracing 
 	pmTraceData pm = (pmTraceData) {0};
 	//pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
-	pm_TraceMoveEx(ent, ct->position, ct->velocity, &pm, dt, handler);
-
-	// Step trace
-	//if(ct->on_ground)
-		//pm_GroundMove(ct, (Vector3) {pm.end_pos.x, pm.origin.y, pm.end_pos.z}, &pm, dt, wish_vel);
-	/*
-	if(ct->on_ground && fabsf(ct->velocity.y) < EPSILON) {
-		float xz_dist_base = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm.end_pos));
-
-		// Step up
-		Vector3 step_up_start = ct->position;
-		step_up_start.y += PM_STEP_Y;
-
-		// Trace up
-		pmTraceData pm_step_up;	
-		pm_TraceMove(ct, step_up_start, ct->velocity, &pm_step_up, dt);
-
-		// Measure distance up
-		float xz_dist_up = Vector2Distance(FlatVec2(step_up_start), FlatVec2(pm_step_up.end_pos));	
-
-		// Use step up trace position if further than base trace
-		if(xz_dist_up > xz_dist_base) {
-			//pm = pm_step_up;
-		}
-	}
-	*/
+	//pm_TraceMoveEx(ent, ct->position, ct->velocity, &pm, dt, handler);
+	if(ct->ground_normal.z == 1.0f) 
+		pm_GroundMove(ent, ct, ct->position, &pm, dt, (Vector3) { ct->velocity.x, ct->velocity.y, ct->velocity.z }, handler);
+	else 
+		pm_TraceMoveEx(ent, ct->position, ct->velocity, &pm, dt, handler);
 
 	debug_vel_full = ct->velocity;
 	debug_vel_clipped = pm.end_vel;
 
 	ct->velocity = pm.end_vel;
 	ct->position = pm.end_pos;
-
-	/*
-	if(pm.start_in_solid > -1) {
-		ct->velocity = Vector3Subtract(ct->last_safe_pos, ct->position);
-		ct->position = ct->last_safe_pos;
-		puts("correction");
-	} else if(pm.end_in_solid > -1) {
-		ct->velocity = Vector3Subtract(ct->last_safe_pos, ct->position);
-		ct->position = ct->last_safe_pos;
-		puts("correction");
-	} else if (pm.start_in_solid > -1 && pm.end_in_solid > -1) {
-		ct->velocity = Vector3Subtract(ct->last_safe_pos, ct->position);
-		ct->position = ct->last_safe_pos;
-		puts("correction");
-	} else
-		ct->last_safe_pos = ct->position;
-	*/
 
 	land_frame = (ct->on_ground == 1 && last_pm.start_vel.z <= -600);
 	z_vel_prev = last_pm.start_vel.z;
@@ -378,6 +351,7 @@ void pm_Move(Entity *ent, comp_Transform *ct, InputHandler *input, EntityHandler
 			break;
 		}
 	}
+
 }
 
 Vector3 pm_GetWishDir(comp_Transform *ct, InputHandler *input) {
@@ -517,7 +491,7 @@ void pm_Accelerate(comp_Transform *ct, Vector3 wish_dir, float wish_speed, float
 #define PLAYER_GRAV 980.0f
 void pm_ApplyGravity(comp_Transform *ct, float dt) {
 	if(ct->on_ground) {
-		//ct->velocity.y = 0;
+		//ct->velocity.z = 0;
 		return;
 	}
 	ct->velocity.z -= (PLAYER_GRAV * dt); 
@@ -599,116 +573,88 @@ void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceDa
 	memcpy(pm->clips, clips, sizeof(Vector3) * num_clips);
 }
 
-void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel) {
-	/*
-	if(pm->fraction == 1.0f) {
+void pm_GroundMove(Entity *ent, comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel, EntityHandler *handler) {
+	// First try moving to destination
+	pmTraceData base_pm = (pmTraceData) { .end_in_solid = -1, .start_in_solid = -1, .origin = start, .clip_count = 0 };
+	pm_TraceMoveEx(ent, start, wish_vel, &base_pm, dt, handler);
+
+	*pm = base_pm;
+
+	if(base_pm.fraction >= 1.0f) {
 		return;
 	}
 
-	Vector3 horizontal_vel = (Vector3) { ct->velocity.x, 0, ct->velocity.z };
-	horizontal_vel = Vector3Scale(horizontal_vel, dt);
-
-	Ray wall_ray = (Ray) { .position = ct->position, .direction = Vector3Normalize(horizontal_vel) };
-	BvhTraceData tr = TraceDataEmpty();
-	BvhTracePointEx(wall_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr, Vector3Length(horizontal_vel));
-	if(!tr.hit || tr.normal.y > 0) {
+	if(!(base_pm.block & BLOCK_STEP))
 		return;
-	}
 
-	float base_dist_xz = Vector2Distance(FlatVec2(ct->position), FlatVec2(pm->end_pos));
-	Vector3 base_dest = pm->end_pos;
-
-	Vector3 step_start = ct->position;
-	step_start.y += PM_STEP_Y;
-
-	pmTraceData pm_step;
-	Vector3 vel_temp = ct->velocity;
-	//vel_temp.y = 0;
-	pm_TraceMove(ct, step_start, wish_vel, &pm_step, dt);
-
-	Ray down_ray = (Ray) { .position = pm_step.end_pos, .direction = DOWN };
-	tr = TraceDataEmpty();
-	BvhTracePointEx(down_ray, ptr_sect, &ptr_sect->bvh[1], 0, &tr, PM_STEP_Y);
-
-	// ** NOTE: 
-	// FIX THIS LATER!
-	// * Do three traces for [up ^], [horizontal ->], [down V] !! * 
-	float step_dist_xz = Vector2Distance(FlatVec2(step_start), FlatVec2(pm_step.end_pos));
-	if(step_dist_xz > base_dist_xz && tr.hit) {
-		//pm->end_pos = pm_step.end_pos;
-
-		//pm_step.end_vel.x = wish_vel.x + (wish_vel.x * pm_step.fraction * dt); 
-		//pm_step.end_vel.z = wish_vel.z + (wish_vel.z * pm_step.fraction * dt);
-
-		Vector3 step_down = Vector3Subtract((Vector3){pm_step.end_pos.x, pm->end_pos.y, pm_step.end_pos.z}, pm_step.end_pos);
-		step_down = Vector3Scale(step_down, Vector3Length(wish_vel) - (1.0f - pm_step.fraction));
-
-		pm->end_vel = pm_step.end_vel;
-		pm_TraceMove(ct, pm_step.end_pos, Vector3Add(pm_step.end_vel, step_down), pm, dt);
-	}
-	*/
-
-	if(ct->ground_normal.y < 1.0f) return;
-
-	pmTraceData base = *pm;
-
-	// Base trace moved full distance, no stepping needed
-	if(base.fraction >= 1.0f) {
+	if(Vector3Length( (Vector3) { wish_vel.x, wish_vel.y, 0 } ) <= 0)
 		return;
-	}
 
-	wish_vel.z = 0;
-
-	// Check for wall block
-	Ray wall_ray = (Ray) { .position = start, .direction = Vector3Normalize(wish_vel) }; 
-	BvhTraceData tr = TraceDataEmpty();
-	BvhTracePointEx(wall_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, Vector3Length(wish_vel));
-	// No wall, step invalid, exit...
-	if(!tr.hit || tr.normal.y > 0) {
-		return;
-	}
-
-	// Store base movement
-	Vector3 base_pos = pm->end_pos;
-	Vector3 base_vel = pm->end_vel;
-
-	// Step up
-	Vector3 step_start = start;
+	// Move up stair height
+	Vector3 step_start = start; 
 	step_start.z += PM_STEP_Z;
-	
-	pmTraceData step_up;
-	pm_TraceMove(ct, step_start, wish_vel, &step_up, dt);
 
-	// Check for ground
-	Ray ground_ray = (Ray) { .position = step_up.end_pos, .direction = DOWN };
-	tr = TraceDataEmpty();
-	BvhTracePointEx(ground_ray, ptr_sect, &ptr_sect->bvh[BVH_BOX_MED], 0, &tr, PM_STEP_Z + GROUND_EPS);
-	// No ground below trace, exit
-	if(!tr.hit || tr.normal.y < 1.0f) {
+	pmTraceData step_pm = (pmTraceData) { .end_in_solid = -1, .start_in_solid = -1, .origin = step_start, .clip_count = 0 };	
+	pm_TraceMoveEx(ent, step_start, (Vector3) { wish_vel.x, wish_vel.y, 0 }, &step_pm, dt, handler);
+
+	float dist_base = Vector2Distance( (Vector2) { base_pm.origin.x, base_pm.origin.y }, (Vector2) { base_pm.end_pos.x, base_pm.end_pos.y } );
+	float dist_step = Vector2Distance( (Vector2) { base_pm.origin.x, base_pm.origin.y }, (Vector2) { step_pm.end_pos.x, step_pm.end_pos.y } );
+
+	Bsp_TraceData tr = Bsp_TraceDataEmpty();
+	Bsp_RecursiveTraceEx(
+		&ptr_sect->bsp[1],
+		ptr_sect->bsp[1].first_node,
+		0,
+		1,
+		step_pm.end_pos,
+		Vector3Add(base_pm.end_pos, Vector3Scale(DOWN, 1)), 
+		&tr
+	);
+
+	bool use_step = (dist_step > dist_base) && tr.plane.normal[2] >= 1.0f;
+	if(!use_step) {
 		return;
 	}
+	step_frame = true;
 
-	Vector3 step_pos = step_up.end_pos;
-	//step_pos.y += tr.distance;
+	// Press step down
+	Vector3 down_vel = Vector3Scale(DOWN, PM_STEP_Z);
+	
+	pmTraceData down_pm = (pmTraceData) { .end_in_solid = -1, .start_in_solid = -1, .origin = step_pm.end_pos, .clip_count = 0 };	
+	pm_TraceMoveEx(ent, down_pm.origin, down_vel, &down_pm, 1, handler);
 
-	float base_xz = 
-		Vector2Distance(FlatVec2(start), FlatVec2(base_pos));
+	float down_dist = Vector2Distance( (Vector2) { base_pm.origin.x, base_pm.origin.y }, (Vector2) { down_pm.end_pos.x, down_pm.end_pos.y } );
 
-	float step_xz = Vector2Distance(FlatVec2(start), FlatVec2(step_pos));
+	tr = Bsp_TraceDataEmpty();
+	Bsp_RecursiveTraceEx(
+		&ptr_sect->bsp[1],
+		ptr_sect->bsp[1].first_node,
+		0,
+		1,
+		step_pm.end_pos,
+		Vector3Add(down_pm.end_pos, Vector3Scale(DOWN, 1)), 
+		&tr
+	);
 
-	if(step_xz <= base_xz)
-		return;
+	bool use_down = false;
+	if(down_pm.block & BLOCK_GROUND && down_dist > dist_base)
+		use_down = true;
 
-	base.end_pos = step_pos;
-	base.end_vel = step_up.end_vel;
+	if(use_down) {
+		step_pm.end_pos.z = down_pm.end_pos.z;
 
-	*pm = base;
+	} else { 
+		step_pm.end_vel.z += down_vel.z;
+
+	}
+
+	*pm = step_pm;
 }
 
 u8 pm_ClipVelocity(Vector3 in, Vector3 normal, Vector3 *out, float bounce, u8 blocked) {
-	if(normal.z >= FLOOR_NORMAL_Z)  	// Floor
+	if(normal.z >= FLOOR_NORMAL_Z)  			// Floor
 		blocked |= BLOCK_GROUND;		
-	else if(fabsf(normal.z) <= 0.01f)	// Wall or step
+	else if(fabsf(normal.z) < 0.01f)			// Wall or step
 		blocked |= BLOCK_STEP; 		
 
 	float backoff = Vector3DotProduct(in, normal) * bounce;
@@ -843,8 +789,18 @@ int pm_CheckHullEx(Vector3 point, u16 node_id) {
 
 #define TILT_MAX 0.1f
 void cam_Adjust(comp_Transform *ct, float dt) {
-	ptr_cam->position = Vector3Add(ct->position, Vector3Scale(UP, 12.0f));
-	ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
+	Vector3 pos_target = Vector3Add(ct->position, Vector3Scale(UP, 12.0f));
+
+	/*
+	ptr_cam->position.x = pos_target.x;
+	ptr_cam->position.y = pos_target.y;
+	ptr_cam->position.z = Lerp(ptr_cam->position.z, pos_target.z, 40*dt);
+	//if(fabsf(ct->position.z - ct->prev_pos.z) < 0.1f)
+	if((pos_target.z - ptr_cam->position.z) <= EPSILON || ct->position.z - ct->prev_pos.z <= EPSILON)
+		ptr_cam->position.z = pos_target.z;
+	*/
+
+	//ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
 
 	// Apply camera motion effects (bob, tilt) 
 	float t = GetTime();
@@ -852,11 +808,11 @@ void cam_Adjust(comp_Transform *ct, float dt) {
 	// * NOTE:
 	// okay for now...
 	float bob_input = (cam_input_forward + (cam_input_side * 0.5f));
-	float bob_targ = (5 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
+	float bob_targ = (2 * bob_input * sinf(t * 13 + (cam_input_forward)) + 1);	
 	cam_bob = Lerp(cam_bob, bob_targ, dt * 10);
 	
 	float tilt_input = cam_input_side * 0.1f;
-	tilt_input = Clamp(tilt_input, -0.028f, 0.028f);
+	tilt_input = Clamp(tilt_input, -0.031f, 0.031f);
 	Vector3 tilt_targ = UP;
 
 	if(land_frame) {

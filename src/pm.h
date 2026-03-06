@@ -64,7 +64,7 @@ void pm_GroundFriction(comp_Transform *ct, float dt);
 
 void pm_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt);
 
-void pm_GroundMove(comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel);
+void pm_GroundMove(Entity *ent, comp_Transform *ct, Vector3 start, pmTraceData *pm, float dt, Vector3 wish_vel, EntityHandler *handler);
 
 int pm_CheckHull(Vector3 point, u16 hull_id);
 
@@ -75,7 +75,7 @@ int pm_NudgePositionEx(comp_Transform *ct, u16 node_id);
 
 void pm_AirFriction(comp_Transform *ct, float dt);
 
-#define PM_STEP_Z 18.0f
+#define PM_STEP_Z 14.0f
 
 #define BLOCK_GROUND 	0x01
 #define BLOCK_STEP	 	0x02

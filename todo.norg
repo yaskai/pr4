@@ -2,7 +2,7 @@ ___
 * *Collision Detection & Response*
 
 ** (x) static level geometry
-** (-) stair stepping 
+** (x) stair stepping 
 ** (x) with enemies
 ** (-) dynamic level geometry
 ** (-) surface/entity collision flags

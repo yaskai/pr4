@@ -309,7 +309,7 @@ void pm_Move(Entity *ent, comp_Transform *ct, InputHandler *input, EntityHandler
 
 	//float wish_speed = PLAYER_SPEED;
 	float wish_speed = (ct->on_ground) ? PLAYER_GROUND_SPEED : PLAYER_AIR_SPEED;
-	if(hurt_frame) wish_speed *= 0.5f;
+	if(hurt_frame) wish_speed *= 0.33f;
 	if(wish_speed > PLAYER_MAX_SPEED) {
 		wish_speed = PLAYER_MAX_SPEED;
 	} 
@@ -907,7 +907,9 @@ void OnHitPlayer(Entity *ent, short damage) {
 	comp_Health *health = &ent->comp_health;
 	comp_Transform *ct = &ent->comp_transform;
 
-	health->amount -= damage; 
+	//health->amount -= damage; 
+	ct->velocity.x *= 0.5f;
+	ct->velocity.y *= 0.5f;
 	hurt_frame = true;
 }
 

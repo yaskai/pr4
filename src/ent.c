@@ -416,18 +416,23 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 38));
 
 	Vector3 dir = ct->forward;
-	float offset = GetRandomValue(-10, 10) * 0.001f;	
+	float offset = GetRandomValue(-5, 5) * 0.01f;	
 
 	Vector3 right = Vector3CrossProduct(ct->forward, UP);
 	dir = Vector3Add(dir, Vector3Scale(right, offset));
 
-	offset = GetRandomValue(-20, 20) * 0.001f;
+	offset = GetRandomValue(-5, 5) * 0.01f;
 	dir = Vector3Add(dir, Vector3Scale(UP, offset));
 
 	dir = Vector3Normalize(dir);
 
 	bool hit = false;
-	Vector3 bullet_dest = TraceBullet(handler, sect, trace_start, dir, ent->id, &hit);
+	// * NOTE:
+	// Change this from hardcoded to data specific when ammo clip system implemented.
+	// Purpose of the dummy value is to cause no dammage on the first few shots,
+	// gives the player a warning for fairness.
+	bool dummy = (ent->comp_weapon.ammo > 56);
+	Vector3 bullet_dest = TraceBullet(handler, sect, trace_start, dir, ent->id, &hit, dummy);
 
 	//Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
 	Vector3 trail_start = trace_start;
@@ -1049,7 +1054,7 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 	if(task->task_id == TASK_FIRE_WEAPON) {
 		if(ent->comp_weapon.ammo <= 0) {
 			task->task_id = TASK_RELOAD_WEAPON;
-			task->timer = 100.0f;
+			task->timer = 75.0f;
 			printf("reload start\n");
 		}
 		return;
@@ -1057,7 +1062,7 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 
 	if(task->task_id == TASK_RELOAD_WEAPON) {
 		if(task->timer <= 0) {
-			ent->comp_weapon.ammo = 40;
+			ent->comp_weapon.ammo = 60;
 			ent->comp_weapon.cooldown = 10.45f;
 			task->task_id = TASK_WAIT_TIME;
 			task->timer = 1.1f;
@@ -1097,7 +1102,7 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 
 		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
 			task->task_id = TASK_FIRE_WEAPON;
-			ent->comp_weapon.ammo = 40;
+			ent->comp_weapon.ammo = 60;
 			ent->comp_weapon.cooldown = 0.05f;
 		} else {
 			task->task_id = TASK_WAIT_TIME;
@@ -1315,7 +1320,7 @@ Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sende
 	return ent_hit_point;
 }
 
-Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 sender, bool *hit) {
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 sender, bool *hit, bool dummy) {
 	// Two steps: 
 	// 1. Trace surfaces of the level 
 	// 2. Trace Entities
@@ -1419,7 +1424,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 		ent_hit_id = -1;
 	}
 
-	if(*hit && ent_hit_id > -1) {
+	if(*hit && ent_hit_id > -1 && !dummy) {
 		Entity *hit_ent = &handler->ents[ent_hit_id];
 		OnHitEnt(hit_ent, handler->ents[sender].comp_weapon.damage);
 	}

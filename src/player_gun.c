@@ -282,7 +282,8 @@ void PlayerShootPistol(PlayerGun *player_gun, EntityHandler *handler, MapSection
 		trace_start,
 		dir,
 		handler->player_id,
-		&trace_hit
+		&trace_hit,
+		false
 	);
 
 	Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
@@ -318,7 +319,8 @@ void PlayerShootRevolver(PlayerGun *player_gun, EntityHandler *handler, MapSecti
 		trace_start,
 		ct->forward,
 		handler->player_id,
-		&trace_hit
+		&trace_hit,
+		false
 	);
 
 	Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));

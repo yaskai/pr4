@@ -329,7 +329,7 @@ EntTraceData EntTraceDataEmpty();
 
 Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sender, EntTraceData *trace_data);
 
-Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 sender, bool *hit);
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 sender, bool *hit, bool dummy);
 
 void DebugDrawEntText(EntityHandler *handler, Camera3D cam); 
 

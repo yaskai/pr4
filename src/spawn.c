@@ -131,7 +131,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 				.travel_type = WEAPON_TRAVEL_HITSCAN,
 				.id = WEAP_TURRET,
 				.cooldown = 1,
-				.damage = 10
+				.damage = 7
 			};
 
 			ent.comp_health.amount = 100;

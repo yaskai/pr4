@@ -33,7 +33,7 @@ float z_vel_prev;
 
 short nudged_this_frame = 0;
 
-#define PLAYER_FRICTION 11.25f 
+#define PLAYER_FRICTION 14.25f 
 #define PLAYER_AIR_FRICTION 0.75f
 #define PLAYER_HURT_FRICTION 40.0f
 
@@ -180,19 +180,8 @@ void PlayerUpdate(Entity *player, float dt) {
 	//if(!player_dead)
 		//cam_Adjust(&player->comp_transform, dt);
 
-	ptr_cam->position.x = player->comp_transform.position.x;
-	ptr_cam->position.y = player->comp_transform.position.y;
-
-	if(!step_frame) {
-		//ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 100);
-		ptr_cam->position.z = player->comp_transform.position.z + 12;
-	} else {
-		ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 17.5f);
-		if(fabsf(ptr_cam->position.z - (player->comp_transform.position.z + 12)) <= 0.55f) 
-			step_frame = false;
-	}
-
-	cam_Adjust(&player->comp_transform, dt);
+	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
+	land_frame = false;
 
 	player_dead = (player->comp_health.amount <= 0);
 	if(player_dead)	{
@@ -206,8 +195,20 @@ void PlayerUpdate(Entity *player, float dt) {
 		player->comp_ai.task_data.timer = death_timer;
 	}
 
-	player->comp_transform.bounds = BoxTranslate(player->comp_transform.bounds, player->comp_transform.position);
-	land_frame = false;
+	if(!player_dead) {
+		ptr_cam->position.x = player->comp_transform.position.x;
+		ptr_cam->position.y = player->comp_transform.position.y;
+
+		if(!step_frame) {
+			//ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 100);
+			ptr_cam->position.z = player->comp_transform.position.z + 12;
+		} else {
+			ptr_cam->position.z = Lerp(ptr_cam->position.z, player->comp_transform.position.z + 12, dt * 17.5f);
+			if(fabsf(ptr_cam->position.z - (player->comp_transform.position.z + 12)) <= 0.55f) 
+				step_frame = false;
+		}
+
+	}
 
 	// Update position + velocity
 	pm_Move(player, &player->comp_transform, ptr_input, ptr_ent_handler, dt);
@@ -217,6 +218,9 @@ void PlayerUpdate(Entity *player, float dt) {
 	}
 
 	player->comp_health.damage_cooldown -= dt;
+
+	if(!player_dead)
+		cam_Adjust(&player->comp_transform, dt);
 }
 
 void PlayerDraw(Entity *player) {
@@ -613,6 +617,10 @@ void pm_GroundMove(Entity *ent, comp_Transform *ct, Vector3 start, pmTraceData *
 	);
 
 	bool use_step = (dist_step > dist_base) && tr.plane.normal[2] >= 1.0f;
+
+	if(tr.start_solid || tr.all_solid)
+		use_step = false;
+
 	if(!use_step) {
 		return;
 	}
@@ -640,6 +648,9 @@ void pm_GroundMove(Entity *ent, comp_Transform *ct, Vector3 start, pmTraceData *
 	bool use_down = false;
 	if(down_pm.block & BLOCK_GROUND && down_dist > dist_base)
 		use_down = true;
+
+	if(tr.start_solid && tr.all_solid)
+		use_down = false;
 
 	if(use_down) {
 		step_pm.end_pos.z = down_pm.end_pos.z;

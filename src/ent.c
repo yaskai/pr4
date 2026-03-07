@@ -370,7 +370,7 @@ void TurretDraw(Entity *ent) {
 
 	DrawLine3D(center, Vector3Add(center, Vector3Scale(forward, 60)), PURPLE);
 	*/
-	DrawBoundingBox(ct->bounds, RED);
+	//DrawBoundingBox(ct->bounds, RED);
 	
 	//DrawModel(ent->model, ent->comp_transform.position, 1, WHITE);
 }
@@ -503,7 +503,7 @@ void MaintainerDraw(Entity *ent, float dt) {
 	//Vector3 center = BoxCenter(ent->comp_transform.bounds);
 	//center.y += 10;
 	//Vector3 forward = ent->comp_transform.forward;
-	DrawBoundingBox(ent->comp_health.hit_box, PURPLE);
+	//DrawBoundingBox(ent->comp_health.hit_box, PURPLE);
 }
 
 void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_TaskData *task_data, MapSection *sect, float dt) {

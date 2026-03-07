@@ -336,7 +336,7 @@ void PlayerShootDisruptor(PlayerGun *player_gun, EntityHandler *handler, MapSect
 	Vector3 throw_dir = (Vector3) { ct->forward.x, ct->forward.y, 0 };
 	throw_dir = Vector3Normalize(throw_dir);
 
-	if(ct->forward.z < 0.95f && ct->forward.z > 0) {
+	if(ct->forward.z < 1.0f && ct->forward.z > 0) {
 		ct->velocity = Vector3Scale(throw_dir, DISRUPTOR_THROW_FORCE);
 		ct->velocity.z += 250 + (((ct->forward.z) * (DISRUPTOR_THROW_FORCE)) * updot);
 	} else {

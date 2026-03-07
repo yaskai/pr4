@@ -6,9 +6,10 @@
 #include "pm.h"
 #include "kbsp.h"
 
-#define BUG_MAX_BOUNCES 	10
-#define BUG_MAX_VEL 		500.0f
-#define BUG_GRAV			975.0f
+#define BUG_MAX_BOUNCES 			10
+#define BUG_MAX_RECALL_BOUNCES		32
+#define BUG_MAX_VEL 				500.0f
+#define BUG_GRAV					975.0f
 
 u8 bug_bounce = 0;
 float launch_timer = 0;
@@ -136,9 +137,17 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 				big_bounce_used = true;
 			}
 		} else {
-			ct->velocity.z += 150 + (0.1f*(*bounce));
+			ct->velocity.z += 70.0f + (0.05f*(*bounce));
+			if(enemy_ent->comp_transform.position.z > ct->position.z + 64.0f)
+				ct->velocity.z += 300.0f;
 		}
 	}
+
+	/*
+	if(enemy_ent->id == handler->player_id && d <= 150.0f) {
+		ct->velocity.z = Clamp(ct->velocity.z, -9999.9f, 75.0f);
+	}
+	*/
 }
 
 u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection *sect, u8 *bounce, EntityHandler *handler, float dt) {
@@ -177,11 +186,9 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 	}
 
 	ct->ground_normal = tr.normal;
-	//ct->ground_normal = (Vector3) { tr.plane.normal[0], tr.plane.normal[1], tr.plane.normal[2] };
-	
-	//pm_ClipVelocity(ct->velocity, ct->ground_normal, &ct->velocity, 1.50001f, 0);
-	//if(fabsf(ct->velocity.y) <= 2.0f) {
-	if(*bounce >= BUG_MAX_BOUNCES) {
+
+	short max_bounces = (ent->flags & BUG_RECALL) ? BUG_MAX_RECALL_BOUNCES : BUG_MAX_BOUNCES;
+	if(*bounce >= max_bounces) {
 		ct->velocity.z = 0;
 		return 1;
 	}

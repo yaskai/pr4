@@ -43,6 +43,29 @@ typedef struct {
 } PlayerGunRefs;
 PlayerGunRefs gun_refs = {0};
 
+comp_Weapon weapons[] = {
+	// Pistol
+	(comp_Weapon) {
+		.id = WEAP_PISTOL,
+		.damage = 5
+	},
+	// Shotgun
+	(comp_Weapon) {
+		.id = WEAP_SHOTGUN,
+		.damage = 5,
+	},
+	// Revolver
+	(comp_Weapon) {
+		.id = WEAP_REVOLVER,
+		.damage = 5,
+	},
+	// Disruptor
+	(comp_Weapon) {
+		.id = WEAP_DISRUPTOR,
+		.damage = 0,
+	},
+};
+
 Model models[4];
 Matrix gun_matrix;
 
@@ -76,8 +99,8 @@ void PlayerGunInit(PlayerGun *player_gun, Entity *player, EntityHandler *handler
 	gun_refs.handler = handler;
 	gun_refs.effect_manager = effect_manager;
 
-	player->comp_weapon.id = WEAP_DISRUPTOR;
-	player_gun->current_gun = player->comp_weapon.id;
+	//player->comp_weapon.id = WEAP_DISRUPTOR;
+	player_gun->current_gun = WEAP_DISRUPTOR;
 
 	player_gun->model = models[player_gun->current_gun];
 	mat = player_gun->model.transform;
@@ -95,8 +118,13 @@ void PlayerGunUpdate(PlayerGun *player_gun, float dt) {
 	if(IsKeyPressed(KEY_E))
 		scroll = +1;
 
-	gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 2;
-	player_gun->current_gun = gun_refs.player->comp_weapon.id;
+	int next_gun = player_gun->current_gun + scroll;
+	player_gun->current_gun = (next_gun % 2 == 0) ? WEAP_DISRUPTOR : WEAP_REVOLVER;
+	gun_refs.player->comp_weapon = weapons[player_gun->current_gun];
+
+	//gun_refs.player->comp_weapon.id = (gun_refs.player->comp_weapon.id + scroll) % 2;
+	//player_gun->current_gun = gun_refs.player->comp_weapon.id;
+	//gun_refs.player->comp_weapon = weapons[gun_refs.player->comp_weapon.id];
 
 	if(gun_refs.player->comp_ai.state == STATE_DEAD)
 		return;
@@ -203,7 +231,7 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 			scale = 0.8f;
 
 		BeginMode3D(player_gun->cam);
-		DrawModel(models[gun_refs.player->comp_weapon.id], gun_pos, scale, WHITE);
+		DrawModel(models[player_gun->current_gun], gun_pos, scale, WHITE);
 		EndMode3D();
 	}
 
@@ -211,7 +239,7 @@ void PlayerGunDraw(PlayerGun *player_gun) {
 }
 
 void PlayerShoot(PlayerGun *player_gun, EntityHandler *handler, MapSection *sect) {
-	switch(gun_refs.player->comp_weapon.id) {
+	switch(player_gun->current_gun) {
 		case WEAP_PISTOL:
 			PlayerShootPistol(player_gun, handler, sect);
 			break;

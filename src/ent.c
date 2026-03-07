@@ -1315,7 +1315,7 @@ Vector3 TraceEntities(Ray ray, EntityHandler *handler, float max_dist, u16 sende
 	return ent_hit_point;
 }
 
-Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 ent_id, bool *hit) {
+Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Vector3 dir, u16 sender, bool *hit) {
 	// Two steps: 
 	// 1. Trace surfaces of the level 
 	// 2. Trace Entities
@@ -1365,7 +1365,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 			Entity *ent = &handler->ents[pCell->ents[i]];
 
 			// Skip collision checks with shooting entity  
-			if(ent->id == ent_id)
+			if(ent->id == sender)
 				continue;
 
 			if(!(ent->flags & ENT_ACTIVE))
@@ -1421,7 +1421,7 @@ Vector3 TraceBullet(EntityHandler *handler, MapSection *sect, Vector3 origin, Ve
 
 	if(*hit && ent_hit_id > -1) {
 		Entity *hit_ent = &handler->ents[ent_hit_id];
-		OnHitEnt(hit_ent, 3);
+		OnHitEnt(hit_ent, handler->ents[sender].comp_weapon.damage);
 	}
 
 	debug_bullet_dest = dest;

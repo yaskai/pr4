@@ -45,4 +45,12 @@ void PollInput(InputHandler *handler) {
 		if(IsKeyReleased(key))
 			action->state = INPUT_RELEASED;
 	}
+
+	for(u8 i = 0; i < INPUT_ACTION_COUNT; i++) {
+		InputAction *action = &handler->actions[i];
+
+		i32 button = action->button;
+		if(!action->button) continue;
+	}
 }
+

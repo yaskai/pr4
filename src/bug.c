@@ -138,18 +138,7 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 		} else {
 			ct->velocity.z += 150 + (0.1f*(*bounce));
 		}
-		
-		/*
-		if(fabsf(enemy_ent->comp_transform.position.z - ct->position.z) <= 16) {
-			ct->position.z = enemy_ent->comp_transform.position.z;
-		}
-		*/
 	}
-
-	/*
-	if(ct->velocity.z > 350)
-		ct->velocity.z = 350;
-	*/
 }
 
 u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection *sect, u8 *bounce, EntityHandler *handler, float dt) {
@@ -203,7 +192,9 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 	return 0;
 }
 
-void bug_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt, MapSection *sect, EntityHandler *handler) {
+void bug_TraceMove(Entity *bug_ent, Vector3 start, Vector3 wish_vel, pmTraceData *pm, float dt, MapSection *sect, EntityHandler *handler) {
+	comp_Transform *ct = &bug_ent->comp_transform;
+
 	*pm = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .origin = start, .block = 0 };
 
 	Vector3 dest = start;
@@ -239,8 +230,8 @@ void bug_TraceMove(comp_Transform *ct, Vector3 start, Vector3 wish_vel, pmTraceD
 
 		EntTraceData ent_tr = { .dist = Vector3Length(move), .hit_ent = -1, .point = dest, .normal = Vector3Zero() };
 		Vector3 ent_point = TraceEntities(ray, handler, Vector3Length(move), handler->bug_id, &ent_tr);
+		float ent_frac = 1.0f;
 
-		float ent_frac = 1.0f ;
 		bool use_ent = (ent_tr.hit_ent > -1 && ent_tr.hit_ent < handler->count);
 		if(use_ent) {
 			ent_frac = (ent_tr.dist / Vector3Length(move));
@@ -322,6 +313,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 		ent->flags &= ~ENT_COLLIDERS;	
 		ent->flags &= ~BUG_DISRUPTED_ENEMY; 
+		ent->flags &= ~BUG_RECALL;
 
 		ct->ground_normal = Vector3Zero();
 		bug_bounce = 0;
@@ -338,6 +330,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 
+	// -------------------------------------------------------------------------------------------------------------
 	if(ai->state == BUG_LAUNCHED) {
 		launch_timer -= dt;
 
@@ -350,7 +343,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 		//pm_AirFriction(ct, dt);
 	
 		Vector3 prev_pos = ct->position;
-		bug_TraceMove(ct, ct->position, ct->velocity, &pm, dt, sect, handler);
+		bug_TraceMove(ent, ct->position, ct->velocity, &pm, dt, sect, handler);
 		ct->velocity = pm.end_vel;
 		ct->position = pm.end_pos;
 		
@@ -376,7 +369,6 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			if(enemy_ent->comp_ai.state == STATE_DEAD)
 				continue;
 
-
 			bool height_check = (ct->position.z >= enemy_ent->comp_transform.position.z);
 			if(bug_bounce == 0)
 				height_check = true;
@@ -398,8 +390,11 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			ct->velocity = Vector3Zero();
 		}
 	}
+	// -------------------------------------------------------------------------------------------------------------
 
+	// -------------------------------------------------------------------------------------------------------------
 	if(ai->state == BUG_LANDED) {
+		bool can_recall = true;
 		ct->velocity = Vector3Zero();
 		
 		// Check if there is an enemy to disrupt
@@ -458,8 +453,38 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			}
 		}
 
+		// Recall
+		if(can_recall) {
+			if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+				if(ent->flags & BUG_DISRUPTED_ENEMY) {
+					Entity *enemy_ent = &handler->ents[ai->task_data.target_entity];
+					comp_Transform *enemy_ct = &enemy_ent->comp_transform;
+					
+					//ct->position.z = enemy_ent->comp_transform.bounds.max.z + 16;
+					//ct->velocity.z += 30.0f;
+				}
+
+				bug_bounce = 0;
+				bug_target_picked = true;
+
+				ent->comp_ai.task_data.target_entity = handler->player_id;
+				
+				float dist_add = 80.0f + (Vector3Distance(player_ent->comp_transform.position, ct->position) * 0.1f);
+				dist_add = Clamp(dist_add, 0, 200);
+				ct->velocity.z += dist_add;
+			
+				ent->comp_ai.state = BUG_LAUNCHED;
+				ent->flags |= BUG_RECALL;
+
+				BugBounce(ent, ct, sect, handler, &bug_bounce, dt);
+
+				return;
+			}
+		}
+
 		launch_timer -= dt;
 	}
+	// -------------------------------------------------------------------------------------------------------------
 
 	// Pickup
 	if(CheckCollisionBoxes(ct->bounds, player_ent->comp_transform.bounds) && launch_timer <= 0) {

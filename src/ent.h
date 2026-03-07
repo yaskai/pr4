@@ -347,6 +347,7 @@ enum BUG_STATES : u8 {
 // 0x01 reserved for ENT_ACTIVE
 // 0x02 reserved for ENT_COLLIDERS
 #define BUG_DISRUPTED_ENEMY 0x04
+#define BUG_RECALL			0x08
 
 void BugInit(Entity *ent, EntityHandler *handler, MapSection *sect);
 void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt);

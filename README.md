@@ -2,6 +2,10 @@
 
 ## ABOUT ##
 
+* An FPS game where you throw your pet robot, "Bug" to cause your mechanical foes to malfunction.
+  Built entirely with a custom engine using Raylib and heavily inspired by id Software's id Tech II.
+
+
 ## CONTROLS ##
 
 * look/aim:           mouse move

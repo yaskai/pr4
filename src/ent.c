@@ -167,15 +167,18 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 				health->damage_cooldown = 0;
 		}
 
-		AiCheckInputs(ent, handler, sect);
 
 		// *** Render visibility checking ***
 
+		/*
 		Vector3 view_pos = player_ent->comp_transform.position;
 		Vector3 to_player = Vector3Subtract(view_pos, ent->comp_transform.position);
 
 		float dist = Vector3LengthSqr(to_player);
 		to_player = Vector3Normalize(to_player);
+
+		if(dist > 2000.0f*2000.0f)
+			continue;
 
 		// Entities that are very close will always be rendered
 		if(dist <= MIN_VIEW_RADIUS) {
@@ -189,8 +192,23 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			continue;
 
 		Vector3 right = Vector3CrossProduct(view_dir, UP);
-
 		short visible = 3;
+		*/
+
+		/*
+		Ray ray = (Ray) { .position = view_pos, .direction = Vector3Negate(to_player) };
+
+		EntTraceData ent_tr = EntTraceDataEmpty();
+		TraceEntities(ray, handler, 2000.0f, -1, &ent_tr);
+
+		BvhTraceData tr = TraceDataEmpty();
+		BvhTracePointEx(ray, sect, &sect->bvh[0], 0, &tr, dist);
+
+		if(Vector3DistanceSqr(ray.position, tr.point) < (dist + (MIN_VIEW_RADIUS*0.25f)))
+			visible = 0;
+		*/
+
+		/*
 		for(short j = 0; j < 3; j++) {
 			short offset = (j & 1) ? -1 : 1;
 			if(j == 0) offset = 0;
@@ -208,27 +226,32 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 			if(Vector3DistanceSqr(ray.position, tr.point) < (dist + (MIN_VIEW_RADIUS*0.25f)))
 				visible--;
 		}
+		*/
 
 		// * NOTE:
 		// Special case for bug 
 		// fix visibility for when player is below entity,
 		// won't be needed after
+		/*
 		if(i == handler->bug_id)
 			visible = 3;
+		*/
 
 		// ******* remove later!!! ********
-		visible = 3;
+		//visible = 3;
 
+		/*
 		if(visible <= 0)
 			continue;
 
 		render_list.ids[render_list.count++] = i;
+		*/
 	}
 
 	handler->ai_tick -= dt;
 	if(handler->ai_tick <= 0.0f) {
 		AiSystemUpdate(handler, sect, dt);
-		handler->ai_tick = 0.0333f;
+		handler->ai_tick = 0.0116f;
 	}
 
 	ManageProjectiles(handler, sect, dt);
@@ -239,8 +262,9 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 void RenderEntities(EntityHandler *handler, float dt) {
 	EntGrid *grid = &handler->grid;
 
-	for(u16 i = 0; i < render_list.count; i++) {
-		Entity *ent = &handler->ents[render_list.ids[i]];
+	//for(u16 i = 0; i < render_list.count; i++) {
+	for(u16 i = 0; i < handler->count; i++) {;
+		Entity *ent = &handler->ents[i];
 
 		if(!(ent->flags & ENT_ACTIVE)) 
 			continue;
@@ -264,9 +288,6 @@ void RenderEntities(EntityHandler *handler, float dt) {
 		DrawBoundingBox(ent->comp_transform.bounds, PURPLE);
 		DrawBoundingBox(cell->aabb, GREEN);
 		*/
-
-		if(i != 4)
-			continue;
 
 		//DrawBoundingBox(ent->comp_transform.bounds, RED);
 	}
@@ -522,6 +543,7 @@ void AiComponentUpdate(Entity *ent, EntityHandler *handler, comp_Ai *ai, Ai_Task
 		}
 	}
 
+	AiCheckInputs(ent, handler, sect);
 	AiDoSchedule(ent, handler, sect, ai, task_data, dt);
 
 	ai->task_data.timer--;
@@ -563,17 +585,7 @@ void AiSystemUpdate(EntityHandler *handler, MapSection *sect, float dt) {
 void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 	comp_Ai *ai = &ent->comp_ai;
 
-	// Do not check inputs on non-valid ai components 
-	if(!ai->component_valid) 
-		return;
-
-	// Clear inputs
-	// *NOTE:
-	// Don't do this! Some (most) inputs need to be retained
-	//ai->input_mask = 0;
-
 	comp_Transform *ct = &ent->comp_transform;
-
 	BvhTree *bvh = &sect->bvh[0];
 
 	// ** Check if player is visible **	
@@ -587,9 +599,29 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 
 	Entity *player_ent = &handler->ents[handler->player_id];
 	Vector3 to_player = Vector3Normalize(Vector3Subtract(player_ent->comp_transform.position, ct->position));
+	float d_to_player = Vector3LengthSqr(to_player);
 
 	// Player is in ai's sight cone
-	if(Vector3DotProduct(ct->forward, to_player) > ai->sight_cone) { 
+	if(Vector3DotProduct(ct->forward, to_player) > ai->sight_cone && d_to_player <= 1000.0f) { 
+		// Check for obstructions
+		Ray ray = (Ray) { .position = ct->position, .direction = to_player };
+
+		EntTraceData ent_tr = EntTraceDataEmpty();
+		TraceEntities(ray, handler, 2000.0f, ent->id, &ent_tr);
+
+		// Trace map geometry
+		// Small affordance to account for spatial partition structure (+32)
+		BvhTraceData tr = TraceDataEmpty();
+		BvhTracePointEx(ray, sect, bvh, 0, &tr, ent_tr.dist);
+
+		// Player hitbox collision closer than possible surface collision.
+		// No obstruction, player is visible 
+		if(ent_tr.dist < tr.distance) {
+			ai->input_mask |= AI_INPUT_SEE_PLAYER;
+			ai->input_mask &= ~AI_INPUT_LOST_PLAYER;
+		}
+
+		/*
 		// Check for obstructions
 		Ray ray = (Ray) { .position = ct->position, .direction = to_player };
 		RayCollision player_coll = GetRayCollisionBox(ray, player_ent->comp_transform.bounds);
@@ -597,7 +629,7 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 		// Trace map geometry
 		// Small affordance to account for spatial partition structure (+32)
 		BvhTraceData tr = TraceDataEmpty();
-		BvhTracePointEx(ray, sect, bvh, 0, &tr, player_coll.distance + 32);
+		BvhTracePointEx(ray, sect, bvh, 0, &tr, player_coll.distance + 16);
 
 		// Player hitbox collision closer than possible surface collision.
 		// No obstruction, player is visible 
@@ -605,6 +637,7 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 			ai->input_mask |= AI_INPUT_SEE_PLAYER;
 			ai->input_mask &= ~AI_INPUT_LOST_PLAYER;
 		}
+		*/
 	}
 
 	if(ai->task_data.target_entity == handler->player_id && (ai->input_mask & AI_INPUT_SEE_PLAYER)) {
@@ -613,7 +646,7 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 	// ***
 
 	ai->input_mask &= ~AI_INPUT_HEAR_PLAYER;
-	bool in_hearing_range = (Vector3DistanceSqr(ent->comp_transform.position, player_ent->comp_transform.position) < ai->hear_distance);
+	bool in_hearing_range = (d_to_player < ai->hear_distance);
 	if(in_hearing_range && Vector3LengthSqr(player_ent->comp_transform.velocity) >= 0.1f)
 		ai->input_mask |= AI_INPUT_HEAR_PLAYER;
 }
@@ -1092,8 +1125,8 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 		//Vector3 targ = ct->start_forward;
 		//ct->targ_look = targ;
 
-		task->task_id = TASK_WAIT_TIME;
-		task->timer = 0.9f;
+		//task->task_id = TASK_WAIT_TIME;
+		//task->timer = 0.0f;
 	}
 
 	if(task->task_id == TASK_LOOK_AT_ENTITY) {
@@ -1116,9 +1149,9 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 			task->task_id = TASK_FIRE_WEAPON;
 			ent->comp_weapon.ammo = 60;
 			ent->comp_weapon.cooldown = 0.05f;
-		} else {
+		} else if(ai->input_mask & AI_INPUT_LOST_PLAYER) {
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 80.0f;
+			task->timer = 15.0f;
 		}
 		
 		/*

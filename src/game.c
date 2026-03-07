@@ -191,8 +191,6 @@ void GameUpdate(Game *game, float dt) {
 	PlayerGunUpdate(&game->player_gun, dt);
 
 	UpdateEntities(&game->ent_handler, &game->test_section, dt);
-
-	UpdateMapMeshList(&game->test_section, game->camera);
 }
 
 #define DEBUG_ENABLE			0x01

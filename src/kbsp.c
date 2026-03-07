@@ -51,6 +51,31 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 	memcpy(data.planes, planes, sizeof(planes));
 
 	// ---------------------------------------------------------------------------------------
+	// Miptex
+	Bsp_Lump miptex_lump = header.lumps[LUMP_MIPTEX];
+	if(miptex_lump.file_size < sizeof(Bsp_Lump)) {
+		MessageError("ERROR: Lump size mismatch", NULL);
+		return data;
+	}
+
+	fseek(pF, planes_lump.file_offset, SEEK_SET);
+	i32 miptex_count = miptex_lump.file_size / sizeof(Bsp_Miptex);  
+	Bsp_Miptex miptexes[miptex_count];
+	fread(&miptexes, sizeof(miptexes), 1, pF);
+
+	/*
+	data.num_planes = plane_count;
+	data.planes = malloc(sizeof(Bsp_Plane) * data.num_planes);
+	memcpy(data.planes, planes, sizeof(planes));
+	*/
+	
+	// ---------------------------------------------------------------------------------------
+	// Vertices
+	
+	// ---------------------------------------------------------------------------------------
+	// Vis
+
+	// ---------------------------------------------------------------------------------------
 	// Nodes
 	Bsp_Lump nodes_lump = header.lumps[LUMP_NODES];
 	if(nodes_lump.file_size < sizeof(Bsp_Lump)) {
@@ -66,6 +91,15 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 	data.num_nodes = node_count;
 	data.nodes = malloc(sizeof(Bsp_Node) * data.num_nodes);
 	memcpy(data.nodes, nodes, sizeof(nodes));
+
+	// ---------------------------------------------------------------------------------------
+	// Tex info
+	
+	// ---------------------------------------------------------------------------------------
+	// Faces 
+
+	// ---------------------------------------------------------------------------------------
+	// Lightmaps 
 
 	// ---------------------------------------------------------------------------------------
 	// Clip nodes
@@ -93,6 +127,18 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 	memcpy(data.clipnodes, clipnodes, sizeof(clipnodes));
 
 	// ---------------------------------------------------------------------------------------
+	// Leaves 
+
+	// ---------------------------------------------------------------------------------------
+	// L_faces 
+
+	// ---------------------------------------------------------------------------------------
+	// Edges 
+	
+	// ---------------------------------------------------------------------------------------
+	// L_edges 
+
+	// ---------------------------------------------------------------------------------------
 	// Models
 	Bsp_Lump models_lump = header.lumps[LUMP_MODELS];
 	if(models_lump.file_size < sizeof(Bsp_Lump)) {
@@ -114,13 +160,15 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 	}
 
 	fclose(pF);
-	
 	return data;
 }
 
 void UnloadBsp(Bsp_Data *data) {
 	if(data->planes)
 		free(data->planes);
+
+	if(data->miptex)
+		free(data->miptex);
 
 	if(data->clipnodes)
 		free(data->clipnodes);
@@ -132,27 +180,12 @@ void UnloadBsp(Bsp_Data *data) {
 Bsp_Hull Bsp_BuildHull(Bsp_Data *data, int hull_index) {
 	Bsp_Hull hull = (Bsp_Hull) {0};
 
-	/*
-	int nodes_per_hull = data->num_clipnodes / 4;
-	hull.nodes = data->clipnodes;
-	hull.first_node = hull_index * nodes_per_hull;
-	hull.last_node = (hull_index == 3) ? data->num_clipnodes - 1 : hull.first_node + nodes_per_hull - 1;
-	*/
-
 	hull.nodes = data->clipnodes;
 	hull.first_node = data->models[0].head_nodes[hull_index];
 	hull.last_node = data->num_clipnodes - 1;
-	//if(hull_index <= 3) hull.last_node = data->models[0].head_nodes[hull_index + 1] - 1;
 
 	hull.nodes = data->clipnodes;
 	hull.planes = data->planes;
-
-	//hull.nodes = calloc(data->num_clipnodes, sizeof(Bsp_ClipNode));	
-	//memcpy(hull.nodes, data->clipnodes, sizeof(Bsp_ClipNode) * data->num_clipnodes);
-
-	//hull.num_planes = data->num_planes;
-	//hull.planes = malloc(sizeof(Bsp_Plane) * hull.num_planes);
-	//memcpy(hull.planes, data->planes, sizeof(Bsp_Plane) * hull.num_planes);
 
 	return hull;
 }
@@ -232,7 +265,7 @@ bool Bsp_RecursiveTrace(Bsp_Hull *hull, int node_num, Vector3 point_A, Vector3 p
 	return Bsp_RecursiveTrace(hull, node->children[1 - side], mid, point_B, intersection);
 }
 
-#define	DIST_EPSILON	(0.003125)
+#define	DIST_EPSILON	(0.03125)
 Bsp_TraceData Bsp_TraceDataEmpty() {
 	Bsp_TraceData data = {0};
 	data.all_solid = true;

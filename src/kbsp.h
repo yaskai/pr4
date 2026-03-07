@@ -22,7 +22,7 @@ enum LUMP_TYPES {
 	LUMP_NODES			= 5,
 	LUMP_TEXINFO		= 6,
 	LUMP_FACES			= 7,
-	LUMP_LIGHTMPAPS		= 8,
+	LUMP_LIGHTMAPS		= 8,
 	LUMP_CLIPNODES 		= 9,
 	LUMP_LEAVES			= 10,
 	LUMP_LFACES			= 11,
@@ -49,6 +49,25 @@ typedef struct {
 	i32 type;
 
 } Bsp_Plane;
+
+typedef struct {
+	i32 *offset;
+	i32 numtex;
+
+} Bsp_Mipheader;
+
+typedef struct {
+	char name[16];
+
+	u32 width;
+	u32 height;
+
+	u32 offset1;
+	u32 offset2;
+	u32 offset4;
+	u32 offset8;
+
+} Bsp_Miptex;
 
 typedef struct {
 	u32 planenum;
@@ -79,11 +98,24 @@ typedef struct {
 
 typedef struct {
 	Bsp_Plane *planes;
+	Bsp_Miptex *miptex;
+	Vector3 *verts;
+	// Vis
 	Bsp_Node *nodes;
+	// Texinfo
+	// Faces
+	// Lightmaps
 	Bsp_ClipNode *clipnodes;
+	// Leaves
+	// L_faces
+	// Edges
+	// L_edges
 	Bsp_Model *models;
 
 	u32 num_planes;
+	u32 num_miptex;
+	u32 num_verts;
+	u32 num_vis;
 	u32 num_nodes;
 	u32 num_clipnodes;
 	u32 num_models;

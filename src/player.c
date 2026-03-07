@@ -94,7 +94,7 @@ void pm_TraceMoveEx(Entity *ent, Vector3 start, Vector3 wish_vel, pmTraceData *p
 
 	for(short i = 0; i < MAX_BUMPS; i++) {
 		// End slide trace if velocity too low
-		if(Vector3LengthSqr(vel) <= STOP_EPS)
+		if(Vector3LengthSqr(vel) <= STOP_EPS*STOP_EPS)
 			break;
 		
 		// Scale slide movement by time remaining
@@ -338,7 +338,7 @@ void pm_Move(Entity *ent, comp_Transform *ct, InputHandler *input, EntityHandler
 	//pm_TraceMove(ct, ct->position, ct->velocity, &pm, dt);
 	//pm_TraceMoveEx(ent, ct->position, ct->velocity, &pm, dt, handler);
 	if(ct->ground_normal.z == 1.0f) 
-		pm_GroundMove(ent, ct, ct->position, &pm, dt, (Vector3) { ct->velocity.x, ct->velocity.y, ct->velocity.z }, handler);
+		pm_GroundMove(ent, ct, ct->position, &pm, dt, ct->velocity, handler);
 	else 
 		pm_TraceMoveEx(ent, ct->position, ct->velocity, &pm, dt, handler);
 
@@ -590,14 +590,14 @@ void pm_GroundMove(Entity *ent, comp_Transform *ct, Vector3 start, pmTraceData *
 
 	*pm = base_pm;
 
+	if(Vector3LengthSqr(base_pm.start_vel) <= STOP_EPS)
+		return;
+
 	if(base_pm.fraction >= 1.0f) {
 		return;
 	}
 
 	if(!(base_pm.block & BLOCK_STEP))
-		return;
-
-	if(Vector3Length( (Vector3) { wish_vel.x, wish_vel.y, 0 } ) <= 0)
 		return;
 
 	// Move up stair height
@@ -662,7 +662,6 @@ void pm_GroundMove(Entity *ent, comp_Transform *ct, Vector3 start, pmTraceData *
 
 	} else { 
 		step_pm.end_vel.z += down_vel.z;
-
 	}
 
 	*pm = step_pm;
@@ -807,16 +806,6 @@ int pm_CheckHullEx(Vector3 point, u16 node_id) {
 #define TILT_MAX 0.1f
 void cam_Adjust(comp_Transform *ct, float dt) {
 	Vector3 pos_target = Vector3Add(ct->position, Vector3Scale(UP, 12.0f));
-
-	/*
-	ptr_cam->position.x = pos_target.x;
-	ptr_cam->position.y = pos_target.y;
-	ptr_cam->position.z = Lerp(ptr_cam->position.z, pos_target.z, 40*dt);
-	//if(fabsf(ct->position.z - ct->prev_pos.z) < 0.1f)
-	if((pos_target.z - ptr_cam->position.z) <= EPSILON || ct->position.z - ct->prev_pos.z <= EPSILON)
-		ptr_cam->position.z = pos_target.z;
-	*/
-
 	//ptr_cam->target = Vector3Add(ptr_cam->position, ct->forward);
 
 	// Apply camera motion effects (bob, tilt) 
@@ -852,7 +841,9 @@ void cam_Adjust(comp_Transform *ct, float dt) {
 		ptr_cam->up = tilt_targ;
 	}
 
-	if(!ct->on_ground) cam_bob = 0;
+	if(!ct->on_ground)
+		cam_bob = 0.0f;
+
 	ptr_cam->position.z += cam_bob;
 	ptr_cam->target.z += cam_bob;
 }

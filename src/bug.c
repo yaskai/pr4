@@ -140,7 +140,7 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 				big_bounce_used = true;
 			}
 		} else {
-			ct->velocity.z += 70.0f + (0.05f*(*bounce));
+			ct->velocity.z += 100.0f + (0.15f*(*bounce));
 			if(enemy_ent->comp_transform.position.z > ct->position.z + 64.0f) {
 				ct->velocity.z += 300.0f;
 			}
@@ -190,7 +190,7 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 		return 0;
 	}
 
-	if(handler->ents[handler->player_id].comp_transform.position.z - ct->position.z > 1000 && launch_timer <= 0) {
+	if(handler->ents[handler->player_id].comp_transform.position.z - ct->position.z > 700.0f && launch_timer <= 0) {
 		ent->comp_health.amount = 0;
 		ent->comp_ai.state = STATE_DEAD;
 		bug_cooldown = 5;

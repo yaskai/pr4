@@ -5,7 +5,7 @@
 #include "ent.h"
 #include "v_effect.h"
 
-#define USE_MWHEEL (false)
+#define USE_MWHEEL (true)
 
 Vector3 gun_pos = {0};
 float gun_rot = 0;

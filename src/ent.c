@@ -1297,8 +1297,8 @@ void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection 
 
 		if(task->task_id == TASK_THROW_PROJECTILE) {
 			Vector3 dir = ct->forward;
-			float offset_h = GetRandomValue(-10, 10) * 0.01f;
-			float offset_v = GetRandomValue(-10, 10) * 0.01f;
+			float offset_h = GetRandomValue(-3, 3) * 0.01f;
+			float offset_v = GetRandomValue(-3, 3) * 0.01f;
 
 			Vector3 right = Vector3CrossProduct(ct->forward, UP);
 			dir = Vector3Add(dir, Vector3Scale(right, offset_h));
@@ -1308,7 +1308,7 @@ void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection 
 			ProjectileThrow(ent, ct->position, dir, Vector3Distance(task->known_target_position, ct->position), 0, handler);
 
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 10.0f + GetRandomValue(0, 30);
+			task->timer = 10.0f + GetRandomValue(0, 15);
 
 			return;
 		}

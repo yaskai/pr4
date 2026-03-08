@@ -479,7 +479,7 @@ void BvhNodeSubdivide(MapSection *sect, BvhTree *bvh, u16 node_id) {
 	// Base case:
 	// Cost of splitting exceeds cost of leaving as is
 	float parent_cost = BvhNodeCost(node);
-	if(best_cost > parent_cost)
+	if(best_cost >= parent_cost)
 		return;
 
 	// In-place partition

@@ -128,7 +128,7 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 	PlayerUpdate(player_ent, dt);
 
 	if(player_ent->comp_ai.state == STATE_DEAD && player_ent->comp_ai.task_data.timer >= 2) {
-		ReloadEntities(handler, sect);
+		ReloadEntities(handler, sect, 1);
 		return;
 	}
 
@@ -1967,7 +1967,8 @@ void ProjectileImpact(Projectile *projectile, EntityHandler *handler, i16 ent_id
 	float damage = Vector3Length(projectile->ct.velocity) * 0.01f;
 	damage = Clamp(damage, 0, 100);
 
-	OnHitEnt(ent, (short)damage);
+	if(ent->type != ENT_DISRUPTOR)
+		OnHitEnt(ent, (short)damage);
 
 	Vector3 knockback = (Vector3) { projectile->ct.velocity.x, projectile->ct.velocity.z, 0 };
 	knockback = Vector3Scale(knockback, 0.33f);
@@ -1999,7 +2000,7 @@ void RenderProjectiles(EntityHandler *handler) {
 	}
 }
 
-void ReloadEntities(EntityHandler *handler, MapSection *sect) {
+void ReloadEntities(EntityHandler *handler, MapSection *sect, short with_states) {
 	u8 states[handler->count];
 	for(u16 i = 0; i < handler->count; i++) {
 		states[i] = handler->ents[i].comp_ai.state;
@@ -2009,8 +2010,11 @@ void ReloadEntities(EntityHandler *handler, MapSection *sect) {
 
 	for(u16 i = 0; i < handler->spawn_list.count; i++) {
 		ProcessEntity(&handler->spawn_list.arr[i], handler, NULL);
-		if(states[handler->count-1] == STATE_DEAD)
-			handler->ents[handler->count-1].comp_ai.state = STATE_DEAD;
+
+		if(with_states) {
+			if(states[handler->count-1] == STATE_DEAD)
+				handler->ents[handler->count-1].comp_ai.state = STATE_DEAD;
+		}
 	}
 
 	// * NOTE:

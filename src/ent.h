@@ -393,7 +393,7 @@ void RenderProjectiles(EntityHandler *handler);
 
 // ----------------------------------------------------------------------------------------------------------------------------
 
-void ReloadEntities(EntityHandler *handler, MapSection *sect);
+void ReloadEntities(EntityHandler *handler, MapSection *sect, short with_states);
 void ReloadEntitiesPartial(EntityHandler *handler, MapSection *sect);
 
 #endif

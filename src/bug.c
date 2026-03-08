@@ -190,7 +190,7 @@ u8 bug_CheckGround(Entity *ent, comp_Transform *ct, Vector3 position, MapSection
 		return 0;
 	}
 
-	if(handler->ents[handler->player_id].comp_transform.position.z - ct->position.z > 700 && launch_timer <= 0) {
+	if(handler->ents[handler->player_id].comp_transform.position.z - ct->position.z > 1000 && launch_timer <= 0) {
 		ent->comp_health.amount = 0;
 		ent->comp_ai.state = STATE_DEAD;
 		bug_cooldown = 5;
@@ -528,7 +528,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	// -------------------------------------------------------------------------------------------------------------
 
 	// Pickup
-	if(CheckCollisionSpheres(ct->position, 32, player_ent->comp_transform.position, 16) && launch_timer <= 0) {
+	if(CheckCollisionSpheres(ct->position, 8, player_ent->comp_transform.position, 16) && launch_timer <= 0) {
 		ai->state = BUG_DEFAULT;
 	}
 

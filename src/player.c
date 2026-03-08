@@ -174,8 +174,6 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 	ptr_sect = test_section;
 	ptr_ent_handler = ent_handler;
 	player_debug_data = debug_data;
-
-	player_curr_checkpoint = 3;
 }
 
 void PlayerUpdate(Entity *player, float dt) {
@@ -915,6 +913,8 @@ void OnHitPlayer(Entity *ent, short damage) {
 }
 
 void SpawnPlayer(Entity *ent, Vector3 position) {
+	player_curr_checkpoint = -1;
+
 	ent->comp_transform.position = position;
 	ent->comp_transform.position.z += 20;
 

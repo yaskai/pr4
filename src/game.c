@@ -172,7 +172,7 @@ void GameLoadTestScene1(Game *game, char *path) {
 	game->ent_handler.spawn_list.arr = calloc(spawn_list.count, sizeof(EntSpawn));
 	memcpy(game->ent_handler.spawn_list.arr, spawn_list.arr, sizeof(EntSpawn) * spawn_list.count);
 
-	ReloadEntities(&game->ent_handler, &game->test_section);
+	ReloadEntities(&game->ent_handler, &game->test_section, 0);
 
 	// Setup checkpoints	
 	for(u16 i = 0; i < game->ent_handler.checkpoint_list.count; i++) {
@@ -369,7 +369,7 @@ void GameDraw(Game *game, float dt) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
-	PlayerDebugText(&game->ent_handler.ents[game->ent_handler.player_id]);
+	//PlayerDebugText(&game->ent_handler.ents[game->ent_handler.player_id]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;
@@ -397,6 +397,20 @@ void GameDraw(Game *game, float dt) {
 
 	if(show_qr) {
 		DrawTexture(qr_img, 0, 0, WHITE);
+	}
+
+	if(game->ent_handler.checkpoint_list.active == 5 && 
+	   CheckCollisionSpheres(
+			game->ent_handler.ents[game->ent_handler.player_id].comp_transform.position, 32, 
+			game->ent_handler.checkpoint_list.points[5], 128)) {
+
+		DrawText("That's all!  Thank you for playing!", VIRT_W/2 - 300, VIRT_H/2, 32, DARKPURPLE);
+		DrawText("Press Y to play again", VIRT_W/2 - 300, VIRT_H/2 + 40, 32, DARKPURPLE);
+
+		if(IsKeyPressed(KEY_Y)) {
+			game->ent_handler.checkpoint_list.active = -1;
+			ReloadEntities(&game->ent_handler, &game->test_section, 0);
+		}
 	}
 
 	//int fps = GetFPS();

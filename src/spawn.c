@@ -49,7 +49,7 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 	}
 
 	if(!strcmp(spawn_point->tag, "info_player_start")) {
-		puts("player_start");
+		//puts("player_start");
 
 		handler->player_start = spawn_point->position;
 		handler->player_start.z += BODY_VOLUME_MEDIUM.z * 0.5f;
@@ -64,7 +64,7 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 	}
 
 	if(!strcmp(spawn_point->tag, "func_group")) {
-		puts("skip func_group");
+		//puts("skip func_group");
 		return;
 	}
 

@@ -25,7 +25,7 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 		return data;
 	}
 
-	printf("%d\n", header.version);
+	//printf("%d\n", header.version);
 
 	// ---------------------------------------------------------------------------------------
 	// Planes
@@ -155,9 +155,11 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 	data.models = malloc(sizeof(Bsp_Model) * data.num_models);
 	memcpy(data.models, models, sizeof(models));
 
+	/*
 	for(int i = 0; i < 4; i++) {
 		printf("head: %d\n", data.models[0].head_nodes[i]);
 	}
+	*/
 
 	fclose(pF);
 	return data;

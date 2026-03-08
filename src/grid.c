@@ -4,7 +4,7 @@
 #include "ent.h"
 
 void EntGridInit(EntityHandler *handler) {
-	printf("grid init\n");
+	//printf("grid init\n");
 
 	EntGrid grid = (EntGrid) {0};
 
@@ -13,10 +13,12 @@ void EntGridInit(EntityHandler *handler) {
 	grid.cell_count = grid.size.c * grid.size.r * grid.size.t;
 	grid.cells = calloc(grid.cell_count, sizeof(EntGridCell));
 
+	/*
 	printf("cols: %d\n", grid.size.c);
 	printf("rows: %d\n", grid.size.r);
 	printf("tabs: %d\n", grid.size.t);
 	printf("cell count: %d\n", (grid.size.c * grid.size.r * grid.size.t));
+	*/
 
 	Vector3 origin = (Vector3) {
 		(-grid.size.c * ENT_GRID_CELL_EXTENTS.x) * 0.5f,
@@ -49,7 +51,7 @@ void UpdateGrid(EntityHandler *handler) {
 
 		Coords dest_coords = Vec3ToCoords(ct->position, grid);
 		if(!CoordsInBounds(dest_coords, grid)) {
-			puts("dest coords out of bounds");
+			//puts("dest coords out of bounds");
 			continue;
 		}
 

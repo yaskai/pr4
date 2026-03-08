@@ -643,7 +643,7 @@ void BuildNavEdges(NavGraph *navgraph) {
 	if(navgraph->edges) 
 		navgraph->edges = realloc(navgraph->edges, sizeof(NavEdge) * navgraph->edge_cap);
 	else {
-		printf("edges null\n");
+		//printf("edges null\n");
 		navgraph->edges = calloc(navgraph->edge_cap, sizeof(NavEdge));
 	}
 
@@ -836,7 +836,7 @@ void SubdivideNavGraph(MapSection *sect, NavGraph *navgraph) {
 		*/
 	}
 
-	printf("graph count: %d\n", sect->navgraph_count);
+	//printf("graph count: %d\n", sect->navgraph_count);
 
 	free(traveled);
 }

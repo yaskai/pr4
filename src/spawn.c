@@ -122,7 +122,7 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			ent.comp_ai.component_valid = true;
 
 			ent.comp_ai.sight_cone = 0.1f;
-			ent.comp_ai.hear_distance = 300.0f;
+			ent.comp_ai.hear_distance = 5.0f;
 
 			ent.comp_ai.curr_schedule = SCHED_SENTRY;
 			ent.comp_ai.task_data.task_id = TASK_LOOK_AT_ENTITY;
@@ -133,7 +133,8 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 				.travel_type = WEAPON_TRAVEL_HITSCAN,
 				.id = WEAP_TURRET,
 				.cooldown = 1,
-				.damage = 7
+				.damage = 7,
+				.clip_size = 100
 			};
 
 			ent.comp_health.amount = 100;
@@ -166,11 +167,11 @@ Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
 			//ent.comp_ai.task_data.task_id = TASK_WAIT_TIME;
 			//ent.comp_ai.task_data.timer = 0.1f;
 
-			//ent.comp_ai.curr_schedule = SCHED_MAINTAINER_ATTACK;
-			ent.comp_ai.curr_schedule = SCHED_IDLE;
-			ent.comp_ai.task_data.task_id = TASK_WAIT_TIME;
+			ent.comp_ai.curr_schedule = SCHED_MAINTAINER_ATTACK;
+			//ent.comp_ai.curr_schedule = SCHED_IDLE;
+			//ent.comp_ai.task_data.task_id = TASK_WAIT_TIME;
 
-			ent.comp_health.amount = 3;
+			ent.comp_health.amount = 10;
 			ent.comp_health.on_hit = 2;
 
 			ent.comp_health.bug_point = BUG_POINT_MAINTAINER;

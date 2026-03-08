@@ -49,7 +49,7 @@ void GameInit(Game *game, Config *conf) {
 
 	InputInit(&game->input_handler);
 
-	SetLogState(1);
+	SetLogState(0);
 }
 
 void GameClose(Game *game) {
@@ -92,8 +92,8 @@ void GameRenderSetup(Game *game) {
 	//game->render_target_debug = LoadRenderTexture(game->conf->window_width * 0.5f, game->conf->window_height * 0.5f);
 	game->render_target_debug = LoadRenderTexture(VIRT_W, VIRT_H);
 
-	SetTextureFilter(game->render_target3D.texture, TEXTURE_FILTER_POINT);
-	SetTextureFilter(game->render_target2D.texture, TEXTURE_FILTER_POINT);
+	SetTextureFilter(game->render_target3D.texture, TEXTURE_FILTER_TRILINEAR);
+	SetTextureFilter(game->render_target2D.texture, TEXTURE_FILTER_TRILINEAR);
 	SetTextureFilter(game->render_target_debug.texture, TEXTURE_FILTER_TRILINEAR);
 
 	vEffectsInit(&game->effect_manager);
@@ -289,8 +289,8 @@ void GameDraw(Game *game, float dt) {
 		PlayerGunDraw(&game->player_gun);
 	EndTextureMode();
 
-	if(IsKeyPressed(KEY_Z))
-		debug_draw_flags ^= DEBUG_ENABLE;
+	//if(IsKeyPressed(KEY_Z))
+		//debug_draw_flags ^= DEBUG_ENABLE;
 
 	if(debug_draw_flags & DEBUG_ENABLE) {
 		// 3D Rendering, debug
@@ -307,7 +307,7 @@ void GameDraw(Game *game, float dt) {
 			//DrawModelWires(game->test_section.model, Vector3Zero(), 1, RAYWHITE);
 			//DrawBoundingBox(game->test_section.bvh.nodes[0].bounds, WHITE);
 
-			PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
+			//PlayerDisplayDebugInfo(&game->ent_handler.ents[0]);
 			RenderEntities(&game->ent_handler, GetFrameTime());
 			//BrushTestView(&brush_pool, SKYBLUE);
 			//BrushTestView(&brush_pool_exp, RED);
@@ -369,14 +369,14 @@ void GameDraw(Game *game, float dt) {
 	rt_dst = (Rectangle) { 0, 0, game->conf->window_width, game->conf->window_height };
 	DrawTexturePro(game->render_target2D.texture, rt_src, rt_dst, Vector2Zero(), 0, WHITE);
 
-	//PlayerDebugText(&game->ent_handler.ents[game->ent_handler.player_id]);
+	PlayerDebugText(&game->ent_handler.ents[game->ent_handler.player_id]);
 
 	if(IsKeyPressed(KEY_T))
 		debug_draw_flags ^= DEBUG_DRAW_BIG;
 
-	if(IsKeyPressed(KEY_P)) {
-		show_qr = !show_qr;
-	} 
+	//if(IsKeyPressed(KEY_P)) {
+		//show_qr = !show_qr;
+	//} 
 
 	/*
 	Vector2 debug_wh = (debug_draw_flags & DEBUG_DRAW_BIG) 
@@ -399,8 +399,8 @@ void GameDraw(Game *game, float dt) {
 		DrawTexture(qr_img, 0, 0, WHITE);
 	}
 
-	int fps = GetFPS();
-	DrawText(TextFormat("fps: %d", fps), 4, 4, 32, RAYWHITE);
+	//int fps = GetFPS();
+	//DrawText(TextFormat("fps: %d", fps), 4, 4, 32, RAYWHITE);
 
 	//EntDebugText();
 

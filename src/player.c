@@ -174,6 +174,8 @@ void PlayerInit(Camera3D *camera, InputHandler *input, MapSection *test_section,
 	ptr_sect = test_section;
 	ptr_ent_handler = ent_handler;
 	player_debug_data = debug_data;
+
+	player_curr_checkpoint = 3;
 }
 
 void PlayerUpdate(Entity *player, float dt) {
@@ -907,8 +909,8 @@ void OnHitPlayer(Entity *ent, short damage) {
 	comp_Transform *ct = &ent->comp_transform;
 
 	//health->amount -= damage; 
-	ct->velocity.x *= 0.5f;
-	ct->velocity.y *= 0.5f;
+	ct->velocity.x *= (0.5f);
+	ct->velocity.y *= (0.5f);
 	hurt_frame = true;
 }
 
@@ -916,8 +918,8 @@ void SpawnPlayer(Entity *ent, Vector3 position) {
 	ent->comp_transform.position = position;
 	ent->comp_transform.position.z += 20;
 
-	ent->comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  1.0f);
-	ent->comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -1.0f);
+	ent->comp_transform.bounds.max = Vector3Scale(BODY_VOLUME_MEDIUM,  0.5f);
+	ent->comp_transform.bounds.min = Vector3Scale(BODY_VOLUME_MEDIUM, -0.5f);
 	ent->comp_transform.on_ground = true;
 
 	ent->comp_health.amount = 100;

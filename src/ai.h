@@ -4,7 +4,7 @@
 #ifndef AI_H_
 #define AI_H_
 
-#define AI_TICK_RATE 0.0166f
+#define AI_TICK_RATE 11.0f
 
 #define MAX_EDGES_PER_NODE	16
 typedef struct {

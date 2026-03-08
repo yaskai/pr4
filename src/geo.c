@@ -372,7 +372,8 @@ void BvhConstruct(MapSection *sect, BvhTree *bvh, Vector3 volume, TriPool *tri_p
 
 	// When done splitting, trim array to save some memory
 	bvh->capacity = bvh->count;
-	bvh->nodes = realloc(bvh->nodes, sizeof(BvhNode) * bvh->capacity);
+	BvhNode *ptr = realloc(bvh->nodes, sizeof(BvhNode) * bvh->capacity);
+	bvh->nodes = ptr;
 
 	for(int i = 1; i < bvh->count; i++) {
 		BvhNode *node = &bvh->nodes[i];

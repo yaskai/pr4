@@ -20,6 +20,9 @@ float grid_tick = 0.0f;
 Vector3 debug_bullet_dest;
 Vector3 debug_bullet_norm;
 
+MapSection *ptr_handler_sect = NULL;
+EntityHandler *ptr_handler_self = NULL;
+
 typedef void (*OnHitFunc)(Entity *ent, short damage);
 OnHitFunc on_hit_funcs[] = {
 	&OnHitPlayer,
@@ -45,6 +48,7 @@ void LoadEntityBaseAnims() {
 Model projectile_models[4];
 
 void EntHandlerInit(EntityHandler *handler, vEffect_Manager *effect_manager) {
+
 	handler->count = 0;
 	handler->capacity = 128;
 	handler->ents = calloc(handler->capacity, sizeof(Entity));
@@ -104,6 +108,12 @@ void UpdateRenderList(EntityHandler *handler, MapSection *sect) {
 float prev_pos_tick = 0.0f;
 
 void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
+	if(!ptr_handler_self)
+		ptr_handler_self = handler;
+
+	if(!ptr_handler_sect)
+		ptr_handler_sect = sect;
+
 	prev_pos_tick -= dt;
 	if(prev_pos_tick < 0.0f) {
 		for(u16 i = 0; i < handler->count; i++) {
@@ -248,8 +258,8 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 	handler->ai_tick -= dt;
 	if(handler->ai_tick < 0.0f) {
-		// Do next ai update in ~10 frames
-		handler->ai_tick = (10*dt);
+		// Do next ai update in ~11 frames
+		handler->ai_tick = (AI_TICK_RATE*dt);
 
 		AiSystemUpdate(handler, sect, dt);
 	}
@@ -258,8 +268,8 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 	grid_tick -= dt;
 	if(grid_tick < 0.0f) {
-		// Do next grid update in ~2 frames
-		grid_tick = (2*dt);
+		// Do next grid update in ~5 frames
+		grid_tick = (5*dt);
 
 		UpdateGrid(handler);
 	}
@@ -323,12 +333,12 @@ void RenderEntities(EntityHandler *handler, float dt) {
 
 
 void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
+	float angle_min = -70;
+	float angle_max =  70;
+
 	if((ent->comp_ai.input_mask & AI_INPUT_SELF_GLITCHED)) {
 		ent->comp_ai.task_data.timer = 0;
 		ent->comp_ai.task_data.task_id = TASK_FIRE_WEAPON;
-
-		float angle_min = -70;
-		float angle_max =  70;
 		
 		float angle = sinf(GetTime() * 1.5f);
 		angle = Clamp(angle, angle_min, angle_max);
@@ -336,15 +346,16 @@ void TurretUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float d
 		//angle = angle + ent->comp_transform.start_angle;
 
 		//if(ent->comp_ai.disrupt_timer > 0)
-		if(ent->comp_weapon.ammo > 0)
+		if(ent->comp_weapon.ammo > 0) {
 			ent->comp_transform.forward = Vector3RotateByAxisAngle(ent->comp_transform.targ_look, UP, angle);		
-		else {
+		} else {
 			//ent->comp_transform.targ_look = ent->comp_transform.forward;		
 			ent->comp_ai.task_data.task_id = TASK_WAIT_TIME;
 		}
 
-	} else
+	} else {
 		ent->comp_transform.forward = Vector3Lerp(ent->comp_transform.forward, ent->comp_transform.targ_look, 10*dt);
+	}
 
 	if(ent->comp_ai.task_data.task_id == TASK_FIRE_WEAPON) {
 		TurretShoot(ent, handler, sect, dt);
@@ -417,8 +428,11 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 			Vector3 look_point = targ_ent->comp_transform.position;
 			look_point = Vector3Add(look_point, Vector3Scale(targ_ent->comp_transform.velocity, 10*dt));
 
+
 			Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
-			ct->targ_look = targ;
+			if(Vector3DotProduct(targ, ct->start_forward) >= -0.1f)
+				ct->targ_look = targ;
+
 		} else {
 			Entity *targ_ent = &handler->ents[ai->task_data.target_entity];
 
@@ -426,11 +440,17 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 			look_point = Vector3Add(look_point, Vector3Scale(targ_ent->comp_transform.velocity, 10*dt));
 
 			Vector3 targ = Vector3Normalize(Vector3Subtract(look_point, ct->position));
-			ct->targ_look = targ;
+
+			if(Vector3DotProduct(targ, ct->start_forward) >= -0.1f)
+				ct->targ_look = targ;
+			else 
+				ct->targ_look = ct->start_forward;
 		}
 	} else {
+		ct->targ_look.z = Lerp(ct->targ_look.z, 0, dt * 5);
+
 		if(ent->comp_ai.disrupt_timer >= 99.9f)
-			weap->ammo = 60;
+			weap->ammo = weap->clip_size;
 	}
 
 	if(weap->ammo <= 0) {
@@ -442,12 +462,12 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	trace_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 38));
 
 	Vector3 dir = ct->forward;
-	float offset = GetRandomValue(-5, 5) * 0.01f;	
+	float offset = GetRandomValue(-2, 2) * 0.01f;	
 
 	Vector3 right = Vector3CrossProduct(ct->forward, UP);
 	dir = Vector3Add(dir, Vector3Scale(right, offset));
 
-	offset = GetRandomValue(-5, 5) * 0.01f;
+	offset = GetRandomValue(-2, 2) * 0.01f;
 	dir = Vector3Add(dir, Vector3Scale(UP, offset));
 
 	dir = Vector3Normalize(dir);
@@ -457,7 +477,7 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	// Change this from hardcoded to data specific when ammo clip system implemented.
 	// Purpose of the dummy value is to cause no dammage on the first few shots,
 	// gives the player a warning for fairness.
-	bool dummy = (ent->comp_weapon.ammo > 56);
+	bool dummy = (ent->comp_weapon.ammo > ent->comp_weapon.clip_size - 2 && !(ai->input_mask & AI_INPUT_LOST_PLAYER));
 	Vector3 bullet_dest = TraceBullet(handler, sect, trace_start, dir, ent->id, &hit, dummy);
 
 	//Vector3 trail_start = Vector3Add(trace_start, Vector3Scale(ct->forward, 12));
@@ -473,15 +493,18 @@ void TurretShoot(Entity *ent, EntityHandler *handler, MapSection *sect, float dt
 	// *NOTE:
 	// This just hides a bug with the turret rotation,
 	// delete check when fixed
-	if(weap->ammo < 60)
-		vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
+	//if(weap->ammo < 60)
+		//vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
 	
-	weap->cooldown = 0.085f;
+	vEffectsAddTrail(handler->effect_manager, trail_start, trail_end);
+
+	weap->cooldown = 0.075f;
 	weap->ammo--;
 }
 
 void MaintainerUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
 	comp_Ai *ai = &ent->comp_ai;
+	comp_Transform *ct = &ent->comp_transform;
 
 	switch(ai->state) {
 		case STATE_IDLE:
@@ -504,6 +527,17 @@ void MaintainerUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 		ai->curr_schedule = SCHED_FIX_FRIEND;
 
 	ent->comp_health.hit_box = BoxTranslate(ent->comp_health.hit_box, ent->comp_transform.position);
+
+	if(ai->curr_schedule == SCHED_MAINTAINER_ATTACK) {
+		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
+			ct->forward =  Vector3Lerp(ct->forward, Vector3Subtract(ai->task_data.known_target_position, ct->position), 30*dt);
+			ct->forward.z = 0;
+			ct->forward = Vector3Normalize(ct->forward);
+
+			float angle = atan2f(-ct->forward.x, ct->forward.y);
+			ent->model.transform = MatrixMultiply(MatrixRotateX(90*DEG2RAD), MatrixRotateZ(angle+(90*DEG2RAD)*-1));
+		}
+	}
 
 	EntMove(ent, sect, handler, dt);
 	//ent->anim_frame = (ent->anim_frame + 1) % ent->animations[ent->curr_anim].frameCount;
@@ -604,25 +638,27 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 		ai->input_mask |= AI_INPUT_LOST_PLAYER;
 
 	Entity *player_ent = &handler->ents[handler->player_id];
-	Vector3 to_player = Vector3Normalize(Vector3Subtract(player_ent->comp_transform.position, ct->position));
+
+	Vector3 eye_pos = Vector3Add(ct->position, Vector3Scale(UP, 0.0f));
+	Vector3 to_player = Vector3Normalize(Vector3Subtract(player_ent->comp_transform.position, eye_pos));
 	float d_to_player = Vector3LengthSqr(to_player);
 
 	// Player is in ai's sight cone
-	if(Vector3DotProduct(ct->forward, to_player) > ai->sight_cone && d_to_player <= 1000.0f) { 
+	if(Vector3DotProduct(ct->forward, to_player) >= ai->sight_cone && d_to_player <= 1000.0f) { 
 		// Check for obstructions
-		Ray ray = (Ray) { .position = ct->position, .direction = to_player };
+		Ray ray = (Ray) { .position = eye_pos, .direction = to_player };
 
 		EntTraceData ent_tr = EntTraceDataEmpty();
-		TraceEntities(ray, handler, 2000.0f, ent->id, &ent_tr);
+		TraceEntities(ray, handler, 1000.0f, ent->id, &ent_tr);
 
 		// Trace map geometry
 		// Small affordance to account for spatial partition structure (+32)
 		BvhTraceData tr = TraceDataEmpty();
-		BvhTracePointEx(ray, sect, bvh, 0, &tr, ent_tr.dist);
+		BvhTracePointEx(ray, sect, bvh, 0, &tr, ent_tr.dist + BoundsToRadius(player_ent->comp_transform.bounds));
 
 		// Player hitbox collision closer than possible surface collision.
 		// No obstruction, player is visible 
-		if(ent_tr.dist < tr.distance) {
+		if(!tr.hit && ent_tr.hit_ent == handler->player_id) {
 			ai->input_mask |= AI_INPUT_SEE_PLAYER;
 			ai->input_mask &= ~AI_INPUT_LOST_PLAYER;
 		}
@@ -652,9 +688,14 @@ void AiCheckInputs(Entity *ent, EntityHandler *handler, MapSection *sect) {
 	// ***
 
 	ai->input_mask &= ~AI_INPUT_HEAR_PLAYER;
-	bool in_hearing_range = (d_to_player < ai->hear_distance);
-	if(in_hearing_range && Vector3LengthSqr(player_ent->comp_transform.velocity) >= 0.1f)
+	bool in_hearing_range = (d_to_player < ai->hear_distance*ai->hear_distance);
+	if(in_hearing_range && Vector3LengthSqr(player_ent->comp_transform.velocity) >= 0.1f) {
 		ai->input_mask |= AI_INPUT_HEAR_PLAYER;
+
+		if(!(ai->input_mask & AI_INPUT_LOST_PLAYER)) {
+			ai->task_data.known_target_position = player_ent->comp_transform.position;
+		}
+	}
 }
 
 void AiDoSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, comp_Ai *ai, Ai_TaskData *task_data, float dt) {
@@ -758,8 +799,8 @@ void AiNavSetup(EntityHandler *handler, MapSection *sect) {
 		comp_Ai *ai = &ent->comp_ai;
 
 		if(ent->type == ENT_MAINTAINER) {
-			printf("graph: %d\n", ai->navgraph_id);
-			printf("node: %d\n", ai->curr_navnode_id);
+			//printf("graph: %d\n", ai->navgraph_id);
+			//printf("node: %d\n", ai->curr_navnode_id);
 
 			//MakeNavPath(ent, &sect->navgraphs[ent->comp_ai.navgraph_id], 6);
 			//ai->curr_schedule = SCHED_PATROL;
@@ -863,7 +904,7 @@ bool MakeNavPath(Entity *ent, NavGraph *graph, i16 target_id) {
 	}
 
 	if(!reached_start) {
-		printf("did not reach start\n");
+		//printf("did not reach start\n");
 		dest_found = false;
 		return dest_found;
 	}
@@ -895,14 +936,14 @@ bool AiMoveToNode(Entity *ent, NavGraph *graph, u16 path_id) {
 	NavPath *path = &task->path;
 
 	if(path_id >= path->count) {
-		printf("move not possible, path max overflow\n");
+		//printf("move not possible, path max overflow\n");
 		//ct->velocity = Vector3Zero();
 		ai->wish_dir = Vector3Zero();
 		return false;
 	}
 
 	if(path_id >= graph->node_count) {
-		printf("move not possible, graph count overflow\n");
+		//printf("move not possible, graph count overflow\n");
 		//ct->velocity = Vector3Zero();
 		ai->wish_dir = Vector3Zero();
 		return false;
@@ -1106,33 +1147,38 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 	if(task->task_id == TASK_FIRE_WEAPON) {
 		if(ent->comp_weapon.ammo <= 0) {
 			task->task_id = TASK_RELOAD_WEAPON;
-			task->timer = 0.01f;
-			printf("reload start\n");
+			task->timer = 10.01f;
+			//printf("reload start\n");
 		}
 		return;
 	}
 
 	if(task->task_id == TASK_RELOAD_WEAPON) {
 		if(task->timer <= 0) {
-			ent->comp_weapon.ammo = 60;
+			ent->comp_weapon.ammo = ent->comp_weapon.clip_size;
 			ent->comp_weapon.cooldown = 10.45f;
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 0.01f;
-			printf("reload done\n");
+			task->timer = 20.01f;
+			//printf("reload done\n");
 		}
 
 		return;
 	}
 
-	if(ai->input_mask & AI_INPUT_SEE_PLAYER || ai->input_mask & AI_INPUT_HEAR_PLAYER) {
+	if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
 		task->task_id = TASK_LOOK_AT_ENTITY;
 		task->target_entity = handler->player_id;
-	} else {
-		//Vector3 targ = ct->start_forward;
-		//ct->targ_look = targ;
+	} else if((ai->task_data.task_id != TASK_FIRE_WEAPON) && ent->comp_weapon.ammo <= 0) {
+		Vector3 targ = Vector3Lerp(ct->forward, ct->start_forward, 0.1f);
+		/*
+		if(ai->input_mask & AI_INPUT_HEAR_PLAYER && ai->input_mask & AI_INPUT_LOST_PLAYER)
+			targ = ai->task_data.known_target_position;	
+		*/
 
-		//task->task_id = TASK_WAIT_TIME;
-		//task->timer = 0.0f;
+		ct->targ_look = targ;
+
+		task->task_id = TASK_WAIT_TIME;
+		task->timer = 0.1f;
 	}
 
 	if(task->task_id == TASK_LOOK_AT_ENTITY) {
@@ -1153,7 +1199,7 @@ void AiSentrySchedule(Entity *ent, EntityHandler *handler, MapSection *sect, flo
 
 		if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
 			task->task_id = TASK_FIRE_WEAPON;
-			ent->comp_weapon.ammo = 60;
+			ent->comp_weapon.ammo = ent->comp_weapon.clip_size;
 			ent->comp_weapon.cooldown = 0.05f;
 		} else if(ai->input_mask & AI_INPUT_LOST_PLAYER) {
 			task->task_id = TASK_WAIT_TIME;
@@ -1247,27 +1293,29 @@ void AiMaintainerAttackSchedule(Entity *ent, EntityHandler *handler, MapSection 
 	Ai_TaskData *task = &ai->task_data;
 
 	if(ai->input_mask & AI_INPUT_SEE_PLAYER) {
-		//task->known_target_position = handler->ents[handler->player_id].comp_transform.position;
+		task->known_target_position = handler->ents[handler->player_id].comp_transform.position;
 
 		if(task->task_id == TASK_THROW_PROJECTILE) {
-			//ProjectileThrow(ent, ct->position, ct->forward, 700, 0, handler);
+			Vector3 dir = ct->forward;
+			float offset_h = GetRandomValue(-10, 10) * 0.01f;
+			float offset_v = GetRandomValue(-10, 10) * 0.01f;
+
+			Vector3 right = Vector3CrossProduct(ct->forward, UP);
+			dir = Vector3Add(dir, Vector3Scale(right, offset_h));
+			dir.z += offset_v;
+			dir = Vector3Normalize(dir);
+
+			ProjectileThrow(ent, ct->position, dir, Vector3Distance(task->known_target_position, ct->position), 0, handler);
 
 			task->task_id = TASK_WAIT_TIME;
-			task->timer = 50;
+			task->timer = 10.0f + GetRandomValue(0, 30);
 
 			return;
 		}
-
-		ct->forward = (Vector3Subtract(task->known_target_position, ct->position));
-		ct->forward.z = 0;
-		ct->forward = Vector3Normalize(ct->forward);
-
-		float angle = atan2f(-ct->forward.x, ct->forward.y);
-		ent->model.transform = MatrixMultiply(MatrixRotateX(90*DEG2RAD), MatrixRotateZ(angle+(90*DEG2RAD)*-1));
 	}
 
 	task->task_id = TASK_THROW_PROJECTILE;
-	task->timer = 30;
+	task->timer = 10.0f;
 }
 
 void AiMaintainerMakeNewSchedule(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) {
@@ -1530,7 +1578,7 @@ void DebugDrawEntText(EntityHandler *handler, Camera3D cam) {
 // in the future I'll probably use actual ai inputs for this...
 // Sound, sight, etc.
 void AlertMaintainers(EntityHandler *handler, u16 disrupted_id) {
-	puts("AlertMaintainers");
+	//puts("AlertMaintainers");
 
 	Entity *disrupted_ent = &handler->ents[disrupted_id];
 	comp_Ai *disrupted_ai = &disrupted_ent->comp_ai;
@@ -1606,12 +1654,44 @@ void OnHitMaintainer(Entity *ent, short damage) {
 	comp_Transform *ct = &ent->comp_transform;
 	comp_Ai *ai = &ent->comp_ai;
 
-	if(ai->state == STATE_DEAD) {
-		ct->velocity.x = 0;
-		ct->velocity.z = 0;	
-		ai->wish_dir = Vector3Zero();
+	if(ai->input_mask & AI_INPUT_SELF_GLITCHED) {
+		ent->comp_health.amount = 0;
+		ai->state = STATE_DEAD;
 	}
-	
+
+	Vector3 to_player = Vector3Subtract(ptr_handler_self->ents[ptr_handler_self->player_id].comp_transform.position, ct->position);
+	to_player = Vector3Normalize(to_player);
+
+	Vector3 prev_wish = ai->wish_dir;
+	float prev_speed = ai->speed;
+
+	ai->speed = 6000;
+
+	Vector3 knockback = Vector3Negate(to_player);
+	if(ai->state != STATE_DEAD)
+		knockback.z = 0;
+	else {
+		short dice = GetRandomValue(0, 6);
+		if(dice == 6) {
+			knockback.z = 0.99f;
+			ai->speed = 2500;
+		}
+	}
+	knockback = Vector3Normalize(knockback);
+
+
+	ai->wish_dir = knockback;
+	EntMove(ent, ptr_handler_sect, ptr_handler_self, GetFrameTime());
+
+	ai->wish_dir = prev_wish;
+	ai->speed = prev_speed;
+
+	if(ai->state == STATE_DEAD) {
+		//ct->velocity.x = 0;
+		//ct->velocity.y = 0;	
+		ai->wish_dir = Vector3Zero();
+		ent->flags &= ~ENT_COLLIDERS;
+	}
 }
 
 void OnHitRegulator(Entity *ent, short damage) {
@@ -1669,7 +1749,7 @@ void EntMove(Entity *ent, MapSection *sect, EntityHandler *handler, float dt) {
 	if(Vector3LengthSqr(ct->velocity) <= 1.0f)
 		return;
 
-	pmTraceData move_data = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1 };
+	pmTraceData move_data = (pmTraceData) { .start_in_solid = -1, .end_in_solid = -1, .block = 0 };
 	pm_TraceMove(ct, ct->position, ct->velocity, &move_data, dt);
 
 	ct->position = move_data.end_pos;
@@ -1731,7 +1811,8 @@ void proj_TraceMove(Projectile *proj, Vector3 start, Vector3 wish_vel, pmTraceDa
 		if(fraction < 1.0f) {
 			pm->end_in_solid = (tr.hit) ? pm_CheckHull(dest, tr.hull_id) : -1;
 
-			health->amount -= Vector3Length(vel) * 0.5f;
+			//health->amount -= Vector3Length(vel) * 0.5f;
+			health->amount -= Vector3Length(vel) * 0.1f;
 		}
 
 		// No obstruction, do full movement 
@@ -1855,8 +1936,8 @@ void ProjectileThrow(Entity *ent, Vector3 pos, Vector3 dir, float force, u8 type
 	ct->bounds = (BoundingBox) { .min = Vector3Scale(Vector3One(), -8), .max = Vector3Scale(Vector3One(), 8) };
 	ct->bounds = BoxTranslate(ct->bounds, ct->position);
 	
-	Vector3 vel = Vector3Scale(dir, force + GetRandomValue(-60, 60));
-	vel.z += 200 + GetRandomValue(-50, 50);
+	Vector3 vel = Vector3Scale(dir, force + GetRandomValue(0, 60));
+	vel.z += 300 + GetRandomValue(-50, 50);
 	ct->velocity = vel;
 
 	projectile.health.amount = 100;
@@ -1919,10 +2000,22 @@ void RenderProjectiles(EntityHandler *handler) {
 }
 
 void ReloadEntities(EntityHandler *handler, MapSection *sect) {
+	u8 states[handler->count];
+	for(u16 i = 0; i < handler->count; i++) {
+		states[i] = handler->ents[i].comp_ai.state;
+	}
+
 	handler->count = 0;
 
-	for(u16 i = 0; i < handler->spawn_list.count; i++) 
+	for(u16 i = 0; i < handler->spawn_list.count; i++) {
 		ProcessEntity(&handler->spawn_list.arr[i], handler, NULL);
+		if(states[handler->count-1] == STATE_DEAD)
+			handler->ents[handler->count-1].comp_ai.state = STATE_DEAD;
+	}
+
+	// * NOTE:
+	// Remove later
+	//handler->checkpoint_list.active = 2;
 
 	if(handler->checkpoint_list.active > -1)
 		handler->player_start = handler->checkpoint_list.points[handler->checkpoint_list.active];
@@ -1931,5 +2024,7 @@ void ReloadEntities(EntityHandler *handler, MapSection *sect) {
 	handler->ents[handler->bug_id].comp_ai.state = 0;	
 
 	AiNavSetup(handler, sect);
+
+	handler->ai_tick = 1.0f; 
 }
 

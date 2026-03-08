@@ -47,17 +47,17 @@ comp_Weapon weapons[] = {
 	// Pistol
 	(comp_Weapon) {
 		.id = WEAP_PISTOL,
-		.damage = 5
+		.damage = 1
 	},
 	// Shotgun
 	(comp_Weapon) {
 		.id = WEAP_SHOTGUN,
-		.damage = 5,
+		.damage = 3,
 	},
 	// Revolver
 	(comp_Weapon) {
 		.id = WEAP_REVOLVER,
-		.damage = 5,
+		.damage = 3,
 	},
 	// Disruptor
 	(comp_Weapon) {

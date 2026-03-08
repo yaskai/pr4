@@ -408,15 +408,13 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 			Vector3 hvel = (Vector3) { ct->velocity.x, ct->velocity.y, 0 };
 			Vector3 self_xy = (Vector3) { ct->position.x, ct->position.y, 0 }; 
 			Vector3 targ_xy = (Vector3) { enemy_ent->comp_transform.position.x, enemy_ent->comp_transform.position.y, 0 }; 
-			if(Vector3Distance(self_xy, targ_xy) <= 18.0f && height_check) {
+			if(Vector3Distance(self_xy, targ_xy) <= 48.0f && height_check) {
 				Vector3 to_targ = Vector3Subtract(targ_xy, self_xy);
 
 				float into = Vector3DotProduct(to_targ, Vector3Normalize(hvel));
 				if(into < 0) {
-					ct->velocity = Vector3Subtract(ct->velocity, Vector3Scale(to_targ, into));
+					ct->velocity = Vector3Subtract(ct->velocity, Vector3Scale(to_targ, into*0.75f));
 				}
-
-				ct->velocity.z -= (BUG_GRAV * 0.33f) * dt;
 			}
 		}
 
@@ -510,7 +508,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 				ent->comp_ai.task_data.target_entity = handler->player_id;
 				
-				float dist_add = 30.0f + (Vector3Distance(player_ent->comp_transform.position, ct->position) * 0.1f);
+				float dist_add = 10.0f + (Vector3Distance(player_ent->comp_transform.position, ct->position) * 0.1f);
 				dist_add = Clamp(dist_add, 0, 100);
 				ct->velocity.z += dist_add;
 
@@ -528,7 +526,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 	// -------------------------------------------------------------------------------------------------------------
 
 	// Pickup
-	if(CheckCollisionSpheres(ct->position, 32, player_ent->comp_transform.position, 16) && launch_timer <= 0) {
+	if(CheckCollisionSpheres(ct->position, 16, player_ent->comp_transform.position, 16) && launch_timer <= 0) {
 		ai->state = BUG_DEFAULT;
 	}
 
@@ -560,7 +558,7 @@ void BugDraw(Entity *ent) {
 
 	if(ent->comp_ai.state == STATE_DEAD) {
 		model_dead.transform = ent->model.transform;
-		DrawModel(model_dead, pos, 3, LIGHTGRAY);	
+		DrawModel(model_dead, pos, 3, WHITE);	
  	} else {
 		DrawModel(ent->model, pos, 3, WHITE);	
 	}

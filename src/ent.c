@@ -268,8 +268,8 @@ void UpdateEntities(EntityHandler *handler, MapSection *sect, float dt) {
 
 	grid_tick -= dt;
 	if(grid_tick < 0.0f) {
-		// Do next grid update in ~5 frames
-		grid_tick = (5*dt);
+		// Do next grid update in ~3 frames
+		grid_tick = (3*dt);
 
 		UpdateGrid(handler);
 	}
@@ -1958,6 +1958,11 @@ void ProjectileThrow(Entity *ent, Vector3 pos, Vector3 dir, float force, u8 type
 
 void ProjectileImpact(Projectile *projectile, EntityHandler *handler, i16 ent_id) {
 	if(ent_id == -1) {
+		*projectile = (Projectile) {0};
+		return;
+	}
+
+	if(ent_id == handler->bug_id) {
 		*projectile = (Projectile) {0};
 		return;
 	}

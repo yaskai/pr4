@@ -151,7 +151,7 @@ void BugBounce(Entity *bug_ent, comp_Transform *ct, MapSection *sect, EntityHand
 				big_bounce_used = true;
 			}
 		} else {
-			ct->velocity.z += 100.0f + (0.15f*(*bounce));
+			ct->velocity.z += 100.0f + (1.15f*(*bounce));
 			if(enemy_ent->comp_transform.position.z > ct->position.z + 64.0f) {
 				ct->velocity.z += 300.0f;
 			}
@@ -336,7 +336,7 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 		bug_cooldown = 10;
 
-		ent->comp_health.amount = 5;
+		ent->comp_health.amount = 100;
 
 		bug_target_picked = false;
 		ent->comp_ai.task_data.target_entity = -1;
@@ -494,9 +494,12 @@ void BugUpdate(Entity *ent, EntityHandler *handler, MapSection *sect, float dt) 
 
 				ent->comp_ai.task_data.target_entity = handler->player_id;
 				
-				float dist_add = 30.0f + (Vector3Distance(player_ent->comp_transform.position, ct->position) * 0.1f);
+				float dist_add = 5.0f + (Vector3Distance(player_ent->comp_transform.position, ct->position) * 0.1f);
 				dist_add = Clamp(dist_add, 0, 100);
 				ct->velocity.z += dist_add;
+
+				if(ct->position.z < player_ent->comp_transform.position.z)
+					ct->velocity.z += 150.0f;
 
 				ent->comp_ai.state = BUG_LAUNCHED;
 				ent->flags |= BUG_RECALL;

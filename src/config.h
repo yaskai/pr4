@@ -17,9 +17,10 @@ enum VALUE_TYPES : u8 {
 	VAL_HEX		= 4
 };
 
-#define OPTION_BLOCK_COUNT 2
+#define OPTION_BLOCK_COUNT 3
 enum OPTION_BLOCK_NAMES : u8 {
 	OPT_BLOCK_WINDOW,
+	OPT_BLOCK_INPUT,
 	OPT_BLOCK_OTHER
 };
 
@@ -58,6 +59,8 @@ typedef struct {
 	u32 window_width, window_height;
 	u32 target_fps;
 
+	u32 mouse_sensitivity;
+
 	OptionTable option_tables[OPTION_BLOCK_COUNT];
 
 } Config;
@@ -66,7 +69,7 @@ void ConfigInit(Config *conf);
 void ConfigClose(Config *conf);
 
 void ConfigRead(Config *conf, char *path);
-void ConfigParseLine(Config *conf, char *line, u8 block, u8 print);
+void ConfigParseLine(Config *conf, char *line, u8 *block, u8 print);
 
 void ConfigPrintComment(char *comment);
 

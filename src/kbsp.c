@@ -463,12 +463,6 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 			data.textures[i] = (Texture2D) {0};
 			continue;
 		}
-		printf("tex[%d] seek_to=%d lump_off=%d mip_off=%d offset1=%d\n",
-			i,
-			data.miptex_lump_offset + mip_offsets[i] + mip->offset1,
-			data.miptex_lump_offset,
-			mip_offsets[i],
-			mip->offset1);
 
 		int px_count = mip->width * mip->height;
 		u8 *indexed = malloc(px_count);

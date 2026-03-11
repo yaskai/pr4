@@ -20,9 +20,9 @@ Option OptionCreate(char *key, void *control, u8 val_type) {
 
 OptionTable OptionTableCreate() {
 	return (OptionTable) {
-		.capacity = 32,
+		.capacity = 8,
 		.count = 0,
-		.entries = calloc(32, sizeof(Option))
+		.entries = calloc(8, sizeof(Option))
 	};
 }
 
@@ -48,7 +48,8 @@ void OptionTableResize(OptionTable *table) {
 	// Copy entries to their correct indices in temp array 
 	for(u16 i = 0; i < table->capacity; i++) {
 		Option entry = table->entries[i];
-		if(entry.key[0] == '\0') continue; 
+		if(entry.key[0] == '\0') 
+			continue; 
 
 		u16 id = OptionTableHash(entry.key) % new_cap;
 		new_entries[id] = entry;
@@ -74,7 +75,13 @@ void OptionTableInsert(OptionTable *table, Option entry) {
 	u16 attempt = 0;
 
 	while(attempt < table->capacity) {
+		/*
 		if(!streq(table->entries[id].key, entry.key)) {;
+			id = Probe(id, ++attempt, table->capacity); 
+			continue;
+		}
+		*/
+		if(table->entries[id].key[0] != '\0') {
 			id = Probe(id, ++attempt, table->capacity); 
 			continue;
 		}
@@ -117,10 +124,13 @@ void ConfigInit(Config *conf) {
 	Option opt_wh = OptionCreate("height", &conf->window_height, VAL_INT);
 	OptionTableInsert(&conf->option_tables[OPT_BLOCK_WINDOW], opt_wh);
 
+	Option opt_mouse_sensitivity = OptionCreate("mouse_sens", &conf->mouse_sensitivity, VAL_INT);
+	OptionTableInsert(&conf->option_tables[OPT_BLOCK_INPUT], opt_mouse_sensitivity);
+
 	/*
-	for(u8 i = 0; i < conf->option_tables[0].capacity; i++) {
+	for(u8 i = 0; i < conf->option_tables[1].capacity; i++) {
 		puts("--------------------");
-		printf("%d: %s\n", i, conf->option_tables[0].entries[i].key);
+		printf("%d: %s\n", i, conf->option_tables[1].entries[i].key);
 	}
 	*/
 }
@@ -146,42 +156,53 @@ void ConfigRead(Config *conf, char *path) {
 	u8 block = 0;
 	char line[128];
 	while(fgets(line, sizeof(line), pF)) {
-		ConfigParseLine(conf, line, block, 0);
+		ConfigParseLine(conf, line, &block, 1);
 	}
 
 	// Close file
 	fclose(pF);
 }
 
-void ConfigParseLine(Config *conf, char *line, u8 block, u8 print) {
+void ConfigParseLine(Config *conf, char *line, u8 *block, u8 print) {
 	char *block_open = strchr(line, BLOCK_OPEN_MARKER);
 	char *block_close = strchr(line, BLOCK_CLOSE_MARKER);
 
 	if(block_open && block_close) {
-		char block_name[64] = { '\0' };
-		memcpy(block_name, line + 1, strlen(line) - 2);
+		u8 len = strlen(line);
+		char block_name[64] = { '\0' }; 
+		memcpy(block_name, line+1, len-3);
 
 		if(streq(block_name, "window")) {
-			block = OPT_BLOCK_WINDOW;	
+			*block = OPT_BLOCK_WINDOW;	
+
+		} else if(streq(block_name, "input")) {
+			*block = OPT_BLOCK_INPUT;
+
 		} else if(streq(block_name, "other")) {
-			block = OPT_BLOCK_OTHER;	
+			*block = OPT_BLOCK_OTHER;	
+
 		}
 	}
 
-	OptionTable *table = &conf->option_tables[block];
+	OptionTable *table = &conf->option_tables[*block];
 
 	char *comment = strchr(line, COMMENT_MARKER);	
 	if(comment) *comment = '\0';
 
-	if(!line && !comment) return;
+	if(!line && !comment)
+		return;
 
 	if(print) {
-		printf("%s", line);
-		if(comment) ConfigPrintComment(comment);
+		char *print_color = (block_open && block_close) ? ANSI_BLUE : ANSI_WHITE;
+		Message(line, print_color);
+
+		if(comment) 
+			ConfigPrintComment(comment);
 	}
 
 	char *eq = strchr(line, '=');
-	if(!eq) return;
+	if(!eq) 
+		return;
 
 	*eq = '\0';
 	char *key = line;
@@ -190,9 +211,10 @@ void ConfigParseLine(Config *conf, char *line, u8 block, u8 print) {
 	u16 id = OptionTableHash(key) % table->capacity; 
 
 	Option *option = OptionTableSearch(table, key);
-	if(!option) return;	
+	if(!option)
+		return;	
 	
-	switch(table->entries[id].value_type) {
+	switch(option->value_type) {
 		case VAL_INT: {
 			i32 i = 0; 
 			sscanf(val, "%d", &i);

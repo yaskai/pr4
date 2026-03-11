@@ -8,7 +8,7 @@ void InputInit(InputHandler *handler) {
 	//handler->mouse_sensitivity = 0.475f;
 	//handler->mouse_sensitivity = 0.0045f;
 	//handler->mouse_sensitivity = 0.0195f;
-	handler->mouse_sensitivity = 0.0035f;
+	//handler->mouse_sensitivity = 0.0035f;
 
 	handler->actions[ACTION_MOVE_L].key 	= KEY_A;
 	handler->actions[ACTION_MOVE_R].key 	= KEY_D;

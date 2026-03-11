@@ -89,8 +89,8 @@ ___
 ** (-) Optimized:
 *** (x) import .vis file
 *** (x) use portalizer for mesh render list
-*** (-) make special textures (hint + skip)
-*** (-) make detail brush entities in .fgd (func_detail_illusionary, func_detail_fence, func_detail_wall)
+*** (x) make special textures (hint + skip)
+*** (x) make detail brush entities in .fgd (func_detail_illusionary, func_detail_fence, func_detail_wall)
 
 ___
 * *UI*

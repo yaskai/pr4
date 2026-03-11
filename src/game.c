@@ -48,6 +48,8 @@ void GameInit(Game *game, Config *conf) {
 	game->conf = conf;	
 
 	InputInit(&game->input_handler);
+	game->input_handler.mouse_sensitivity = game->conf->mouse_sensitivity * 0.0001f;
+	printf("%d\n", conf->mouse_sensitivity);
 
 	SetLogState(0);
 }

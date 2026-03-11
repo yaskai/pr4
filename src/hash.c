@@ -61,11 +61,12 @@ void HashInsert(HashMap *map, char *key, int val) {
 	while(map->nodes[id].key[0] != '\0')
 		id = LinearProbe(id, ++attempt, map->capacity);
 
+	/*
 	printf("Making new node...\n");
 	printf("key: %s\n", key);
 	printf("val: %d\n", val);
-
 	printf("Inserting new node...\n");
+	*/
 
 	HashNode node = (HashNode) { .val = val, .key = { '\0' } };
 	memcpy(node.key, key, strlen(key));

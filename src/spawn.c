@@ -75,7 +75,9 @@ void ProcessEntity(EntSpawn *spawn_point, EntityHandler *handler, NavGraph *nav_
 }
 
 Entity SpawnEntity(EntSpawn *spawn_point, EntityHandler *handler) {
-	Entity ent = (Entity) { .id = handler->count, .cell_id = -1 };
+	Entity ent = (Entity) {0};
+	ent.id = handler->count;
+	ent.cell_id = -1;
 
 	ent.comp_transform.position = spawn_point->position;
 

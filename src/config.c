@@ -156,7 +156,7 @@ void ConfigRead(Config *conf, char *path) {
 	u8 block = 0;
 	char line[128];
 	while(fgets(line, sizeof(line), pF)) {
-		ConfigParseLine(conf, line, &block, 1);
+		ConfigParseLine(conf, line, &block, 0);
 	}
 
 	// Close file

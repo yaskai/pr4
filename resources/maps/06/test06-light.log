@@ -1,30 +1,19 @@
 ---- light / ericw-tools 2.0.0-alpha10 ----
-LoadBSPFile: './resources/maps/06/test06.bsp'
+LoadBSPFile: 'test06.bsp'
 BSP is version Quake BSP bsp29
 INFO: using built-in palette.
-load: WARNING: filesystem error: cannot get file size: Is a directory [./resources/maps/06/]
 ConvertTextures: WARNING: invalid size data for 
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-ConvertTextures: WARNING: Texture  duplicated
-Loading extended texinfo flags from ./resources/maps/06/test06.texinfo.json...
-Loading extended content flags from ./resources/maps/06/test06.content.json...
-7 entities read, 1 are lights.
+Loading extended texinfo flags from test06.texinfo.json...
+Loading extended content flags from test06.content.json...
+31 entities read, 1 are lights.
 
 --- Options Summary ---
+    "surflight_radiosity" was set to "1" (from command line)
 
-DecompressAllVis: invalid visofs for leaf 0
 Embree_TraceInit: Embree version: 4.4.0
 Embree_TraceInit: 
 	0 sky faces
-	1587 solid faces
+	6719 solid faces
 	0 filtered faces
 	0 shadow-casting skip faces
 SetupLights: 1 initial lights
@@ -33,12 +22,12 @@ SetupLights: 1 after jittering
 Final count: 1 lights, 0 suns in use.
 0 surface light points in use.
 map uses color: false
-lightmap size (total): 3520
+lightmap size (total): 4116
 Lighting Completed.
 
 0 switchable light styles (32 max)
-Writing ./resources/maps/06/test06.bsp as Quake BSP bsp29
-0.027s seconds elapsed
+Writing test06.bsp as Quake BSP bsp29
+0.116s seconds elapsed
 0 empty lightmaps
 
 

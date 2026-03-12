@@ -16,7 +16,7 @@ int main() {
 	//SetTraceLogLevel(LOG_ERROR);
 	SetTraceLogLevel(LOG_NONE);
 	//SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_VSYNC_HINT | FLAG_BORDERLESS_WINDOWED_MODE | FLAG_MSAA_4X_HINT);
-	SetConfigFlags(FLAG_FULLSCREEN_MODE | FLAG_VSYNC_HINT);
+	SetConfigFlags(FLAG_FULLSCREEN_MODE | FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
 
 	if(conf.window_width == atoi("auto"))
 		conf.window_width = GetScreenWidth();

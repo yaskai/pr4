@@ -49,6 +49,7 @@ void GameInit(Game *game, Config *conf) {
 
 	InputInit(&game->input_handler);
 	game->input_handler.mouse_sensitivity = game->conf->mouse_sensitivity * 0.0001f;
+	
 	SetLogState(0);
 }
 

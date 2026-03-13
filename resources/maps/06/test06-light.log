@@ -1,33 +1,55 @@
 ---- light / ericw-tools 2.0.0-alpha10 ----
-LoadBSPFile: 'test06.bsp'
+LoadBSPFile: './resources/maps/06/test06.bsp'
 BSP is version Quake BSP bsp29
 INFO: using built-in palette.
+load: WARNING: filesystem error: cannot get file size: Is a directory [./resources/maps/06/]
 ConvertTextures: WARNING: invalid size data for 
-Loading extended texinfo flags from test06.texinfo.json...
-Loading extended content flags from test06.content.json...
-31 entities read, 1 are lights.
+Loading extended texinfo flags from ./resources/maps/06/test06.texinfo.json...
+Loading extended content flags from ./resources/maps/06/test06.content.json...
+WARNING: worldspawn key _sunlight_color has invalid value of "$"
+WARNING: 'anglescale': 2 is greater than maximum value 1.
+43 entities read, 13 are lights.
+.lit colored light output requested on command line.
 
 --- Options Summary ---
+    "dist" was set to "1.000000" (from map)
+    "anglescale" was set to "1.000000" (from map)
+    "light" was set to "0.000000" (from map)
+    "dirt" was set to "1" (from map)
+    "minlight_dirt" was set to "1" (from command line)
+    "bounce" was set to "1" (from map)
+    "bouncescale" was set to "20.000000" (from map)
+    "sunlight" was set to "400.000000" (from map)
+    "sunlight2" was set to "60.000000" (from map)
+    "sunlight2_color" was set to "255 242.25 204" (from map)
+    "sunlight_dirt" was set to "1.000000" (from map)
+    "sunlight2_dirt" was set to "1.000000" (from command line)
+    "sunlight_mangle" was set to "-3.3484866e-08 -0.76604444 -0.6427876" (from map)
+    "sunlight_penumbra" was set to "20.000000" (from map)
     "surflight_radiosity" was set to "1" (from command line)
+    "soft" was set to "5" (from command line)
+    "extra" was set to "4" (from command line)
 
 Embree_TraceInit: Embree version: 4.4.0
 Embree_TraceInit: 
-	0 sky faces
-	6719 solid faces
+	350 sky faces
+	9133 solid faces
 	0 filtered faces
 	0 shadow-casting skip faces
-SetupLights: 1 initial lights
-SetupLights: 1 after surface lights
-SetupLights: 1 after jittering
-Final count: 1 lights, 0 suns in use.
+SetupLights: 13 initial lights
+SetupLights: 13 after surface lights
+SetupLights: 13 after jittering
+Final count: 13 lights, 129 suns in use.
+       48 dirtmap vectors
 0 surface light points in use.
-map uses color: false
-lightmap size (total): 4116
+map uses color: true
+lightmap size (total): 1442368
 Lighting Completed.
 
+Writing ./resources/maps/06/test06.lit
 0 switchable light styles (32 max)
-Writing test06.bsp as Quake BSP bsp29
-0.116s seconds elapsed
+Writing ./resources/maps/06/test06.bsp as Quake BSP bsp29
+24.004s seconds elapsed
 0 empty lightmaps
 
 

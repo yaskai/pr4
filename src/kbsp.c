@@ -495,7 +495,6 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 	// Close and return data
 	fclose(pF);
 
-
 	FilePathList mat_list = LoadDirectoryFiles("tools/Disruptor/textures/custom");	
 
 	materials = malloc(sizeof(Material) * mat_list.count); 
@@ -513,6 +512,8 @@ Bsp_Data LoadBsp(char *path, bool print_output) {
 
 		HashInsert(&material_hashmap, format, i);
 
+		//Image img = LoadImage(mat_list.paths[i]);
+		//textures[i] = LoadTextureFromImage(img);
 		textures[i] = LoadTexture(mat_list.paths[i]);
 
 		materials[i] = LoadMaterialDefault();

@@ -38,11 +38,7 @@ Vector2 Bsp_FaceLightmapSize(Bsp_Data *bsp, Bsp_Face *face) {
 Image MakeLightmapAtlas(Bsp_Data *bsp, Rectangle *lm_uvs) {
 	Image atlas = (Image) {0};
 
-	int aW = 512;
-	int aH = 0;
-	int cX = 0, cY = 0;
-
-	int row_height = 0;
+	Rectangle frame_rec = (Rectangle) { 0 };
 
 	for(int i = 0; i < bsp->num_faces; i++) {
 		Bsp_Face *face = &bsp->faces[i];
@@ -51,11 +47,11 @@ Image MakeLightmapAtlas(Bsp_Data *bsp, Rectangle *lm_uvs) {
 
 		Vector2 size = Bsp_FaceLightmapSize(bsp, face);
 
-		if(cX + size.x > aW) {
-			cY += row_height;
-			cX = 0;
-			
-		}
+		if(size.x > frame_rec.width)
+			frame_rec.width = size.x;
+		
+		if(size.y > frame_rec.height)
+			frame_rec.height = size.y;
 	}
 
 	return atlas;

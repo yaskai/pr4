@@ -126,13 +126,6 @@ void ConfigInit(Config *conf) {
 
 	Option opt_mouse_sensitivity = OptionCreate("mouse_sens", &conf->mouse_sensitivity, VAL_INT);
 	OptionTableInsert(&conf->option_tables[OPT_BLOCK_INPUT], opt_mouse_sensitivity);
-
-	/*
-	for(u8 i = 0; i < conf->option_tables[1].capacity; i++) {
-		puts("--------------------");
-		printf("%d: %s\n", i, conf->option_tables[1].entries[i].key);
-	}
-	*/
 }
 
 void ConfigClose(Config *conf) {

@@ -1031,11 +1031,13 @@ void DrawMap(MapSection *sect, Vector3 pos) {
 	*/
 
 	//Matrix mat = MatrixRotateX(90*DEG2RAD);
-	//sect->model.transform = mat;
+	//ect->model.transform = mat;
 	//DrawModel(sect->model, Vector3Zero(), 1, WHITE);
 
+	//puts("DrawMap()");
+
 	rlDisableBackfaceCulling();
-	BeginBlendMode(BLEND_ALPHA);
+	//BeginBlendMode(BLEND_ALPHA);
 	int curr_leaf = Bsp_FindLeaf(&sect->bsp_data, pos);
 	for(int i = 0; i < model_list.count; i++) {
 		if(!Bsp_LeafVisible(&sect->bsp_data, curr_leaf, model_list.ids[i])) 
@@ -1043,7 +1045,7 @@ void DrawMap(MapSection *sect, Vector3 pos) {
 
 		DrawModel(model_list.models[i], Vector3Zero(), 1, WHITE);
 	}
-	EndBlendMode();
+	//EndBlendMode();
 	rlEnableBackfaceCulling();
 }
 

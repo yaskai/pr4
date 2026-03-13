@@ -1,0 +1,7 @@
+---- light / ericw-tools 2.0.0-alpha10 ----
+LoadBSPFile: './resources/maps/test06.bsp'
+************ ERROR ************
+LoadBSPFile: Unable to load "./resources/maps/test06.bsp"
+
+
+
